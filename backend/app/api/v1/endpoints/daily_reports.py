@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from datetime import date
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser
@@ -13,6 +14,7 @@ from app.dependencies import get_current_user
 from app.schemas.daily_report import (
     DailyReportCreateRequest,
     DailyReportResponse,
+    DailyReportRosterRow,
     DailyReportUpdateRequest,
 )
 from app.services.daily_report_service import DailyReportService
@@ -67,6 +69,24 @@ async def publish_report(
     return await service.to_response(report)
 
 
+@router.get(
+    "/daily-reports/roster",
+    response_model=list[DailyReportRosterRow],
+    summary="Guruh bo'yicha kunlik hisobot rosteri (TEACHER/MANAGER/OWNER)",
+)
+async def daily_report_roster(
+    group_id: uuid.UUID = Query(...),
+    report_date: date = Query(..., alias="date"),
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[DailyReportRosterRow]:
+    return await DailyReportService(session).roster_for_group(
+        group_id, report_date, current_user
+    )
+
+
+# DIQQAT: bu marshrut `/daily-reports/roster` dan KEYIN turishi shart — aks holda
+# FastAPI "roster" so'zini `report_id` deb o'qib, UUID validatsiyasida yiqiladi.
 @router.get(
     "/daily-reports/{report_id}",
     response_model=DailyReportResponse,

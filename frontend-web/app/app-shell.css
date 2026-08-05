@@ -2724,3 +2724,11 @@ html[data-theme="dark"] #cmdk {
   user-select: all;
   word-break: break-all;
 }
+
+/* ---- Jadval qatoridagi amal tugmalari (kunlik hisobot va h.k.) ---- */
+.row-actions {
+  display: flex;
+  gap: var(--s2, 8px);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}

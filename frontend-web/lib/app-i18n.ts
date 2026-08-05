@@ -21,6 +21,7 @@ export interface AppStrings {
     myGroup: string;
     dashboard: string;
     reports: string;
+    dailyReports: string;
     children: string;
     groups: string;
     attendance: string;
@@ -255,6 +256,45 @@ export interface AppStrings {
     trend: string;
     trendSub: string;
     rate: string;
+  };
+  dailyReports: {
+    title: string;
+    subtitle: string;
+    write: string;
+    edit: string;
+    view: string;
+    publish: string;
+    publishing: string;
+    published: string;
+    draft: string;
+    notWritten: string;
+    meal: string;
+    mealAteWell: string;
+    mealAteSome: string;
+    mealRefused: string;
+    mood: string;
+    moodHappy: string;
+    moodCalm: string;
+    moodTired: string;
+    moodSad: string;
+    moodSick: string;
+    nap: string;
+    napMinutes: string;
+    activities: string;
+    activitiesHint: string;
+    teacherNote: string;
+    teacherNoteHint: string;
+    summary: string;
+    summaryHint: string;
+    publishConfirm: string;
+    publishConfirmBody: string;
+    publishedLocked: string;
+    savedDraft: string;
+    publishedToast: string;
+    needText: string;
+    countDone: string;
+    countDraft: string;
+    countMissing: string;
   };
   payments: {
     title: string;
@@ -499,6 +539,7 @@ const T: Table = {
   navMyGroup: ["Mening guruhim", "Моя группа", "My group"],
   navDashboard: ["Boshqaruv paneli", "Панель управления", "Dashboard"],
   navReports: ["Hisobotlar", "Отчёты", "Reports"],
+  navDailyReports: ["Kunlik hisobot", "Ежедневный отчёт", "Daily report"],
   navChildren: ["Bolalar", "Дети", "Children"],
   navGroups: ["Guruhlar", "Группы", "Groups"],
   navAttendance: ["Davomat", "Посещаемость", "Attendance"],
@@ -999,6 +1040,75 @@ const T: Table = {
     "Сообщение доставляется через Telegram — только подключённым семьям.",
     "Delivered via Telegram — only to families connected to the bot.",
   ],
+  drTitle: ["Kunlik hisobot", "Ежедневный отчёт", "Daily report"],
+  drSubtitle: [
+    "Har bir bola uchun kunlik hisobot — e'lon qilingach ota-onaga Telegram orqali boradi.",
+    "Ежедневный отчёт по каждому ребёнку — после публикации уходит родителю в Telegram.",
+    "A daily report per child — once published it is sent to the parent via Telegram.",
+  ],
+  drWrite: ["Yozish", "Написать", "Write"],
+  drEdit: ["Tahrirlash", "Редактировать", "Edit"],
+  drView: ["Ko'rish", "Посмотреть", "View"],
+  drPublish: ["E'lon qilish", "Опубликовать", "Publish"],
+  drPublishing: ["Yuborilmoqda…", "Отправляется…", "Publishing…"],
+  drPublished: ["E'lon qilingan", "Опубликован", "Published"],
+  drDraft: ["Qoralama", "Черновик", "Draft"],
+  drNotWritten: ["Yozilmagan", "Не написан", "Not written"],
+  drMeal: ["Ovqatlanish", "Питание", "Meals"],
+  drMealAteWell: ["Yaxshi yedi", "Хорошо поел", "Ate well"],
+  drMealAteSome: ["Qisman yedi", "Поел частично", "Ate some"],
+  drMealRefused: ["Yemadi", "Отказался", "Refused"],
+  drMood: ["Kayfiyat", "Настроение", "Mood"],
+  drMoodHappy: ["Quvnoq", "Весёлое", "Happy"],
+  drMoodCalm: ["Xotirjam", "Спокойное", "Calm"],
+  drMoodTired: ["Charchagan", "Усталое", "Tired"],
+  drMoodSad: ["Xafa", "Грустное", "Sad"],
+  drMoodSick: ["Kasal", "Болеет", "Sick"],
+  drNap: ["Uyqu", "Сон", "Nap"],
+  drNapMinutes: ["daqiqa", "минут", "minutes"],
+  drActivities: ["Kun davomida", "В течение дня", "Activities"],
+  drActivitiesHint: [
+    "Bola bugun nima qildi — mashg'ulotlar, o'yinlar, yutuqlar.",
+    "Чем ребёнок занимался — занятия, игры, достижения.",
+    "What the child did today — activities, games, achievements.",
+  ],
+  drTeacherNote: ["Tarbiyachi izohi", "Заметка воспитателя", "Teacher note"],
+  drTeacherNoteHint: [
+    "Ota-onaga aytiladigan qo'shimcha izoh.",
+    "Дополнительный комментарий для родителя.",
+    "An extra note for the parent.",
+  ],
+  drSummary: ["Yakuniy matn", "Итоговый текст", "Summary"],
+  drSummaryHint: [
+    "Ota-onaga yuboriladigan matn. Bo'sh qoldirilsa \"Kun davomida\" matni ishlatiladi.",
+    "Текст для родителя. Если пусто, используется текст \"В течение дня\".",
+    "The text sent to the parent. If empty, the activities text is used.",
+  ],
+  drPublishConfirm: ["E'lon qilinsinmi?", "Опубликовать?", "Publish?"],
+  drPublishConfirmBody: [
+    "E'lon qilingandan keyin hisobotni tahrirlab bo'lmaydi va ota-onaga darhol Telegram xabari yuboriladi.",
+    "После публикации отчёт нельзя редактировать, родителю сразу уйдёт сообщение в Telegram.",
+    "After publishing the report cannot be edited and the parent is notified in Telegram immediately.",
+  ],
+  drPublishedLocked: [
+    "Bu hisobot e'lon qilingan — tahrirlab bo'lmaydi.",
+    "Отчёт опубликован — редактирование недоступно.",
+    "This report is published — editing is disabled.",
+  ],
+  drSavedDraft: ["Qoralama saqlandi", "Черновик сохранён", "Draft saved"],
+  drPublishedToast: [
+    "E'lon qilindi — ota-onaga xabar yuborildi",
+    "Опубликовано — родителю отправлено сообщение",
+    "Published — the parent has been notified",
+  ],
+  drNeedText: [
+    "E'lon qilishdan oldin \"Kun davomida\" yoki \"Yakuniy matn\" to'ldirilishi kerak.",
+    "Перед публикацией заполните \"В течение дня\" или \"Итоговый текст\".",
+    "Fill in \"Activities\" or \"Summary\" before publishing.",
+  ],
+  drCountDone: ["E'lon qilingan", "Опубликовано", "Published"],
+  drCountDraft: ["Qoralama", "Черновик", "Draft"],
+  drCountMissing: ["Yozilmagan", "Не написан", "Not written"],
   msgInviteGet: ["Kod olish", "Получить код", "Get code"],
   msgInviteTitle: [
     "Telegram taklif kodi",
@@ -1191,6 +1301,7 @@ function build(idx: 0 | 1 | 2): AppStrings {
       myGroup: p("navMyGroup"),
       dashboard: p("navDashboard"),
       reports: p("navReports"),
+      dailyReports: p("navDailyReports"),
       children: p("navChildren"),
       groups: p("navGroups"),
       attendance: p("navAttendance"),
@@ -1424,6 +1535,45 @@ function build(idx: 0 | 1 | 2): AppStrings {
       trend: p("attTrend"),
       trendSub: p("attTrendSub"),
       rate: p("attRate"),
+    },
+    dailyReports: {
+      title: p("drTitle"),
+      subtitle: p("drSubtitle"),
+      write: p("drWrite"),
+      edit: p("drEdit"),
+      view: p("drView"),
+      publish: p("drPublish"),
+      publishing: p("drPublishing"),
+      published: p("drPublished"),
+      draft: p("drDraft"),
+      notWritten: p("drNotWritten"),
+      meal: p("drMeal"),
+      mealAteWell: p("drMealAteWell"),
+      mealAteSome: p("drMealAteSome"),
+      mealRefused: p("drMealRefused"),
+      mood: p("drMood"),
+      moodHappy: p("drMoodHappy"),
+      moodCalm: p("drMoodCalm"),
+      moodTired: p("drMoodTired"),
+      moodSad: p("drMoodSad"),
+      moodSick: p("drMoodSick"),
+      nap: p("drNap"),
+      napMinutes: p("drNapMinutes"),
+      activities: p("drActivities"),
+      activitiesHint: p("drActivitiesHint"),
+      teacherNote: p("drTeacherNote"),
+      teacherNoteHint: p("drTeacherNoteHint"),
+      summary: p("drSummary"),
+      summaryHint: p("drSummaryHint"),
+      publishConfirm: p("drPublishConfirm"),
+      publishConfirmBody: p("drPublishConfirmBody"),
+      publishedLocked: p("drPublishedLocked"),
+      savedDraft: p("drSavedDraft"),
+      publishedToast: p("drPublishedToast"),
+      needText: p("drNeedText"),
+      countDone: p("drCountDone"),
+      countDraft: p("drCountDraft"),
+      countMissing: p("drCountMissing"),
     },
     payments: {
       title: p("payTitle"),

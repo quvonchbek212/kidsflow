@@ -224,6 +224,42 @@ export interface InvitationCode {
   expires_at: string;
 }
 
+// --- Turlar: kunlik hisobot (4.4-bo'lim) ---
+
+export type MealStatus = "ATE_WELL" | "ATE_SOME" | "REFUSED";
+export type Mood = "HAPPY" | "CALM" | "TIRED" | "SAD" | "SICK";
+
+export interface DailyReport {
+  id: string;
+  branch_id: string;
+  child_id: string;
+  report_date: string;
+  meal_status: MealStatus | null;
+  nap_minutes: number | null;
+  mood: Mood | null;
+  activities_text: string | null;
+  teacher_note: string | null;
+  final_summary: string | null;
+  is_published: boolean;
+  published_at: string | null;
+  files: { file_id: string; original_name: string; content_type: string }[];
+}
+
+export interface DailyReportRosterRow {
+  child_id: string;
+  child_name: string;
+  report: DailyReport | null;
+}
+
+export interface DailyReportInput {
+  meal_status?: MealStatus | null;
+  nap_minutes?: number | null;
+  mood?: Mood | null;
+  activities_text?: string | null;
+  teacher_note?: string | null;
+  final_summary?: string | null;
+}
+
 export interface Group {
   id: string;
   branch_id: string;
@@ -676,6 +712,38 @@ export const api = {
 
   listGroups(): Promise<Group[]> {
     return request<Group[]>("/groups");
+  },
+
+  // --- kunlik hisobot ---
+  dailyReportRoster(groupId: string, date: string): Promise<DailyReportRosterRow[]> {
+    const params = new URLSearchParams({ group_id: groupId, date });
+    return request<DailyReportRosterRow[]>(`/daily-reports/roster?${params.toString()}`);
+  },
+
+  createDailyReport(
+    childId: string,
+    reportDate: string,
+    input: DailyReportInput,
+  ): Promise<DailyReport> {
+    return request<DailyReport>("/daily-reports", {
+      method: "POST",
+      body: { child_id: childId, report_date: reportDate, ...input },
+    });
+  },
+
+  updateDailyReport(reportId: string, input: DailyReportInput): Promise<DailyReport> {
+    return request<DailyReport>(`/daily-reports/${reportId}`, {
+      method: "PATCH",
+      body: input,
+    });
+  },
+
+  // E'lon qilingandan keyin hisobot tahrirlanmaydi va ota-onaga outbox orqali
+  // Telegram bildirishnomasi ketadi (9-bo'lim).
+  publishDailyReport(reportId: string): Promise<DailyReport> {
+    return request<DailyReport>(`/daily-reports/${reportId}/publish`, {
+      method: "POST",
+    });
   },
 
   createGroup(body: {

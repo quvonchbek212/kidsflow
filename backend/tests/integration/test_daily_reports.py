@@ -118,6 +118,7 @@ async def _scenario(client: AsyncClient) -> dict:
         "teacher": teacher,
         "parent": parent,
         "child_id": child_id,
+        "group_id": group_id,
     }
 
 
@@ -211,3 +212,55 @@ async def test_teacher_sees_draft_but_parent_cannot(client: AsyncClient) -> None
         f"/api/v1/daily-reports/{draft}", headers=auth_header(s["parent"])
     )
     assert parent_view.status_code == 403
+
+
+async def test_roster_shows_children_with_and_without_report(
+    client: AsyncClient,
+) -> None:
+    """Roster guruhdagi har bir bolani qaytaradi — hisobot bo'lmasa `report: null`."""
+    s = await _scenario(client)
+
+    # Hali hech qanday hisobot yo'q.
+    empty = await client.get(
+        "/api/v1/daily-reports/roster",
+        headers=auth_header(s["teacher"]),
+        params={"group_id": s["group_id"], "date": "2026-09-10"},
+    )
+    assert empty.status_code == 200, empty.text
+    rows = empty.json()
+    assert len(rows) == 1
+    assert rows[0]["child_id"] == s["child_id"]
+    assert rows[0]["report"] is None
+
+    # Hisobot yozilgach roster uni ko'rsatadi (hali qoralama).
+    await _create_report(client, s["teacher"], s["child_id"], "2026-09-10")
+    filled = await client.get(
+        "/api/v1/daily-reports/roster",
+        headers=auth_header(s["teacher"]),
+        params={"group_id": s["group_id"], "date": "2026-09-10"},
+    )
+    assert filled.status_code == 200, filled.text
+    row = filled.json()[0]
+    assert row["report"] is not None
+    assert row["report"]["is_published"] is False
+    assert row["report"]["mood"] == "HAPPY"
+
+    # Boshqa sana bo'sh qoladi — sana bo'yicha filtr ishlayapti.
+    other_day = await client.get(
+        "/api/v1/daily-reports/roster",
+        headers=auth_header(s["teacher"]),
+        params={"group_id": s["group_id"], "date": "2026-09-11"},
+    )
+    assert other_day.json()[0]["report"] is None
+
+
+async def test_roster_forbidden_for_parent(client: AsyncClient) -> None:
+    """Ota-ona guruh rosterini ko'ra olmaydi — u boshqa oilalarning bolalarini
+    ham ochib qo'yardi."""
+    s = await _scenario(client)
+    resp = await client.get(
+        "/api/v1/daily-reports/roster",
+        headers=auth_header(s["parent"]),
+        params={"group_id": s["group_id"], "date": "2026-09-10"},
+    )
+    assert resp.status_code == 403, resp.text

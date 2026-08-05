@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import delete, select
@@ -45,6 +46,26 @@ class DailyReportRepository:
             .limit(1)
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def list_for_children_date(
+        self, child_ids: Sequence[uuid.UUID], report_date: date
+    ) -> list[DailyReport]:
+        """Bir guruh bolalarining shu sanadagi hisobotlari (roster uchun).
+
+        Har bir bola uchun alohida so'rov o'rniga bitta so'rov — guruhda 20 bola
+        bo'lsa ham bitta murojaat yetadi.
+        """
+        if not child_ids:
+            return []
+        stmt = (
+            select(DailyReport)
+            .where(
+                DailyReport.child_id.in_(child_ids),
+                DailyReport.report_date == report_date,
+            )
+            .options(selectinload(DailyReport.files))
+        )
+        return list((await self._session.execute(stmt)).scalars().all())
 
     async def list_for_child(
         self, child_id: uuid.UUID, limit: int = 100

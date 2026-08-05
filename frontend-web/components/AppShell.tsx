@@ -18,6 +18,7 @@ import {
   IconBuilding,
   IconCalendar,
   IconCollapse,
+  IconEdit,
   IconGrid,
   IconMenu,
   IconMessage,
@@ -88,6 +89,7 @@ const LANG_LABEL: Record<Lang, string> = {
 export type NavKey =
   | "dashboard"
   | "reports"
+  | "dailyReports"
   | "children"
   | "groups"
   | "attendance"
@@ -123,6 +125,12 @@ const NAV_ITEMS: NavItem[] = [
     section: "kindergarten",
     icon: (s) => <IconCalendar size={s} />,
   },
+  {
+    key: "dailyReports",
+    href: "/daily-reports",
+    section: "kindergarten",
+    icon: (s) => <IconEdit size={s} />,
+  },
   { key: "staff", href: "/staff", section: "kindergarten", icon: (s) => <IconUser size={s} /> },
   { key: "payments", href: "/billing", section: "finance", icon: (s) => <IconWallet size={s} /> },
   {
@@ -136,7 +144,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const SECTIONS: Section[] = ["general", "kindergarten", "finance", "other"];
-const TEACHER_KEYS: NavKey[] = ["attendance"];
+// Tarbiyachi davomat belgilaydi va kunlik hisobot yozadi — bu ikkisi uning
+// kundalik ishi (4.3, 4.4-bo'lim). Qolgan bo'limlar unga ko'rinmaydi.
+const TEACHER_KEYS: NavKey[] = ["attendance", "dailyReports"];
 
 function navForRole(role: string): NavItem[] {
   if (role === "TEACHER") return NAV_ITEMS.filter((i) => TEACHER_KEYS.includes(i.key));

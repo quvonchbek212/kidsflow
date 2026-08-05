@@ -52,3 +52,11 @@ class DailyReportResponse(BaseModel):
     is_published: bool
     published_at: datetime | None
     files: list[DailyReportFileSummary]
+
+
+class DailyReportRosterRow(BaseModel):
+    """Guruhdagi bola va uning shu kundagi hisoboti (hali yozilmagan bo'lsa None)."""
+
+    child_id: uuid.UUID
+    child_name: str
+    report: DailyReportResponse | None

@@ -51,6 +51,21 @@ async def db_session(
 
 
 @pytest.fixture(autouse=True)
+def _fixed_test_secrets(monkeypatch) -> None:
+    """Sirlarni testlar kutgan qiymatlarga qotiradi.
+
+    `Settings` `.env` faylini o'qiydi, shuning uchun ishlab chiquvchi o'z
+    `backend/.env` faylida SETUP_TOKEN yoki BOT_API_TOKEN ni o'zgartirsa (masalan
+    xavfsizlik uchun tasodifiy qiymatga almashtirsa) butun test to'plami 401
+    bilan yiqilardi. Testlar lokal muhit sozlamalariga bog'liq bo'lmasligi kerak.
+    """
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "setup_token", TEST_SETUP_TOKEN)
+    monkeypatch.setattr(get_settings(), "bot_api_token", TEST_BOT_TOKEN)
+
+
+@pytest.fixture(autouse=True)
 def _temp_file_storage(tmp_path, monkeypatch) -> None:
     """Fayl testlari vaqtinchalik katalogga yozsin (loyiha katalogini bulg'amasin)."""
     from app.config import get_settings

@@ -8,7 +8,7 @@ worker keyinchalik Telegram bildirishnomasini yuboradi.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,14 +16,16 @@ from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedEr
 from app.core.permissions import CurrentUser
 from app.models.daily_report import DailyReport, DailyReportFile
 from app.models.messaging import OutboxEvent
-from app.repositories.child_repository import EnrollmentRepository
+from app.repositories.child_repository import ChildRepository, EnrollmentRepository
 from app.repositories.daily_report_repository import DailyReportRepository
 from app.repositories.file_repository import FileRepository
+from app.repositories.group_repository import GroupRepository
 from app.repositories.messaging_repository import OutboxRepository
 from app.schemas.daily_report import (
     DailyReportCreateRequest,
     DailyReportFileSummary,
     DailyReportResponse,
+    DailyReportRosterRow,
     DailyReportUpdateRequest,
 )
 from app.services.access_service import AccessService
@@ -38,6 +40,8 @@ class DailyReportService:
         self._reports = DailyReportRepository(session)
         self._files = FileRepository(session)
         self._enrollments = EnrollmentRepository(session)
+        self._children = ChildRepository(session)
+        self._groups = GroupRepository(session)
         self._outbox = OutboxRepository(session)
         self._access = AccessService(session)
         self._audit = AuditService(session)
@@ -167,6 +171,43 @@ class DailyReportService:
         ):
             raise PermissionDeniedError("Hisobot hali e'lon qilinmagan.")
         return report
+
+    async def roster_for_group(
+        self,
+        group_id: uuid.UUID,
+        report_date: date,
+        current_user: CurrentUser,
+    ) -> list[DailyReportRosterRow]:
+        """Guruhdagi barcha bolalar va ularning shu sanadagi hisoboti.
+
+        Ruxsat qoidasi davomat rosteri bilan bir xil: o'z guruhining TEACHER'i
+        yoki filial MANAGER/OWNER'i (4.3-bo'lim). Ota-ona bu ro'yxatni ko'rmaydi
+        — u faqat o'z farzandining e'lon qilingan hisobotlarini oladi.
+        """
+        group = await self._groups.get_by_id(group_id)
+        if group is None:
+            raise NotFoundError("Guruh topilmadi.")
+        if not await self._access.can_view_group(
+            current_user, group.branch_id, group.id
+        ):
+            raise PermissionDeniedError("Bu guruh hisobotlariga kirish huquqi yo'q.")
+
+        child_ids = await self._enrollments.child_ids_in_groups([group_id])
+        children = await self._children.list_by_ids(child_ids)
+        reports = await self._reports.list_for_children_date(child_ids, report_date)
+        by_child = {r.child_id: r for r in reports}
+
+        rows = []
+        for child in children:
+            report = by_child.get(child.id)
+            rows.append(
+                DailyReportRosterRow(
+                    child_id=child.id,
+                    child_name=child.full_name,
+                    report=await self.to_response(report) if report else None,
+                )
+            )
+        return rows
 
     async def list_for_child(
         self, child_id: uuid.UUID, current_user: CurrentUser
