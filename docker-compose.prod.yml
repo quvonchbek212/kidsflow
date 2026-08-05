@@ -4,28 +4,43 @@
 #
 # Bu override:
 #   - CPU/memory limitlarini qo'yadi;
-#   - postgres/redis host portlarini yopadi (faqat ichki tarmoq);
+#   - postgres/redis/backend/frontend host portlarini yopadi (faqat nginx ochiq);
 #   - restart policy'ni "always" qiladi;
 #   - production sozlamalarini majburiy qiladi.
+#
+# DIQQAT — `ports: !reset []` dagi `!reset` teg majburiy. Compose ro'yxatlarni
+# birlashtirganda `ports` ni ALMASHTIRMAY, QO'SHIB qo'yadi: oddiy `ports: []`
+# yozilsa asosiy fayldagi portlar o'z holicha ochiq qolaveradi va bu override
+# xavfsizlik haqida yolg'on tasavvur beradi (PostgreSQL internetga ochiq qoladi).
+# O'zgartirgandan keyin doim tekshiring:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml config | grep published
 
 services:
   postgres:
     restart: always
-    ports: []  # host'ga ochilmaydi (faqat ichki tarmoq)
+    ports: !reset []  # host'ga ochilmaydi (faqat ichki tarmoq)
     mem_limit: 1g
     cpus: 1.0
 
   redis:
     restart: always
-    ports: []
+    ports: !reset []
     mem_limit: 256m
     cpus: 0.5
 
   backend:
     restart: always
+    # Host'ga ochilmaydi: barcha tashqi trafik nginx orqali o'tishi shart.
+    # Aks holda 8000-port TLS'ni, nginx rate-limit zonasini va xavfsizlik
+    # sarlavhalarini chetlab o'tib to'g'ridan-to'g'ri ochiq qolardi.
+    ports: !reset []
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
+      # Backend porti yopiq (yuqoridagi `ports: !reset []`), unga faqat ichki
+      # tarmoqdagi nginx yeta oladi — shuning uchun X-Forwarded-For ga ishonish
+      # xavfsiz.
+      FORWARDED_ALLOW_IPS: "*"
     mem_limit: 768m
     cpus: 1.0
 
@@ -55,7 +70,7 @@ services:
       # API alohida domenda bo'lsa, quyidagi qatorni qo'lda o'zgartiring.
       args:
         NEXT_PUBLIC_API_BASE_URL: /api/v1
-    ports: []  # nginx orqali beriladi
+    ports: !reset []  # nginx orqali beriladi
     mem_limit: 512m
     cpus: 0.5
 
@@ -69,3 +84,6 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      # Let's Encrypt HTTP-01 tekshiruvi shu katalogga fayl qo'yadi. Sertifikat
+      # yangilanishi uchun doimiy kerak, faqat birinchi olishda emas.
+      - ./nginx/certbot:/var/www/certbot:ro

@@ -18,7 +18,10 @@ echo "[1/6] Backup (rollback uchun xavfsizlik nusxasi)..."
 "${SCRIPT_DIR}/backup.sh"
 
 echo "[2/6] Yangi image build..."
-docker compose -f "${COMPOSE_FILE}" build backend worker
+# Frontend va bot ham build qilinadi: ilgari faqat backend/worker build qilinib,
+# keyingi qadamda `up -d` bilan ko'tarilardi — frontend kodi o'zgargan release'da
+# eski image o'z holicha qolib ketardi.
+docker compose -f "${COMPOSE_FILE}" build backend worker frontend telegram-bot
 
 echo "[3/6] Database migratsiya (alembic upgrade head)..."
 docker compose -f "${COMPOSE_FILE}" run --rm backend alembic upgrade head

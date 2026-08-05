@@ -23,9 +23,12 @@ tsconfig.tsbuildinfo
 *.sqlite
 *.sqlite3
 
-# Yuklangan fayllar va TLS sertifikatlari — hech qachon repozitoriyaga tushmasin
+# Yuklangan fayllar va TLS sertifikatlari — hech qachon repozitoriyaga tushmasin.
+# Katalogning o'zi saqlanadi (.gitkeep), faqat ichidagi sertifikatlar e'tiborsiz
+# qoldiriladi — aks holda toza clone'da katalog bo'lmay, docker mount xato beradi.
 storage/
-nginx/certs/
+nginx/certs/*
+!nginx/certs/.gitkeep
 
 # IDE / OS
 .idea/

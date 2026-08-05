@@ -40,13 +40,21 @@ def create_app() -> FastAPI:
     """FastAPI ilovasini yaratadi va sozlaydi (application factory)."""
     settings = get_settings()
 
+    # Interaktiv hujjatlar production'da yopiladi: ular butun API sxemasini,
+    # jumladan endpoint nomlari va so'rov strukturalarini oshkor qiladi. Bu
+    # o'z-o'zidan zaiflik emas, lekin hujumchiga bepul xarita beradi va
+    # hujjatlar sahifasi hech qanday autentifikatsiya talab qilmaydi.
+    docs_enabled = not settings.is_production
+
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
         description="Xususiy bog'chalar uchun boshqaruv platformasi",
-        openapi_url=f"{settings.api_v1_prefix}/openapi.json",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        openapi_url=(
+            f"{settings.api_v1_prefix}/openapi.json" if docs_enabled else None
+        ),
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
         lifespan=lifespan,
     )
 

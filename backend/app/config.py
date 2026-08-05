@@ -150,12 +150,20 @@ class Settings(BaseSettings):
         o'zgartirilmay qolib ketishi oson. Bunday holda JWT tokenlari hammaga
         ma'lum kalit bilan imzolanadi va `/setup` endpointi himoyasiz qoladi,
         shuning uchun ilova ishga tushmasligi kerak.
+
+        ENCRYPTION_KEY va BOT_API_TOKEN ham shu ro'yxatda: birinchisidan
+        bolalarning tibbiy izohlarini shifrlash kaliti hosil qilinadi (standart
+        qiymatda shifrlash ma'nosiz bo'lib qoladi), ikkinchisi esa
+        `/telegram/session` orqali istalgan ota-ona nomidan token olish
+        imkonini beradi.
         """
         if not self.is_production:
             return self
         defaults = {
             "JWT_SECRET": (self.jwt_secret, "change-me-jwt-secret"),
             "SETUP_TOKEN": (self.setup_token, "change-me-setup-token"),
+            "ENCRYPTION_KEY": (self.encryption_key, "change-me-encryption-key"),
+            "BOT_API_TOKEN": (self.bot_api_token, "change-me-bot-api-token"),
         }
         unchanged = [
             name

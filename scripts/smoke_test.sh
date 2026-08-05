@@ -4,6 +4,10 @@
 #
 # Ishlatish:
 #   BASE_URL=http://localhost:8000 ./scripts/smoke_test.sh
+#
+# Production muhitida interaktiv hujjatlar (/docs, /redoc, /openapi.json)
+# ataylab o'chirilgan, shuning uchun ular 404 qaytaradi. Buni tekshirish uchun:
+#   EXPECT_DOCS=disabled BASE_URL=https://domen.uz ./scripts/smoke_test.sh
 
 set -euo pipefail
 
@@ -23,10 +27,18 @@ check() {
 
 code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 
+EXPECT_DOCS="${EXPECT_DOCS:-enabled}"
+if [[ "${EXPECT_DOCS}" == "disabled" ]]; then
+  docs_expected=404
+else
+  docs_expected=200
+fi
+
 echo "Smoke test: ${BASE_URL}"
 check "health"        200 "$(code "${API}/health")"
-check "openapi"       200 "$(code "${API}/openapi.json")"
-check "docs"          200 "$(code "${BASE_URL}/docs")"
+check "readiness"     200 "$(code "${API}/health/ready")"
+check "openapi"       "${docs_expected}" "$(code "${API}/openapi.json")"
+check "docs"          "${docs_expected}" "$(code "${BASE_URL}/docs")"
 # Autentifikatsiyasiz himoyalangan endpoint 401 qaytarishi kerak.
 check "auth-guard"    401 "$(code "${API}/auth/me")"
 
