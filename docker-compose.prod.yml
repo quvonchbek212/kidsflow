@@ -1,0 +1,57 @@
+# === KIDSFLOW production override (12-bo'lim) ===
+# Ishlatish:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Bu override:
+#   - CPU/memory limitlarini qo'yadi;
+#   - postgres/redis host portlarini yopadi (faqat ichki tarmoq);
+#   - restart policy'ni "always" qiladi;
+#   - production sozlamalarini majburiy qiladi.
+
+services:
+  postgres:
+    restart: always
+    ports: []  # host'ga ochilmaydi (faqat ichki tarmoq)
+    mem_limit: 1g
+    cpus: 1.0
+
+  redis:
+    restart: always
+    ports: []
+    mem_limit: 256m
+    cpus: 0.5
+
+  backend:
+    restart: always
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+    mem_limit: 768m
+    cpus: 1.0
+
+  worker:
+    restart: always
+    mem_limit: 512m
+    cpus: 0.5
+
+  telegram-bot:
+    restart: always
+    mem_limit: 256m
+    cpus: 0.5
+
+  frontend:
+    restart: always
+    ports: []  # nginx orqali beriladi
+    mem_limit: 512m
+    cpus: 0.5
+
+  nginx:
+    restart: always
+    mem_limit: 128m
+    cpus: 0.5
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro

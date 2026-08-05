@@ -1,0 +1,38 @@
+# Muhit
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+
+# Lokal ma'lumotlar bazasi fayllari (sqlite test/demo)
+*.db
+*.sqlite
+*.sqlite3
+
+# Yuklangan fayllar va TLS sertifikatlari — hech qachon repozitoriyaga tushmasin
+storage/
+nginx/certs/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Loglar va backup
+*.log
+backups/

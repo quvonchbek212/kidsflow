@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    name: Backend (lint, type, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python o'rnatish
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Bog'liqliklarni o'rnatish
+        run: pip install -r requirements-dev.txt
+
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Black (format tekshiruvi)
+        run: black --check .
+
+      - name: Mypy (tip tekshiruvi)
+        run: mypy app
+
+      - name: Pytest (unit + integration + security)
+        run: pytest -q
+
+  migrations:
+    name: Alembic migratsiya (PostgreSQL)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kidsflow
+          POSTGRES_PASSWORD: kidsflow
+          POSTGRES_DB: kidsflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kidsflow"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://kidsflow:kidsflow@localhost:5432/kidsflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python o'rnatish
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Bog'liqliklarni o'rnatish
+        run: pip install -r requirements.txt
+
+      - name: Migratsiyalarni qo'llash (upgrade head)
+        run: alembic upgrade head
+
+      - name: Downgrade sinovi (base)
+        run: alembic downgrade base
+
+  telegram-bot:
+    name: Telegram bot (import tekshiruvi)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: telegram-bot
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python o'rnatish
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: telegram-bot/requirements.txt
+
+      - name: Bog'liqliklarni o'rnatish
+        run: pip install -r requirements.txt
+
+      - name: Import tekshiruvi
+        run: python -c "import bot, handlers, api_client, keyboards.menus, locales.texts, formatters"
+
+  frontend:
+    name: Frontend (lint, typecheck, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node o'rnatish
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bog'liqliklarni o'rnatish
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tip tekshiruvi
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build

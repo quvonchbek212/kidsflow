@@ -1,0 +1,28 @@
+# --- Web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# --- HTTP klient (Telegram sender, Gemini AI provayder) ---
+httpx==0.28.1
+
+# --- Sozlama ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# --- Ma'lumotlar bazasi ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# --- Xavfsizlik ---
+argon2-cffi==23.1.0
+pyjwt==2.10.1
+cryptography==44.0.0
+
+# --- Redis (worker navbatlari) ---
+redis==5.2.1
+
+# --- Excel/CSV import (7-bosqich B) ---
+openpyxl==3.1.5
