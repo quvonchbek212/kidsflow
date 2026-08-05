@@ -403,6 +403,14 @@ export interface AppStrings {
     hintPaymentReminder: string;
     hintDebtWarning: string;
     hintBirthday: string;
+    inviteGet: string;
+    inviteTitle: string;
+    inviteSubtitle: string;
+    inviteSteps: string;
+    inviteExpires: string;
+    inviteCopy: string;
+    inviteCopied: string;
+    inviteAlreadyLinked: string;
   };
   food: {
     productsTitle: string;
@@ -991,6 +999,30 @@ const T: Table = {
     "Сообщение доставляется через Telegram — только подключённым семьям.",
     "Delivered via Telegram — only to families connected to the bot.",
   ],
+  msgInviteGet: ["Kod olish", "Получить код", "Get code"],
+  msgInviteTitle: [
+    "Telegram taklif kodi",
+    "Пригласительный код Telegram",
+    "Telegram invitation code",
+  ],
+  msgInviteSubtitle: [
+    "Kodni ota-onaga bering — u bir marta ishlatiladi.",
+    "Передайте код родителю — он одноразовый.",
+    "Give the code to the parent — it works once.",
+  ],
+  msgInviteSteps: [
+    "Ota-ona botni ochadi va shu kodni yuboradi. Shundan so'ng u farzandining davomati, kunlik hisoboti va to'lovlarini Telegram orqali ko'ra oladi.",
+    "Родитель открывает бот и отправляет этот код. После этого он сможет видеть посещаемость, отчёты и оплаты ребёнка в Telegram.",
+    "The parent opens the bot and sends this code. After that they can see their child's attendance, reports and payments in Telegram.",
+  ],
+  msgInviteExpires: ["Amal qilish muddati", "Действителен до", "Valid until"],
+  msgInviteCopy: ["Nusxalash", "Копировать", "Copy"],
+  msgInviteCopied: ["Nusxalandi", "Скопировано", "Copied"],
+  msgInviteAlreadyLinked: [
+    "Bu ota-ona allaqachon botga ulangan.",
+    "Этот родитель уже подключён к боту.",
+    "This parent is already connected to the bot.",
+  ],
   msgHintCheckedIn: [
     "Davomatda \"keldi\" belgilanganda darhol",
     "Сразу при отметке присутствия",
@@ -1540,6 +1572,14 @@ function build(idx: 0 | 1 | 2): AppStrings {
       hintPaymentReminder: p("msgHintPaymentReminder"),
       hintDebtWarning: p("msgHintDebtWarning"),
       hintBirthday: p("msgHintBirthday"),
+      inviteGet: p("msgInviteGet"),
+      inviteTitle: p("msgInviteTitle"),
+      inviteSubtitle: p("msgInviteSubtitle"),
+      inviteSteps: p("msgInviteSteps"),
+      inviteExpires: p("msgInviteExpires"),
+      inviteCopy: p("msgInviteCopy"),
+      inviteCopied: p("msgInviteCopied"),
+      inviteAlreadyLinked: p("msgInviteAlreadyLinked"),
     },
     food: {
       productsTitle: p("foodProductsTitle"),

@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconMessage, IconUsers } from "@/components/icons";
+import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
   ApiError,
@@ -60,6 +61,8 @@ function ParentsContent(): ReactNode {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [inviting, setInviting] = useState("");
+  const modal = useModal();
 
   function load(): void {
     api.listParents().then(setParents).catch(() => {});
@@ -114,6 +117,51 @@ function ParentsContent(): ReactNode {
       notification_toggles: { [key]: checked },
     });
     setSettings(updated);
+  }
+
+  // Ota-onani botga ulash uchun bir martalik kod. Kod ekranda ko'rsatiladi —
+  // menejer uni og'zaki yoki qo'lda ota-onaga beradi (7-bo'lim).
+  async function onInvite(parent: ParentRow): Promise<void> {
+    if (inviting) return;
+    setInviting(parent.id);
+    try {
+      const invitation = await api.createInvitation(parent.id);
+      const expires = new Date(invitation.expires_at).toLocaleString();
+      modal.open(
+        <div>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t.messaging.inviteSteps}
+          </p>
+          <div className="invite-code">
+            <code>{invitation.code}</code>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                void navigator.clipboard
+                  ?.writeText(invitation.code)
+                  .then(() => toast.show(t.messaging.inviteCopied))
+                  .catch(() => {});
+              }}
+            >
+              {t.messaging.inviteCopy}
+            </button>
+          </div>
+          <p className="hint">
+            {t.messaging.inviteExpires}: {expires}
+          </p>
+        </div>,
+        {
+          title: t.messaging.inviteTitle,
+          subtitle: `${parent.full_name} — ${t.messaging.inviteSubtitle}`,
+          size: "narrow",
+        },
+      );
+    } catch (err) {
+      toast.show(err instanceof ApiError ? err.message : t.common.errTitle);
+    } finally {
+      setInviting("");
+    }
   }
 
   async function onBroadcast(e: FormEvent): Promise<void> {
@@ -298,7 +346,14 @@ function ParentsContent(): ReactNode {
                       {p.telegram_linked ? (
                         <span className="badge badge--pos">{t.common.active}</span>
                       ) : (
-                        <span className="badge badge--mute">{t.common.inactive}</span>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn--sm"
+                          disabled={inviting === p.id}
+                          onClick={() => void onInvite(p)}
+                        >
+                          {inviting === p.id ? t.common.saving : t.messaging.inviteGet}
+                        </button>
                       )}
                     </td>
                   </tr>

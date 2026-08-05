@@ -218,6 +218,12 @@ export interface ParentRow {
   children_names: string[];
 }
 
+export interface InvitationCode {
+  code: string;
+  user_id: string;
+  expires_at: string;
+}
+
 export interface Group {
   id: string;
   branch_id: string;
@@ -657,6 +663,15 @@ export const api = {
 
   listParents(): Promise<ParentRow[]> {
     return request<ParentRow[]>("/children/parents");
+  },
+
+  // Ota-onani Telegram botga ulash uchun bir martalik kod. Kod ota-onaga
+  // og'zaki/qo'lda beriladi — u botga yuborgach hisob bog'lanadi.
+  createInvitation(userId: string): Promise<InvitationCode> {
+    return request<InvitationCode>("/telegram/invitations", {
+      method: "POST",
+      body: { user_id: userId },
+    });
   },
 
   listGroups(): Promise<Group[]> {

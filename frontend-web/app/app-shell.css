@@ -2701,3 +2701,26 @@ html[data-theme="dark"] #cmdk {
     gap: var(--s5);
   }
 }
+
+/* ---- Telegram taklif kodi (ota-onalar sahifasidagi modal) ---- */
+.invite-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin: var(--s4) 0;
+  padding: var(--s4);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.invite-code code {
+  font-family: var(--mono);
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--brand);
+  /* Kod qo'lda ko'chirilishi mumkin — tanlash qulay bo'lsin. */
+  user-select: all;
+  word-break: break-all;
+}
