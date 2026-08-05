@@ -93,9 +93,14 @@ services:
   frontend:
     build:
       context: ./frontend-web
+      # NEXT_PUBLIC_* build vaqtida bundle ichiga yoziladi, shuning uchun bu
+      # `args` bo'lishi shart — `environment` bilan berilsa hech qanday ta'sir
+      # qilmaydi. Lokalda backend to'g'ridan-to'g'ri 8000-portda ochiq;
+      # production'da docker-compose.prod.yml uni `/api/v1` ga o'zgartiradi
+      # (so'rov nginx orqali o'tadi).
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
     restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
     depends_on:
       - backend
     ports:

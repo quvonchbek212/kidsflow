@@ -8,6 +8,11 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* o'zgaruvchilar build vaqtida JS bundle ichiga yoziladi — runtime
+# `environment:` ularga ta'sir qilmaydi. Standart qiymat nisbiy yo'l: brauzer
+# so'rovi frontend turgan domenga boradi va nginx uni backendga uzatadi.
+ARG NEXT_PUBLIC_API_BASE_URL=/api/v1
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner

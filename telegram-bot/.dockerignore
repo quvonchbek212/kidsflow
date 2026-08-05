@@ -1,0 +1,18 @@
+# Host'dagi virtual muhit (Windows binarlari) image ichida ishlamaydi va
+# hajmni bekorga oshiradi — bog'liqliklar `pip install` bilan o'rnatiladi.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Bot tokeni image ichiga tushmasin — u runtime'da `env_file` orqali beriladi.
+.env
+.env.*
+!.env.example
+
+.git/
+Dockerfile
+.dockerignore
+*.md
+tests/

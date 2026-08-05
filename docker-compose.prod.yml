@@ -41,6 +41,20 @@ services:
 
   frontend:
     restart: always
+    build:
+      context: ./frontend-web
+      # Nisbiy yo'l: brauzer so'rovi frontend turgan domenga boradi, nginx uni
+      # backendga uzatadi.
+      #
+      # Bu yerda ataylab `${NEXT_PUBLIC_API_BASE_URL:-...}` ishlatilmagan: compose
+      # ildizdagi `.env` ni o'qiydi, u yerda esa lokal ishlash uchun
+      # `http://localhost:8000/api/v1` turadi. O'zgaruvchi orqali berilsa, lokal
+      # qiymat production build'iga sezdirmasdan kirib ketardi va deploy qilingan
+      # sayt foydalanuvchining o'z kompyuteridagi 8000-portga murojaat qilardi.
+      #
+      # API alohida domenda bo'lsa, quyidagi qatorni qo'lda o'zgartiring.
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/v1
     ports: []  # nginx orqali beriladi
     mem_limit: 512m
     cpus: 0.5

@@ -1,0 +1,19 @@
+# Bog'liqliklar va build natijalari image ichida qaytadan hosil qilinadi —
+# host'dagi nusxalar (ayniqsa Windows uchun kompilyatsiya qilingan binarlar)
+# ko'chirilmasligi kerak.
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+
+# Sirlar hech qachon image ichiga tushmasin. Next.js build vaqtida `.env` ni
+# o'qiydi va NEXT_PUBLIC_* qiymatlarini bundle'ga yozadi — bu yerda uni istisno
+# qilmasak, lokal qiymat production image'iga kirib qolardi.
+.env
+.env.*
+!.env.example
+
+.git/
+Dockerfile
+.dockerignore
+*.md
