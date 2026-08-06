@@ -82,18 +82,26 @@ class UserRepository:
         return list(result.scalars().all())
 
     async def list_staff(self) -> list[User]:
-        """Faqat xodimlar — roli PARENT bo'lganlar (vasiylar) chiqarib tashlanadi.
+        """Yollanma xodimlar ro'yxati.
 
-        Vasiylar `children/parents` bo'limida ko'rsatiladi; "Xodimlar" ro'yxatida
-        ular chiqmasligi kerak (aks holda ularga oylik hisoblash kabi xodimga
-        xos amallar taklif qilinadi).
+        Ikki toifa chiqarib tashlanadi:
+
+        - **PARENT** (vasiylar) — ular `children/parents` bo'limida ko'rsatiladi;
+          bu yerda chiqsa ularga oylik hisoblash kabi xodimga xos amallar taklif
+          qilinardi.
+        - **OWNER** (bog'cha egasi) — u yollanma xodim emas, balki tizim egasi.
+          Ilgari u ro'yxatga tushib qolardi va lavozimi sifatida tasodifiy qiymat
+          ("Menejer") ko'rinardi.
+
+        Ish haqi fondi ham shu metoddan o'qiydi, shuning uchun jadvaldagi
+        qatorlar yig'indisi doim yuqoridagi fond raqamiga teng bo'ladi.
         """
-        parent_ids = select(UserRoleAssignment.user_id).where(
-            UserRoleAssignment.role == Role.PARENT.value
+        excluded_ids = select(UserRoleAssignment.user_id).where(
+            UserRoleAssignment.role.in_([Role.PARENT.value, Role.OWNER.value])
         )
         stmt = (
             select(User)
-            .where(User.id.not_in(parent_ids))
+            .where(User.id.not_in(excluded_ids))
             .order_by(User.created_at.desc())
         )
         return list((await self._session.execute(stmt)).scalars().all())

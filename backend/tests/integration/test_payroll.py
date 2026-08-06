@@ -213,3 +213,57 @@ async def test_staff_list_excludes_guardians(client: AsyncClient) -> None:
     ).json()
     assert Decimal(summary["total_fund"]) == Decimal("3000000.00")
     assert {s["full_name"] for s in summary["staff"]} == {"Tarbiyachi Xodim"}
+
+
+async def test_owner_excluded_from_staff_list_and_payroll(
+    client: AsyncClient,
+) -> None:
+    """Bog'cha egasi yollanma xodim emas — ro'yxatda ham, fondda ham chiqmaydi.
+
+    Ilgari OWNER xodimlar ro'yxatiga tushib qolardi (faqat PARENT chiqarib
+    tashlanardi) va lavozimi sifatida tasodifiy qiymat ko'rinardi. Bundan ham
+    yomoni: unga maosh qo'yilsa, `total_fund` uni qo'shib hisoblardi, jadvalda
+    esa qator ko'rinmasdi — yuqoridagi raqam qatorlar yig'indisiga mos kelmasdi.
+    """
+    owner, branch_id = await _owner(client)
+
+    me = await client.get("/api/v1/auth/me", headers=auth_header(owner))
+    owner_id = me.json()["id"]
+
+    # Egaga maosh belgilaymiz — aynan shu holat nomuvofiqlikni keltirib chiqargan.
+    await client.patch(
+        f"/api/v1/users/{owner_id}/salary",
+        headers=auth_header(owner),
+        json={"monthly_salary": "20000000"},
+    )
+
+    await client.post(
+        "/api/v1/users",
+        headers=auth_header(owner),
+        json={
+            "full_name": "Oshpaz S",
+            "username": "u998900000031",
+            "phone": "+998900000031",
+            "password": "parol12345",
+            "role": "TEACHER",
+            "position": "COOK",
+            "branch_id": branch_id,
+            "monthly_salary": "4000000",
+        },
+    )
+
+    staff = await client.get("/api/v1/users", headers=auth_header(owner))
+    assert staff.status_code == 200
+    names = [u["full_name"] for u in staff.json()]
+    assert names == ["Oshpaz S"], names
+
+    summary = await client.get(
+        "/api/v1/users/payroll-summary", headers=auth_header(owner)
+    )
+    body = summary.json()
+    # Fond faqat yollanma xodimlar bo'yicha — eganing 20 mln'i kirmaydi.
+    assert Decimal(body["total_fund"]) == Decimal("4000000.00")
+    # Va fond jadvaldagi qatorlar yig'indisiga aynan teng.
+    assert Decimal(body["total_fund"]) == sum(
+        Decimal(r["monthly_salary"]) for r in body["staff"]
+    )
