@@ -9,6 +9,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type FormEvent,
   type ReactNode,
 } from "react";
 
@@ -34,7 +35,7 @@ import {
 } from "@/components/icons";
 import { useModal } from "@/components/ui/ModalProvider";
 import { APP_I18N, type AppStrings } from "@/lib/app-i18n";
-import { api, type Branch, type CurrentUser, type Group } from "@/lib/api";
+import { ApiError, api, type Branch, type CurrentUser, type Group } from "@/lib/api";
 import { initials, isoDate, money, monthRange, periodLabel } from "@/lib/format";
 import type { Lang } from "@/lib/landing-content";
 
@@ -156,6 +157,100 @@ function navForRole(role: string): NavItem[] {
 /** Rol uchun birinchi ochiladigan sahifa (menyudagi eng yuqorisi). */
 function firstHrefForRole(role: string): string {
   return navForRole(role)[0]?.href ?? "/attendance";
+}
+
+/** "Mening profilim" oynasi — foydalanuvchi o'z ismi, telefoni va interfeys
+ *  tilini o'zgartiradi. Rol, email va maosh bu yerdan o'zgarmaydi: ular OWNER
+ *  huquqida qoladi va `PATCH /auth/me` sxemasi ularni qabul qilmaydi. */
+function ProfileForm({
+  user,
+  t,
+  lang,
+  onSaved,
+}: {
+  user: CurrentUser;
+  t: AppStrings;
+  lang: Lang;
+  onSaved: (updated: CurrentUser, nextLang: Lang) => void;
+}): ReactNode {
+  const [fullName, setFullName] = useState(user.full_name);
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [nextLang, setNextLang] = useState<Lang>(lang);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: FormEvent): Promise<void> {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const updated = await api.updateProfile({
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        preferred_language: nextLang,
+      });
+      onSaved(updated, nextLang);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t.common.errTitle);
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label>{t.common.fullName}</label>
+        <input
+          className="input"
+          required
+          maxLength={255}
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label>{t.common.phone}</label>
+        <input
+          className="input"
+          placeholder="+998 90 123 45 67"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label>{t.language}</label>
+        <div className="segmented">
+          {(["uz", "ru", "en"] as Lang[]).map((l) => (
+            <button
+              key={l}
+              type="button"
+              className={nextLang === l ? "on" : ""}
+              onClick={() => setNextLang(l)}
+            >
+              {LANG_LABEL[l]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Login va rol faqat ko'rsatiladi — ularni o'zi o'zgartira olmaydi. */}
+      <dl className="deflist">
+        <div>
+          <dt>{t.staff.login}</dt>
+          <dd>{user.username ?? "—"}</dd>
+        </div>
+        <div>
+          <dt>{t.common.email}</dt>
+          <dd>{user.email ?? "—"}</dd>
+        </div>
+      </dl>
+
+      {error && <p className="error">{error}</p>}
+      <button className="btn btn--full" type="submit" disabled={saving}>
+        {saving ? t.common.saving : t.common.save}
+      </button>
+    </form>
+  );
 }
 
 /** Davr tanlash oynasi. Modal ichida o'z holatini boshqaradi, shuning uchun
@@ -513,6 +608,29 @@ export function AppShell({
     );
   }
 
+  function openProfile(): void {
+    if (!user) return;
+    modal.open(
+      <ProfileForm
+        user={user}
+        t={t}
+        lang={lang}
+        onSaved={(updated, nextLang) => {
+          modal.close();
+          // Til profil bilan birga saqlanadi — keyingi kirishda ham shu tilda
+          // ochilishi uchun `setLang` localStorage'ga ham yozadi.
+          if (nextLang !== lang) setLang(nextLang);
+          // Yon paneldagi ism darhol yangilanishi uchun sahifa qayta yuklanadi
+          // (user props orqali yuqoridan keladi, shu yerda o'zgartirib bo'lmaydi).
+          if (updated.full_name !== user.full_name || updated.phone !== user.phone) {
+            router.refresh();
+          }
+        }}
+      />,
+      { title: t.myProfile, subtitle: displayName, size: "narrow" },
+    );
+  }
+
   function openQuickAdd(): void {
     const items: [string, string, ReactNode, string][] = [
       [t.children.addChild, t.quick.childSub, <IconUsers size={19} key="c" />, "/children?new=1"],
@@ -633,7 +751,7 @@ export function AppShell({
                     className="pop__item"
                     onClick={() => {
                       setMenuOpen(false);
-                      router.push("/settings");
+                      openProfile();
                     }}
                   >
                     {t.myProfile}

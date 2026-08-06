@@ -17,6 +17,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
+    ProfileUpdateRequest,
     RefreshRequest,
     ResetPasswordRequest,
     RoleGrantOut,
@@ -88,12 +89,45 @@ async def me(
         .options(selectinload(User.role_assignments))
     )
     user = (await session.execute(stmt)).scalar_one()
+    return _to_current_user(user)
+
+
+@router.patch(
+    "/me",
+    response_model=CurrentUserResponse,
+    summary="O'z profilini tahrirlash (ism, telefon, til)",
+)
+async def update_me(
+    payload: ProfileUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> CurrentUserResponse:
+    """Har qanday rol o'z profilini tahrirlaydi.
+
+    `PATCH /users/{id}` faqat OWNER uchun — u boshqa xodimning profilini
+    (rol, maosh, faollik) o'zgartiradi. Bu esa foydalanuvchining o'ziga tegishli
+    va cheklangan maydonlar bilan ishlaydi.
+    """
+    service = AuthService(session)
+    await service.update_own_profile(current_user.id, payload)
+
+    stmt = (
+        select(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(User.role_assignments))
+    )
+    user = (await session.execute(stmt)).scalar_one()
+    return _to_current_user(user)
+
+
+def _to_current_user(user: User) -> CurrentUserResponse:
     return CurrentUserResponse(
         id=user.id,
         full_name=user.full_name,
         username=user.username,
         phone=user.phone,
         email=user.email,
+        preferred_language=user.preferred_language,
         roles=[
             RoleGrantOut(role=a.role, branch_id=a.branch_id)
             for a in user.role_assignments

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import AuthenticationError, ConflictError, NotFoundError
 from app.core.security import (
     create_access_token,
     generate_opaque_token,
@@ -21,7 +23,7 @@ from app.models.user import PasswordResetToken, RefreshToken, User
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import TokenResponse
+from app.schemas.auth import ProfileUpdateRequest, TokenResponse
 from app.services.audit_service import AuditService
 from app.services.email_sender import EmailSender, get_default_email_sender
 from app.utils.phone import InvalidPhoneError, normalize_phone
@@ -117,6 +119,46 @@ class AuthService:
         stored = await self._refresh_tokens.get_by_hash(token_hash)
         if stored is not None:
             self._refresh_tokens.revoke(stored)
+
+    async def update_own_profile(
+        self, user_id: uuid.UUID, data: ProfileUpdateRequest
+    ) -> User:
+        """Foydalanuvchi o'z ismi, telefoni va tilini o'zgartiradi.
+
+        `update_staff` dan farqi: bu yerda OWNER huquqi talab qilinmaydi, chunki
+        har bir xodim o'z profilini boshqarishi kerak. Buning evaziga
+        o'zgartirilishi mumkin bo'lgan maydonlar qat'iy cheklangan — rol, email,
+        maosh va faollik holati bu yerdan o'tmaydi (sxema ularni qabul qilmaydi).
+        """
+        user = await self._users.get_by_id(user_id)
+        if user is None:
+            raise NotFoundError("Foydalanuvchi topilmadi.")
+
+        fields = data.model_dump(exclude_unset=True)
+
+        new_phone = fields.get("phone") if "phone" in fields else None
+        if (
+            new_phone
+            and new_phone != user.phone
+            and await self._users.phone_exists(new_phone)
+        ):
+            raise ConflictError("Bu telefon raqami allaqachon ro'yxatdan o'tgan.")
+
+        for field, value in fields.items():
+            setattr(user, field, value)
+
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            raise ConflictError("Telefon raqami allaqachon band.") from exc
+
+        self._audit.record(
+            action="PROFILE_UPDATED",
+            entity_type="user",
+            entity_id=user.id,
+            actor_user_id=user.id,
+        )
+        return user
 
     async def request_password_reset(self, email: str) -> None:
         """Email orqali parolni tiklash havolasini yuboradi.

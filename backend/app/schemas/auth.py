@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.utils.phone import normalize_phone
 
 
 class LoginRequest(BaseModel):
@@ -49,4 +52,22 @@ class CurrentUserResponse(BaseModel):
     username: str | None
     phone: str | None
     email: str | None
+    preferred_language: str
     roles: list[RoleGrantOut]
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Foydalanuvchi o'z profilini tahrirlashi (har qanday rol).
+
+    Ataylab faqat shu uch maydon: rol, email, maosh va faollik holati o'zini
+    o'zi o'zgartira olmaydi — ular OWNER huquqida qoladi.
+    """
+
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    phone: str | None = Field(default=None, max_length=32)
+    preferred_language: Literal["uz", "ru", "en"] | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def _norm_phone(cls, value: str | None) -> str | None:
+        return normalize_phone(value)

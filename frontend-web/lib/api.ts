@@ -162,7 +162,14 @@ export interface CurrentUser {
   username: string | null;
   phone: string | null;
   email: string | null;
+  preferred_language: string;
   roles: RoleGrant[];
+}
+
+export interface ProfileInput {
+  full_name?: string;
+  phone?: string | null;
+  preferred_language?: "uz" | "ru" | "en";
 }
 
 export interface Branch {
@@ -559,6 +566,12 @@ export const api = {
 
   me(): Promise<CurrentUser> {
     return request<CurrentUser>("/auth/me");
+  },
+
+  // O'z profilini tahrirlash. `PATCH /users/{id}` dan farq qiladi: u faqat
+  // OWNER uchun va boshqa xodimning rol/maosh ma'lumotini o'zgartiradi.
+  updateProfile(input: ProfileInput): Promise<CurrentUser> {
+    return request<CurrentUser>("/auth/me", { method: "PATCH", body: input });
   },
 
   // Refresh tokenni serverda ham bekor qiladi — faqat localStorage tozalansa,

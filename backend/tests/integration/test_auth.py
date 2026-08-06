@@ -174,3 +174,113 @@ async def test_reset_password_with_token_changes_password(
         json={"token": token, "new_password": "yana-boshqa-789"},
     )
     assert reuse.status_code == 401
+
+
+async def test_update_own_profile(client: AsyncClient) -> None:
+    """Foydalanuvchi o'z ismi, telefoni va tilini o'zgartira oladi."""
+    setup = await complete_setup(client)
+    assert setup
+    access = (await login(client, OWNER_USERNAME, OWNER_PASSWORD))["access_token"]
+
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers=auth_header(access),
+        json={
+            "full_name": "Yangi Ism",
+            "phone": "+998901234567",
+            "preferred_language": "ru",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["full_name"] == "Yangi Ism"
+    assert body["phone"] == "+998901234567"
+    assert body["preferred_language"] == "ru"
+
+    # O'zgarish saqlangan — /me ham yangi qiymatlarni qaytaradi.
+    me = await client.get("/api/v1/auth/me", headers=auth_header(access))
+    assert me.json()["full_name"] == "Yangi Ism"
+
+
+async def test_teacher_can_update_own_profile(client: AsyncClient) -> None:
+    """Tarbiyachi ham o'z profilini tahrirlaydi — bu OWNER huquqi emas.
+
+    `PATCH /users/{id}` faqat OWNER uchun, shuning uchun tarbiyachining o'z
+    profilini o'zgartira olishi alohida tekshiriladi.
+    """
+    from tests.conftest import create_staff
+
+    setup = await complete_setup(client)
+    owner = (await login(client, OWNER_USERNAME, OWNER_PASSWORD))["access_token"]
+    await create_staff(
+        client,
+        owner,
+        role="TEACHER",
+        phone="+998900000077",
+        password="teacher-parol-1",
+        branch_id=setup["branch_id"],
+        username="tarbiyachi",
+    )
+    teacher = (await login(client, "tarbiyachi", "teacher-parol-1"))["access_token"]
+
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers=auth_header(teacher),
+        json={"full_name": "Zulfiya Rahimova", "preferred_language": "en"},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["full_name"] == "Zulfiya Rahimova"
+
+
+async def test_profile_rejects_duplicate_phone(client: AsyncClient) -> None:
+    """Boshqa xodimning telefon raqamini o'zlashtirib bo'lmaydi."""
+    from tests.conftest import create_staff
+
+    setup = await complete_setup(client)
+    owner = (await login(client, OWNER_USERNAME, OWNER_PASSWORD))["access_token"]
+    await create_staff(
+        client,
+        owner,
+        role="MANAGER",
+        phone="+998900000088",
+        password="mgr-parol-12",
+        branch_id=setup["branch_id"],
+        username="menejer",
+    )
+    manager = (await login(client, "menejer", "mgr-parol-12"))["access_token"]
+
+    # OWNER'ning telefon raqamini olishga urinish.
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers=auth_header(manager),
+        json={"phone": OWNER_PHONE},
+    )
+    assert resp.status_code == 409, resp.text
+
+
+async def test_profile_cannot_change_role_or_salary(client: AsyncClient) -> None:
+    """Sxema faqat uch maydonni qabul qiladi — qolgani e'tiborsiz qoldiriladi.
+
+    Foydalanuvchi o'ziga maosh belgilay olmasligi yoki hisobini o'chira
+    olmasligi kerak.
+    """
+    await complete_setup(client, owner_email=OWNER_EMAIL)
+    access = (await login(client, OWNER_USERNAME, OWNER_PASSWORD))["access_token"]
+
+    resp = await client.patch(
+        "/api/v1/auth/me",
+        headers=auth_header(access),
+        json={
+            "full_name": "Egasi",
+            "monthly_salary": "99000000",
+            "is_active": False,
+            "email": "boshqa@example.com",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    # Email o'zgarmagan — sxema uni qabul qilmaydi.
+    assert resp.json()["email"] == OWNER_EMAIL
+
+    # Hisob hali faol: login ishlayapti.
+    again = await login(client, OWNER_USERNAME, OWNER_PASSWORD)
+    assert again["access_token"]
