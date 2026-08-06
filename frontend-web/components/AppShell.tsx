@@ -159,23 +159,22 @@ function firstHrefForRole(role: string): string {
   return navForRole(role)[0]?.href ?? "/attendance";
 }
 
-/** "Mening profilim" oynasi — foydalanuvchi o'z ismi, telefoni va interfeys
- *  tilini o'zgartiradi. Rol, email va maosh bu yerdan o'zgarmaydi: ular OWNER
- *  huquqida qoladi va `PATCH /auth/me` sxemasi ularni qabul qilmaydi. */
+/** "Mening profilim" oynasi — faqat F.I.O. va telefon.
+ *
+ *  Til bu yerda emas: u foydalanuvchi menyusida allaqachon bor. Rol, email va
+ *  maosh esa OWNER huquqida qoladi — `PATCH /auth/me` sxemasi ularni umuman
+ *  qabul qilmaydi. */
 function ProfileForm({
   user,
   t,
-  lang,
   onSaved,
 }: {
   user: CurrentUser;
   t: AppStrings;
-  lang: Lang;
-  onSaved: (updated: CurrentUser, nextLang: Lang) => void;
+  onSaved: (updated: CurrentUser) => void;
 }): ReactNode {
   const [fullName, setFullName] = useState(user.full_name);
   const [phone, setPhone] = useState(user.phone ?? "");
-  const [nextLang, setNextLang] = useState<Lang>(lang);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -187,9 +186,8 @@ function ProfileForm({
       const updated = await api.updateProfile({
         full_name: fullName.trim(),
         phone: phone.trim() || null,
-        preferred_language: nextLang,
       });
-      onSaved(updated, nextLang);
+      onSaved(updated);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.common.errTitle);
       setSaving(false);
@@ -217,33 +215,6 @@ function ProfileForm({
           onChange={(e) => setPhone(e.target.value)}
         />
       </div>
-      <div className="field">
-        <label>{t.language}</label>
-        <div className="segmented">
-          {(["uz", "ru", "en"] as Lang[]).map((l) => (
-            <button
-              key={l}
-              type="button"
-              className={nextLang === l ? "on" : ""}
-              onClick={() => setNextLang(l)}
-            >
-              {LANG_LABEL[l]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Login va rol faqat ko'rsatiladi — ularni o'zi o'zgartira olmaydi. */}
-      <dl className="deflist">
-        <div>
-          <dt>{t.staff.login}</dt>
-          <dd>{user.username ?? "—"}</dd>
-        </div>
-        <div>
-          <dt>{t.common.email}</dt>
-          <dd>{user.email ?? "—"}</dd>
-        </div>
-      </dl>
 
       {error && <p className="error">{error}</p>}
       <button className="btn btn--full" type="submit" disabled={saving}>
@@ -614,12 +585,8 @@ export function AppShell({
       <ProfileForm
         user={user}
         t={t}
-        lang={lang}
-        onSaved={(updated, nextLang) => {
+        onSaved={(updated) => {
           modal.close();
-          // Til profil bilan birga saqlanadi — keyingi kirishda ham shu tilda
-          // ochilishi uchun `setLang` localStorage'ga ham yozadi.
-          if (nextLang !== lang) setLang(nextLang);
           // Yon paneldagi ism darhol yangilanishi uchun sahifa qayta yuklanadi
           // (user props orqali yuqoridan keladi, shu yerda o'zgartirib bo'lmaydi).
           if (updated.full_name !== user.full_name || updated.phone !== user.phone) {
