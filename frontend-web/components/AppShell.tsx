@@ -346,11 +346,18 @@ export function AppShell({
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [kindergartenName, setKindergartenName] = useState("");
   const [branchId, setBranchIdState] = useState("");
   const [period, setPeriodState] = useState<Period>(() => monthRange());
 
   useEffect(() => {
     api.listBranches().then(setBranches).catch(() => {});
+    // Yon panel sarlavhasi bog'cha nomini ko'rsatadi (filial nomini emas) —
+    // u Sozlamalar sahifasida kiritiladi.
+    api
+      .getSettings()
+      .then((s) => setKindergartenName(s.name))
+      .catch(() => {});
     const saved = window.localStorage.getItem("kidsflow_branch_id");
     if (saved) setBranchIdState(saved);
   }, []);
@@ -447,6 +454,9 @@ export function AppShell({
 
   const branch = branches.find((b) => b.id === branchId);
   const branchName = branch?.name || "KIDSFLOW";
+  // Sozlamalar hali yuklanmagan bo'lsa filial nomiga qaytamiz — sarlavha
+  // bir lahza ham bo'sh turmasligi uchun.
+  const brandName = kindergartenName || branchName;
   const navItems = navForRole(role);
   const isOwnerOrManager = role === "OWNER" || role === "MANAGER";
 
@@ -660,11 +670,8 @@ export function AppShell({
       <div>
         <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
           <div className="sb__brand">
-            <span className="sb__brand-mark">{branchName.charAt(0).toUpperCase()}</span>
-            <span className="sb__name tr">
-              {branchName}
-              <small className="tr">{roleLabel}</small>
-            </span>
+            <span className="sb__brand-mark">{brandName.charAt(0).toUpperCase()}</span>
+            <span className="sb__name tr">{brandName}</span>
           </div>
 
           <nav className="sb__nav">
