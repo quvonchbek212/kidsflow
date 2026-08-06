@@ -352,6 +352,8 @@ export interface AppStrings {
     addStaff: string;
     editStaff: string;
     position: string;
+    /** Lavozim enum qiymati → tarjima (MANAGER → "Menejer"/"Менеджер"/"Manager"). */
+    positionLabels: Record<string, string>;
     salary: string;
     hireDate: string;
     employmentType: string;
@@ -531,6 +533,15 @@ const T: Table = {
   roleManager: ["Menejer", "Менеджер", "Manager"],
   roleTeacher: ["Tarbiyachi", "Воспитатель", "Teacher"],
   roleParent: ["Ota-ona", "Родитель", "Parent"],
+
+  // Xodim lavozimlari. Ataylab rol yorliqlaridan alohida: lavozim faqat kadrlar
+  // bo'limidagi belgi, RBAC roli esa mustaqil (models/enums.py, StaffPosition).
+  posManager: ["Menejer", "Менеджер", "Manager"],
+  posTeacher: ["Tarbiyachi", "Воспитатель", "Teacher"],
+  posCook: ["Oshpaz", "Повар", "Cook"],
+  posCleaner: ["Farrosh", "Уборщица", "Cleaner"],
+  posNurse: ["Hamshira", "Медсестра", "Nurse"],
+  posAssistant: ["Yordamchi", "Помощник", "Assistant"],
 
   navSectionGeneral: ["Umumiy", "Общее", "General"],
   navSectionKindergarten: ["Bog'cha", "Детский сад", "Kindergarten"],
@@ -1631,6 +1642,14 @@ function build(idx: 0 | 1 | 2): AppStrings {
       addStaff: p("addStaff"),
       editStaff: p("editStaff"),
       position: p("position"),
+      positionLabels: {
+        MANAGER: p("posManager"),
+        TEACHER: p("posTeacher"),
+        COOK: p("posCook"),
+        CLEANER: p("posCleaner"),
+        NURSE: p("posNurse"),
+        ASSISTANT: p("posAssistant"),
+      },
       salary: p("salary"),
       hireDate: p("hireDate"),
       employmentType: p("employmentType"),

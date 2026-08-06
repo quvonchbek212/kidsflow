@@ -85,6 +85,14 @@ function StaffContent(): ReactNode {
     return "—";
   }
 
+  // Lavozim bazada enum sifatida saqlanadi (MANAGER, COOK, ...) — ekranda esa
+  // tanlangan tilda ko'rsatiladi. Tarjimasi topilmasa xom qiymat qaytadi, ya'ni
+  // backendga yangi lavozim qo'shilsa sahifa buzilmaydi, faqat tarjimasiz chiqadi.
+  function positionLabel(v: string | null): string {
+    if (!v) return "—";
+    return t.staff.positionLabels[v] ?? v;
+  }
+
   function openStaffForm(existing: StaffUser | null): void {
     let fullName = existing?.full_name ?? "";
     let username = "";
@@ -179,7 +187,7 @@ function StaffContent(): ReactNode {
               <select className="input" defaultValue={position} onChange={(e) => (position = e.target.value)}>
                 {POSITIONS.map((p) => (
                   <option key={p} value={p}>
-                    {p}
+                    {positionLabel(p)}
                   </option>
                 ))}
               </select>
@@ -490,7 +498,14 @@ function StaffContent(): ReactNode {
         </div>
       ),
     },
-    { key: "position", label: t.staff.position, sortValue: (s) => s.position ?? "", render: (s) => s.position ?? "—" },
+    {
+      key: "position",
+      label: t.staff.position,
+      // Saralash ham ko'rinadigan matn bo'yicha — foydalanuvchi "Farrosh" va
+      // "Hamshira" ni alifbo tartibida kutadi, CLEANER/NURSE bo'yicha emas.
+      sortValue: (s) => positionLabel(s.position),
+      render: (s) => positionLabel(s.position),
+    },
     { key: "employment", label: t.staff.employmentType, render: (s) => employmentLabel(s.employment_type) },
     {
       key: "salary",
@@ -556,9 +571,13 @@ function StaffContent(): ReactNode {
           columns={columns}
           rows={staff}
           rowKey={(s) => s.id}
-          searchText={(s) => `${s.full_name} ${s.position ?? ""}`}
+          // Qidiruvda ikkalasi ham: "Tarbiyachi" deb ham, "TEACHER" deb ham topiladi.
+          searchText={(s) => `${s.full_name} ${s.position ?? ""} ${positionLabel(s.position)}`}
           searchPlaceholder={t.common.search}
-          filters={[{ key: "all", label: t.staff.filterAll }, ...POSITIONS.map((p) => ({ key: p, label: p }))]}
+          filters={[
+            { key: "all", label: t.staff.filterAll },
+            ...POSITIONS.map((p) => ({ key: p, label: positionLabel(p) })),
+          ]}
           filterFn={(s, f) => s.position === f}
           onRowClick={(s) => openStaffForm(s)}
           emptyTitle={t.common.nothingFound}
