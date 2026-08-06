@@ -172,6 +172,17 @@ export interface ProfileInput {
   preferred_language?: "uz" | "ru" | "en";
 }
 
+export interface BranchInput {
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  capacity?: number | null;
+}
+
+// Filial o'chirilmaydi — faolsizlantiriladi, shuning uchun tahrirlashda
+// `is_active` ham bor (yaratishda esa u doim true).
+export type BranchUpdateInput = Partial<BranchInput> & { is_active?: boolean };
+
 export interface Branch {
   id: string;
   name: string;
@@ -611,6 +622,14 @@ export const api = {
 
   listBranches(): Promise<Branch[]> {
     return request<Branch[]>("/branches");
+  },
+
+  createBranch(input: BranchInput): Promise<Branch> {
+    return request<Branch>("/branches", { method: "POST", body: input });
+  },
+
+  updateBranch(branchId: string, input: BranchUpdateInput): Promise<Branch> {
+    return request<Branch>(`/branches/${branchId}`, { method: "PATCH", body: input });
   },
 
   // --- bolalar ---

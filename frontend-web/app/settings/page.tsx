@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
+import type { AppStrings } from "@/lib/app-i18n";
+import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
-import { ApiError, api, type Group } from "@/lib/api";
+import { ApiError, api, type Branch, type Group } from "@/lib/api";
 import { money } from "@/lib/format";
 import { useAuth } from "@/lib/useAuth";
 
@@ -19,6 +21,115 @@ export default function SettingsPage(): ReactNode {
   );
 }
 
+/** Filial yaratish/tahrirlash oynasi. Modal ichida o'z holatini boshqaradi
+ *  (ModalProvider kontentni bir marta "suratga oladi"). */
+function BranchForm({
+  existing,
+  t,
+  onSaved,
+}: {
+  existing: Branch | null;
+  t: AppStrings;
+  onSaved: () => void;
+}): ReactNode {
+  const [name, setName] = useState(existing?.name ?? "");
+  const [address, setAddress] = useState(existing?.address ?? "");
+  const [phone, setPhone] = useState(existing?.phone ?? "");
+  const [capacity, setCapacity] = useState(
+    existing?.capacity != null ? String(existing.capacity) : "",
+  );
+  const [isActive, setIsActive] = useState(existing?.is_active ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(e: FormEvent): Promise<void> {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        name: name.trim(),
+        address: address.trim() || null,
+        phone: phone.trim() || null,
+        capacity: capacity.trim() ? Number(capacity) : null,
+      };
+      if (existing) {
+        await api.updateBranch(existing.id, { ...payload, is_active: isActive });
+      } else {
+        await api.createBranch(payload);
+      }
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t.common.errTitle);
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="field">
+        <label>
+          {t.settings.branchName}
+          <span className="req">*</span>
+        </label>
+        <input
+          className="input"
+          required
+          maxLength={255}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label>{t.settings.address}</label>
+        <input
+          className="input"
+          maxLength={500}
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label>{t.common.phone}</label>
+        <input
+          className="input"
+          placeholder="+998 90 123 45 67"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label>{t.settings.branchCapacity}</label>
+        <input
+          className="input"
+          type="number"
+          min={1}
+          value={capacity}
+          onChange={(e) => setCapacity(e.target.value)}
+        />
+      </div>
+
+      {/* Filial o'chirilmaydi — faolsizlantiriladi. Undagi guruhlar, bolalar va
+          moliyaviy tarix saqlanib qoladi (11-bo'lim: yozuvlar o'chirilmaydi). */}
+      {existing && (
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+          />
+          <span>{t.common.active}</span>
+        </label>
+      )}
+
+      {error && <p className="error">{error}</p>}
+      <button className="btn btn--full" type="submit" disabled={saving}>
+        {saving ? t.common.saving : t.common.save}
+      </button>
+    </form>
+  );
+}
+
 function SettingsContent(): ReactNode {
   const { t, branchId, setPageMeta } = useAppUI();
 
@@ -29,6 +140,8 @@ function SettingsContent(): ReactNode {
 
   const [ready, setReady] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const modal = useModal();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,6 +173,31 @@ function SettingsContent(): ReactNode {
       .then((list) => setGroups(list.filter((g) => g.branch_id === branchId && g.is_active)))
       .catch(() => {});
   }, [branchId]);
+
+  const loadBranches = useCallback((): void => {
+    api.listBranches().then(setBranches).catch(() => {});
+  }, []);
+
+  useEffect(loadBranches, [loadBranches]);
+
+  function openBranch(existing: Branch | null): void {
+    modal.open(
+      <BranchForm
+        existing={existing}
+        t={t}
+        onSaved={() => {
+          modal.close();
+          toast.show(t.settings.branchSaved);
+          loadBranches();
+        }}
+      />,
+      {
+        title: existing ? t.settings.editBranch : t.settings.newBranch,
+        subtitle: existing?.name,
+        size: "narrow",
+      },
+    );
+  }
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
@@ -193,6 +331,64 @@ function SettingsContent(): ReactNode {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Filiallar — har biri o'z guruhlari, xodimlari va hisobotiga ega.
+          Yon paneldagi filial tanlagichi shu ro'yxatdan to'ldiriladi. */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card__head">
+          <div>
+            <h3>{t.settings.branchesSection}</h3>
+            <p>{t.settings.branchesSub}</p>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openBranch(null)}>
+            + {t.settings.addBranch}
+          </button>
+        </div>
+        {branches.length === 0 ? (
+          <div className="panel-empty">{t.common.empty}</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>{t.settings.branchName}</th>
+                  <th>{t.settings.address}</th>
+                  <th>{t.common.phone}</th>
+                  <th className="r">{t.settings.branchCapacity}</th>
+                  <th className="r" />
+                </tr>
+              </thead>
+              <tbody>
+                {branches.map((b) => (
+                  <tr key={b.id}>
+                    <td>
+                      <b>{b.name}</b>
+                      {!b.is_active && (
+                        <>
+                          {" "}
+                          <span className="badge badge--mute">{t.settings.branchInactive}</span>
+                        </>
+                      )}
+                    </td>
+                    <td className="muted">{b.address ?? "—"}</td>
+                    <td className="num muted">{b.phone ?? "—"}</td>
+                    <td className="r num">{b.capacity ?? "—"}</td>
+                    <td className="r">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn--sm"
+                        onClick={() => openBranch(b)}
+                      >
+                        {t.common.edit}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

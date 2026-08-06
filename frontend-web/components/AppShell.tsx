@@ -674,6 +674,35 @@ export function AppShell({
             <span className="sb__name tr">{brandName}</span>
           </div>
 
+          {/* Filial — bog'cha nomi ostida.
+              Bir nechta filialga kirish huquqi bo'lsa tanlagich, aks holda
+              shunchaki hozirgi filial nomi (bitta filialli bog'chada tanlov
+              ma'nosiz, lekin qaysi filialdaligini bilish foydali). */}
+          {canSwitchBranch ? (
+            <label className="sb__org">
+              <IconBuilding size={16} />
+              <select
+                className="sb__org-select"
+                aria-label={t.common.branch}
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+              >
+                {branches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            branch && (
+              <div className="sb__org">
+                <IconBuilding size={16} />
+                <span className="sb__org-name tr">{branch.name}</span>
+              </div>
+            )
+          )}
+
           <nav className="sb__nav">
             {SECTIONS.map((section) => {
               const items = navItems.filter((i) => i.section === section);
@@ -730,28 +759,6 @@ export function AppShell({
                   >
                     {t.myProfile}
                   </button>
-                  {/* Filial almashtirish mockupda yo'q, lekin ko'p filialli
-                      hisoblar uchun kerak — yon panel ko'rinishini buzmasligi
-                      uchun shu menyuga joylashtirilgan. */}
-                  {canSwitchBranch && (
-                    <>
-                      <div className="pop__sep" />
-                      <div className="pop__head">{t.common.branch}</div>
-                      {branches.map((b) => (
-                        <button
-                          key={b.id}
-                          type="button"
-                          className={`pop__item${b.id === branchId ? " on" : ""}`}
-                          onClick={() => {
-                            setBranchId(b.id);
-                            setMenuOpen(false);
-                          }}
-                        >
-                          {b.name}
-                        </button>
-                      ))}
-                    </>
-                  )}
                   <div className="pop__sep" />
                   <div className="pop__head">{t.language}</div>
                   {LANGS.map((l) => (

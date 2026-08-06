@@ -504,6 +504,15 @@ export interface AppStrings {
     tariffs: string;
     tariffsSub: string;
     months: string;
+    branchesSection: string;
+    branchesSub: string;
+    addBranch: string;
+    newBranch: string;
+    editBranch: string;
+    branchName: string;
+    branchCapacity: string;
+    branchSaved: string;
+    branchInactive: string;
   };
 }
 
@@ -1246,6 +1255,19 @@ const T: Table = {
     "Monthly fee per group",
   ],
   setMonths: ["oy", "мес.", "months"],
+  setBranchesSection: ["Filiallar", "Филиалы", "Branches"],
+  setBranchesSub: [
+    "Har bir filial o'z guruhlari, xodimlari va hisobotiga ega.",
+    "У каждого филиала свои группы, сотрудники и отчётность.",
+    "Each branch has its own groups, staff and reporting.",
+  ],
+  setAddBranch: ["Filial qo'shish", "Добавить филиал", "Add branch"],
+  setNewBranch: ["Yangi filial", "Новый филиал", "New branch"],
+  setEditBranch: ["Filialni tahrirlash", "Редактировать филиал", "Edit branch"],
+  setBranchName: ["Filial nomi", "Название филиала", "Branch name"],
+  setBranchCapacity: ["Sig'im (bola soni)", "Вместимость (детей)", "Capacity (children)"],
+  setBranchSaved: ["Filial saqlandi", "Филиал сохранён", "Branch saved"],
+  setBranchInactive: ["Faol emas", "Неактивен", "Inactive"],
 
   newLabel: ["Yangi", "Новый", "New"],
   whatAdd: ["Nima qo'shamiz?", "Что добавим?", "What would you like to add?"],
@@ -1799,6 +1821,15 @@ function build(idx: 0 | 1 | 2): AppStrings {
       saveChanges: p("setSaveChanges"),
       tariffs: p("setTariffs"),
       tariffsSub: p("setTariffsSub"),
+      branchesSection: p("setBranchesSection"),
+      branchesSub: p("setBranchesSub"),
+      addBranch: p("setAddBranch"),
+      newBranch: p("setNewBranch"),
+      editBranch: p("setEditBranch"),
+      branchName: p("setBranchName"),
+      branchCapacity: p("setBranchCapacity"),
+      branchSaved: p("setBranchSaved"),
+      branchInactive: p("setBranchInactive"),
       months: p("setMonths"),
     },
   };

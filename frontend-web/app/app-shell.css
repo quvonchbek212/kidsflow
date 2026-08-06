@@ -2081,11 +2081,15 @@ body.collapsed {
 body.collapsed .sb__name,
 body.collapsed .sb__link span:not(.sb__count),
 body.collapsed .sb__count,
-body.collapsed .sb__user div {
+body.collapsed .sb__user div,
+/* Yig'ilganda filial nomi/tanlagichi sig'maydi — faqat ikonka qoladi. */
+body.collapsed .sb__org-select,
+body.collapsed .sb__org-name {
   display: none;
 }
 body.collapsed .sb__link,
 body.collapsed .sb__brand,
+body.collapsed .sb__org,
 body.collapsed .sb__user {
   justify-content: center;
   padding-left: 0;
@@ -2126,6 +2130,8 @@ body.collapsed .sb__link svg {
   }
   body.collapsed .sb__name,
   body.collapsed .sb__link span,
+  body.collapsed .sb__org-select,
+  body.collapsed .sb__org-name,
   body.collapsed .sb__user div {
     display: revert;
   }
