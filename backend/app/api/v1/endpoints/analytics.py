@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -25,9 +26,12 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 async def finance_dashboard(
     period_start: date = Query(..., description="Davr boshi (YYYY-MM-DD)"),
     period_end: date = Query(..., description="Davr oxiri (YYYY-MM-DD)"),
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha ko'rinadigan"
+    ),
     current_user: CurrentUser = Depends(require_roles(Role.OWNER, Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> FinanceDashboardResponse:
     return await AnalyticsService(session).dashboard(
-        current_user, period_start, period_end
+        current_user, period_start, period_end, branch_id
     )

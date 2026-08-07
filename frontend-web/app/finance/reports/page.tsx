@@ -27,7 +27,7 @@ interface PlRow {
 }
 
 function ReportsContent(): ReactNode {
-  const { t, period, setPageMeta } = useAppUI();
+  const { t, branchId, period, setPageMeta } = useAppUI();
 
   useEffect(() => {
     setPageMeta({ title: t.reports.title, subtitle: `${t.reports.subtitle} · ${period.start} — ${period.end}` });
@@ -38,8 +38,13 @@ function ReportsContent(): ReactNode {
   const [ready, setReady] = useState(false);
 
   function load(): void {
+    // Filialsiz chaqirilsa hisobot ikkala filialning yig'indisini ko'rsatardi.
+    if (!branchId) return;
     setReady(false);
-    Promise.all([api.dashboard(period.start, period.end), api.listGroups()])
+    Promise.all([
+      api.dashboard(period.start, period.end, branchId),
+      api.listGroups(branchId),
+    ])
       .then(([dash, groupList]) => {
         setFinance(dash);
         setGroups(groupList);
@@ -48,7 +53,7 @@ function ReportsContent(): ReactNode {
       .finally(() => setReady(true));
   }
 
-  useEffect(load, [period]);
+  useEffect(load, [branchId, period]);
 
   const groupName = (id: string) => groups.find((g) => g.id === id)?.name ?? id;
 

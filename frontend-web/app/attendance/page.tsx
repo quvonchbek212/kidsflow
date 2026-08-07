@@ -22,7 +22,7 @@ export default function AttendancePage(): ReactNode {
 }
 
 function AttendanceContent(): ReactNode {
-  const { t, setPageMeta } = useAppUI();
+  const { t, branchId, setPageMeta } = useAppUI();
 
   useEffect(() => {
     setPageMeta({ title: t.attendance.title, subtitle: t.attendance.subtitle });
@@ -37,12 +37,15 @@ function AttendanceContent(): ReactNode {
   const [saving, setSaving] = useState(false);
   const [trend, setTrend] = useState<{ label: string; present: number; total: number }[]>([]);
 
+  // Guruhlar tanlangan filialga tegishli bo'lishi shart — aks holda boshqa
+  // filial guruhiga davomat belgilash mumkin bo'lib qolardi.
   useEffect(() => {
-    api.listGroups().then((list) => {
+    if (!branchId) return;
+    api.listGroups(branchId).then((list) => {
       setGroups(list);
-      if (list.length > 0) setGroupId(list[0].id);
+      setGroupId(list.length > 0 ? list[0].id : "");
     });
-  }, []);
+  }, [branchId]);
 
   function load(): void {
     if (!groupId || !date) return;

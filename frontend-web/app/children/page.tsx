@@ -55,13 +55,16 @@ function ChildrenContent(): ReactNode {
   const [ready, setReady] = useState(false);
 
   function load(): void {
+    // Filial aniqlanmaguncha so'rov yuborilmaydi — aks holda server filtrsiz
+    // javob qaytarib, barcha filiallar aralashib ketardi.
+    if (!branchId) return;
     setReady(false);
-    Promise.all([api.listChildren(), api.listGroups()])
+    Promise.all([api.listChildren(branchId), api.listGroups(branchId)])
       .then(async ([childList, groupList]) => {
         setChildren(childList);
 
         api
-          .listParents()
+          .listParents(branchId)
           .then((rows) => {
             const phones: Record<string, string> = {};
             for (const p of rows) if (p.phone) phones[p.id] = p.phone;
@@ -69,21 +72,20 @@ function ChildrenContent(): ReactNode {
           })
           .catch(() => {});
 
-        if (branchId) {
-          api
-            .branchInvoices(branchId, monthRange().start)
-            .then((invoices) => {
-              const debts: Record<string, number> = {};
-              for (const inv of invoices) {
-                debts[inv.child_id] =
-                  (debts[inv.child_id] ?? 0) + Number(inv.outstanding_amount);
-              }
-              setChildDebt(debts);
-            })
-            .catch(() => {});
-        }
+        api
+          .branchInvoices(branchId, monthRange().start)
+          .then((invoices) => {
+            const debts: Record<string, number> = {};
+            for (const inv of invoices) {
+              debts[inv.child_id] =
+                (debts[inv.child_id] ?? 0) + Number(inv.outstanding_amount);
+            }
+            setChildDebt(debts);
+          })
+          .catch(() => {});
 
-        const branchGroups = groupList.filter((g) => g.branch_id === branchId && g.is_active);
+        // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
+        const branchGroups = groupList.filter((g) => g.is_active);
         setGroups(branchGroups);
         const rosters = await Promise.all(
           branchGroups.map((g) =>

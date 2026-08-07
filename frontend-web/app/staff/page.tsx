@@ -51,9 +51,10 @@ function StaffContent(): ReactNode {
   const [ready, setReady] = useState(false);
 
   function load(): void {
+    if (!branchId) return;
     setReady(false);
     api
-      .listStaff()
+      .listStaff(undefined, branchId)
       .then((list) => {
         setStaff(list);
         setForbidden(false);
@@ -63,12 +64,12 @@ function StaffContent(): ReactNode {
       })
       .finally(() => setReady(true));
     api
-      .payrollSummary()
+      .payrollSummary(branchId)
       .then(setPayroll)
       .catch(() => {});
   }
 
-  useEffect(load, []);
+  useEffect(load, [branchId]);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") {

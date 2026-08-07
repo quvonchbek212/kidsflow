@@ -16,6 +16,7 @@ from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import PermissionDeniedError
 from app.core.permissions import CurrentUser
 from app.models.enums import Role
 from app.repositories.branch_repository import BranchRepository
@@ -41,8 +42,15 @@ class AnalyticsService:
         current_user: CurrentUser,
         period_start: date,
         period_end: date,
+        branch_id: uuid.UUID | None = None,
     ) -> FinanceDashboardResponse:
         branch_ids = await self._visible_branch_ids(current_user)
+        # Filial ko'rsatilsa hisob faqat shu filial bo'yicha yig'iladi. Aks holda
+        # ko'p filialli bog'chada barcha raqamlar jimgina qo'shilib ketardi.
+        if branch_id is not None:
+            if branch_id not in branch_ids:
+                raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+            branch_ids = [branch_id]
 
         if not branch_ids:
             return FinanceDashboardResponse(

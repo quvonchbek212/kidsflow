@@ -63,10 +63,16 @@ class ChildService:
             raise NotFoundError("Bola topilmadi.")
         return child
 
-    async def list_visible(self, current_user: CurrentUser) -> list[Child]:
-        visible = await self._access.visible_child_ids(current_user)
+    async def list_visible(
+        self, current_user: CurrentUser, branch_id: uuid.UUID | None = None
+    ) -> list[Child]:
+        if branch_id is not None and not self._access.can_view_branch(
+            current_user, branch_id
+        ):
+            raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+        visible = await self._access.visible_child_ids(current_user, branch_id)
         if visible is None:
-            # OWNER/MANAGER — barcha bolalar.
+            # OWNER/MANAGER, filial ko'rsatilmagan — barcha bolalar.
             return await self._children.list_all()
         return await self._children.list_by_ids(visible)
 
@@ -234,11 +240,33 @@ class ChildService:
             )
         return responses
 
-    async def list_parents(self, current_user: CurrentUser) -> list[dict]:
-        """Ota-onalar ro'yxati (MANAGER/OWNER): aloqa, Telegram holati, farzandlar."""
+    async def list_parents(
+        self, current_user: CurrentUser, branch_id: uuid.UUID | None = None
+    ) -> list[dict]:
+        """Ota-onalar ro'yxati (MANAGER/OWNER): aloqa, Telegram holati, farzandlar.
+
+        `branch_id` berilsa faqat shu filialda farzandi bor ota-onalar
+        qaytariladi, va `children_names` ham shu filialdagi farzandlar bilan
+        cheklanadi — boshqa filialdagi farzand nomi ko'rinib qolmasligi uchun.
+        """
         self._require_manage(current_user)
+        if branch_id is not None and not self._access.can_view_branch(
+            current_user, branch_id
+        ):
+            raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+
         parents = await self._users.list_parents()
         child_names = await self._children.all_guardian_child_names()
+
+        if branch_id is not None:
+            in_branch = set(
+                await self._enrollments.child_ids_in_branches([branch_id])
+            )
+            child_names = await self._children.guardian_child_names_for_children(
+                in_branch
+            )
+            parents = [p for p in parents if child_names.get(p.id)]
+
         return [
             {
                 "id": p.id,

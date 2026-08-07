@@ -42,11 +42,11 @@ function GroupsContent(): ReactNode {
   const [ready, setReady] = useState(false);
 
   function load(): void {
+    if (!branchId) return;
     setReady(false);
     api
-      .listGroups()
-      .then(async (list) => {
-        const branchGroups = list.filter((g) => g.branch_id === branchId);
+      .listGroups(branchId)
+      .then(async (branchGroups) => {
         setGroups(branchGroups);
         const rosters = await Promise.all(
           branchGroups.map((g) =>
@@ -63,8 +63,9 @@ function GroupsContent(): ReactNode {
       .catch(() => {})
       .finally(() => setReady(true));
 
+    // Guruhga faqat shu filialdagi tarbiyachi biriktiriladi.
     api
-      .listStaff("TEACHER")
+      .listStaff("TEACHER", branchId)
       .then(setTeachers)
       .catch(() => setTeachers([]));
   }

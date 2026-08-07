@@ -168,9 +168,10 @@ function SettingsContent(): ReactNode {
   }, []);
 
   useEffect(() => {
+    if (!branchId) return;
     api
-      .listGroups()
-      .then((list) => setGroups(list.filter((g) => g.branch_id === branchId && g.is_active)))
+      .listGroups(branchId)
+      .then((list) => setGroups(list.filter((g) => g.is_active)))
       .catch(() => {});
   }, [branchId]);
 

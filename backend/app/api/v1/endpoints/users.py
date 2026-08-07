@@ -73,10 +73,13 @@ async def create_staff(
 )
 async def list_staff(
     position: str | None = Query(default=None),
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha xodimlar"
+    ),
     current_user: CurrentUser = Depends(require_roles(Role.OWNER)),
     session: AsyncSession = Depends(get_session),
 ) -> list[UserResponse]:
-    users = await UserService(session).list_all(position=position)
+    users = await UserService(session).list_all(position=position, branch_id=branch_id)
     return [_to_response(u) for u in users]
 
 
@@ -116,10 +119,13 @@ async def update_salary(
     summary="Ish haqi fondi (OWNER)",
 )
 async def payroll_summary(
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha xodimlar"
+    ),
     current_user: CurrentUser = Depends(require_roles(Role.OWNER)),
     session: AsyncSession = Depends(get_session),
 ) -> PayrollSummaryResponse:
-    total, users = await UserService(session).payroll_summary()
+    total, users = await UserService(session).payroll_summary(branch_id=branch_id)
     return PayrollSummaryResponse(
         total_fund=total,
         staff=[

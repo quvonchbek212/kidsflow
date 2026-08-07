@@ -67,12 +67,12 @@ function DashboardContent(): ReactNode {
     setReady(false);
 
     Promise.all([
-      api.dashboard(period.start, period.end),
-      api.listGroups(),
+      api.dashboard(period.start, period.end, branchId),
+      api.listGroups(branchId),
       Promise.all(
         lastMonths(6).map((m) =>
           api
-            .dashboard(m.start, m.end)
+            .dashboard(m.start, m.end, branchId)
             .then((d) => ({ label: m.label, income: Number(d.accrual_revenue), outcome: Number(d.expenses) }))
             .catch(() => ({ label: m.label, income: 0, outcome: 0 })),
         ),
@@ -82,7 +82,8 @@ function DashboardContent(): ReactNode {
         if (cancelled) return;
         setFinance(dash);
         setMonths(monthly);
-        const branchGroups = groupList.filter((g) => g.branch_id === branchId && g.is_active);
+        // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
+        const branchGroups = groupList.filter((g) => g.is_active);
 
         const rosters = await Promise.all(
           branchGroups.map((g) => api.attendanceRoster(g.id, isoDate(new Date())).catch(() => [])),
@@ -129,7 +130,7 @@ function DashboardContent(): ReactNode {
         }
 
         const [children, invoices] = await Promise.all([
-          api.listChildren().catch(() => []),
+          api.listChildren(branchId).catch(() => []),
           api.branchInvoices(branchId, period.start.slice(0, 7) + "-01").catch(() => []),
         ]);
         if (!cancelled) {

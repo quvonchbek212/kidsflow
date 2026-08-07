@@ -478,14 +478,15 @@ export function AppShell({
     }
     let cancelled = false;
     Promise.all([
-      api.dashboard(period.start, period.end).catch(() => null),
-      api.listGroups().catch(() => [] as Group[]),
-      api.listChildren().catch(() => []),
-      api.listStaff().catch(() => []),
+      api.dashboard(period.start, period.end, branchId).catch(() => null),
+      api.listGroups(branchId).catch(() => [] as Group[]),
+      api.listChildren(branchId).catch(() => []),
+      api.listStaff(undefined, branchId).catch(() => []),
     ]).then(([dash, groups, children, staff]) => {
       if (cancelled) return;
 
-      const branchGroups = groups.filter((g) => g.branch_id === branchId && g.is_active);
+      // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
+      const branchGroups = groups.filter((g) => g.is_active);
       setCounts({
         children: children.filter((c) => c.status === "active").length,
         groups: branchGroups.length,

@@ -47,7 +47,7 @@ function BillingContent(): ReactNode {
     if (!branchId) return;
     setReady(false);
     Promise.all([
-      api.listChildren(),
+      api.listChildren(branchId),
       api.listFeePlans(),
       api.branchInvoices(branchId, billingMonth).catch(() => []),
     ])
@@ -56,8 +56,9 @@ function BillingContent(): ReactNode {
         setFeePlans(plans.filter((p) => p.branch_id === branchId));
         setInvoices(inv);
 
-        const groups = (await api.listGroups().catch(() => []))
-          .filter((g) => g.branch_id === branchId && g.is_active);
+        const groups = (await api.listGroups(branchId).catch(() => [])).filter(
+          (g) => g.is_active,
+        );
         const rosters = await Promise.all(
           groups.map((g) =>
             api

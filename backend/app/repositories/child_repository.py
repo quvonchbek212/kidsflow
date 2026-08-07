@@ -80,6 +80,24 @@ class ChildRepository:
             result.setdefault(guardian_id, []).append(child_name)
         return result
 
+    async def guardian_child_names_for_children(
+        self, child_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, list[str]]:
+        """`all_guardian_child_names`ning berilgan bolalar bilan cheklangan varianti
+        (filial kesimidagi Ota-onalar ro'yxati uchun)."""
+        if not child_ids:
+            return {}
+        stmt = (
+            select(ChildGuardian.guardian_user_id, Child.full_name)
+            .join(Child, Child.id == ChildGuardian.child_id)
+            .where(ChildGuardian.child_id.in_(child_ids))
+        )
+        rows = (await self._session.execute(stmt)).all()
+        result: dict[uuid.UUID, list[str]] = {}
+        for guardian_id, child_name in rows:
+            result.setdefault(guardian_id, []).append(child_name)
+        return result
+
     async def notifiable_guardian_targets(
         self, child_id: uuid.UUID
     ) -> list[tuple[uuid.UUID, int]]:

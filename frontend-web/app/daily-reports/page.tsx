@@ -34,7 +34,7 @@ export default function DailyReportsPage(): ReactNode {
 }
 
 function DailyReportsContent(): ReactNode {
-  const { t, setPageMeta } = useAppUI();
+  const { t, branchId, setPageMeta } = useAppUI();
   const toast = useToast();
   const modal = useModal();
   const confirm = useConfirm();
@@ -50,15 +50,17 @@ function DailyReportsContent(): ReactNode {
     setPageMeta({ title: t.dailyReports.title, subtitle: t.dailyReports.subtitle });
   }, [setPageMeta, t]);
 
+  // Guruhlar tanlangan filial bo'yicha — filial almashsa tanlov ham qayta quriladi.
   useEffect(() => {
+    if (!branchId) return;
     api
-      .listGroups()
+      .listGroups(branchId)
       .then((list) => {
         setGroups(list);
-        if (list.length > 0) setGroupId((current) => current || list[0].id);
+        setGroupId(list.length > 0 ? list[0].id : "");
       })
       .catch(() => {});
-  }, []);
+  }, [branchId]);
 
   const load = useCallback((): void => {
     if (!groupId || !date) {

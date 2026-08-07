@@ -38,18 +38,30 @@ class AccessService:
     def is_manager_or_owner(self, user: CurrentUser) -> bool:
         return user.is_owner or user.has_any_role(Role.MANAGER)
 
-    async def visible_child_ids(self, user: CurrentUser) -> list[uuid.UUID] | None:
-        """Foydalanuvchi ko'ra oladigan bola ID'lari. None = barcha bolalar."""
-        if self.is_manager_or_owner(user):
-            return None
+    async def visible_child_ids(
+        self, user: CurrentUser, branch_id: uuid.UUID | None = None
+    ) -> list[uuid.UUID] | None:
+        """Foydalanuvchi ko'ra oladigan bola ID'lari. None = barcha bolalar.
 
-        visible: set[uuid.UUID] = set()
-        if user.has_any_role(Role.TEACHER):
-            group_ids = await self._groups.group_ids_for_teacher(user.id)
-            visible.update(await self._enrollments.child_ids_in_groups(group_ids))
-        if user.has_any_role(Role.PARENT):
-            visible.update(await self._children.child_ids_for_guardian(user.id))
-        return list(visible)
+        `branch_id` berilsa natija shu filialda enrollmenti bor bolalar bilan
+        kesishtiriladi. Bola filialga enrollment orqali bog'langani uchun
+        (5.3-bo'lim) filtr `children` ustuni bo'yicha emas, shu aloqa bo'yicha
+        ishlaydi.
+        """
+        by_role: set[uuid.UUID] | None = None
+        if not self.is_manager_or_owner(user):
+            by_role = set()
+            if user.has_any_role(Role.TEACHER):
+                group_ids = await self._groups.group_ids_for_teacher(user.id)
+                by_role.update(await self._enrollments.child_ids_in_groups(group_ids))
+            if user.has_any_role(Role.PARENT):
+                by_role.update(await self._children.child_ids_for_guardian(user.id))
+
+        if branch_id is None:
+            return None if by_role is None else list(by_role)
+
+        in_branch = set(await self._enrollments.child_ids_in_branches([branch_id]))
+        return list(in_branch if by_role is None else in_branch & by_role)
 
     async def can_view_child(self, user: CurrentUser, child_id: uuid.UUID) -> bool:
         if self.is_manager_or_owner(user):
@@ -79,6 +91,15 @@ class AccessService:
     def can_manage_branch(self, user: CurrentUser, branch_id: uuid.UUID) -> bool:
         """OWNER yoki shu filialning MANAGER'i (filialga tegishli yozuv amallari)."""
         return user.can_access_branch(branch_id, Role.MANAGER)
+
+    def can_view_branch(self, user: CurrentUser, branch_id: uuid.UUID) -> bool:
+        """Filial kesimida ro'yxat so'rash huquqi (o'qish amallari).
+
+        `can_manage_branch`dan farqi — TEACHER ham o'z filialini so'ray oladi;
+        u baribir faqat o'z guruhlaridagi bolalarni ko'radi, filial parametri
+        shunchaki ro'yxatni yanada toraytiradi.
+        """
+        return user.can_access_branch(branch_id, Role.MANAGER, Role.TEACHER)
 
     async def can_view_group(
         self, user: CurrentUser, group_branch_id: uuid.UUID, group_id: uuid.UUID

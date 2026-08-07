@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser
@@ -44,10 +44,13 @@ def _to_response(group: Group) -> GroupResponse:
 
 @router.get("", response_model=list[GroupResponse], summary="Guruhlar ro'yxati")
 async def list_groups(
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha ko'rinadigan"
+    ),
     current_user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[GroupResponse]:
-    groups = await GroupService(session).list_visible(current_user)
+    groups = await GroupService(session).list_visible(current_user, branch_id)
     return [_to_response(g) for g in groups]
 
 

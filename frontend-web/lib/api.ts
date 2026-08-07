@@ -132,6 +132,11 @@ async function requestForm<T>(
   return (await response.json()) as T;
 }
 
+/** Ixtiyoriy filial kesimi uchun `?branch_id=…` (filial tanlanmagan bo'lsa bo'sh). */
+function branchQuery(branchId?: string): string {
+  return branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+}
+
 async function extractDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
@@ -633,8 +638,10 @@ export const api = {
   },
 
   // --- bolalar ---
-  listChildren(): Promise<Child[]> {
-    return request<Child[]>("/children");
+  // `branchId` — filial kesimi. Bola `children` jadvalida filialga bog'lanmagan
+  // (u enrollment orqali tegishli), shuning uchun filtr faqat serverda mumkin.
+  listChildren(branchId?: string): Promise<Child[]> {
+    return request<Child[]>(`/children${branchQuery(branchId)}`);
   },
 
   getChild(childId: string): Promise<Child> {
@@ -729,8 +736,8 @@ export const api = {
     });
   },
 
-  listParents(): Promise<ParentRow[]> {
-    return request<ParentRow[]>("/children/parents");
+  listParents(branchId?: string): Promise<ParentRow[]> {
+    return request<ParentRow[]>(`/children/parents${branchQuery(branchId)}`);
   },
 
   // Ota-onani Telegram botga ulash uchun bir martalik kod. Kod ota-onaga
@@ -742,8 +749,8 @@ export const api = {
     });
   },
 
-  listGroups(): Promise<Group[]> {
-    return request<Group[]>("/groups");
+  listGroups(branchId?: string): Promise<Group[]> {
+    return request<Group[]>(`/groups${branchQuery(branchId)}`);
   },
 
   // --- kunlik hisobot ---
@@ -843,9 +850,12 @@ export const api = {
   },
 
   // --- kadrlar / xodimlar ---
-  listStaff(position?: string): Promise<StaffUser[]> {
-    const qs = position ? `?position=${encodeURIComponent(position)}` : "";
-    return request<StaffUser[]>(`/users${qs}`);
+  listStaff(position?: string, branchId?: string): Promise<StaffUser[]> {
+    const params = new URLSearchParams();
+    if (position) params.set("position", position);
+    if (branchId) params.set("branch_id", branchId);
+    const qs = params.toString();
+    return request<StaffUser[]>(`/users${qs ? `?${qs}` : ""}`);
   },
 
   createStaff(body: {
@@ -891,8 +901,8 @@ export const api = {
     });
   },
 
-  payrollSummary(): Promise<PayrollSummary> {
-    return request<PayrollSummary>("/users/payroll-summary");
+  payrollSummary(branchId?: string): Promise<PayrollSummary> {
+    return request<PayrollSummary>(`/users/payroll-summary${branchQuery(branchId)}`);
   },
 
   // --- moliya ---
@@ -1014,11 +1024,16 @@ export const api = {
     return request<Expense>(`/expenses/${expenseId}/reverse`, { method: "POST" });
   },
 
-  dashboard(periodStart: string, periodEnd: string): Promise<FinanceDashboard> {
+  dashboard(
+    periodStart: string,
+    periodEnd: string,
+    branchId?: string,
+  ): Promise<FinanceDashboard> {
     const params = new URLSearchParams({
       period_start: periodStart,
       period_end: periodEnd,
     });
+    if (branchId) params.set("branch_id", branchId);
     return request<FinanceDashboard>(`/analytics/dashboard?${params.toString()}`);
   },
 

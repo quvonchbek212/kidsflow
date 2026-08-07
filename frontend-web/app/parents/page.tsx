@@ -65,18 +65,16 @@ function ParentsContent(): ReactNode {
   const modal = useModal();
 
   function load(): void {
-    api.listParents().then(setParents).catch(() => {});
-    api.listGroups().then(setGroups).catch(() => {});
+    // Filial aniqlanmaguncha kutamiz — server filtri shu parametrga tayanadi.
+    if (!branchId) return;
+    api.listParents(branchId).then(setParents).catch(() => {});
+    api.listGroups(branchId).then(setGroups).catch(() => {});
     api.getSettings().then(setSettings).catch(() => {});
-    if (branchId) {
-      api
-        .messagingStats(branchId)
-        .then(setStats)
-        .catch(() => {})
-        .finally(() => setReady(true));
-    } else {
-      setReady(true);
-    }
+    api
+      .messagingStats(branchId)
+      .then(setStats)
+      .catch(() => {})
+      .finally(() => setReady(true));
   }
 
   useEffect(load, [branchId]);

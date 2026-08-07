@@ -63,13 +63,23 @@ class GroupService:
         )
         return await self._reload(group.id)
 
-    async def list_visible(self, current_user: CurrentUser) -> list[Group]:
+    async def list_visible(
+        self, current_user: CurrentUser, branch_id: uuid.UUID | None = None
+    ) -> list[Group]:
+        if branch_id is not None and not self._access.can_view_branch(
+            current_user, branch_id
+        ):
+            raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+
         if current_user.is_owner:
-            return await self._groups.list_all()
+            if branch_id is None:
+                return await self._groups.list_all()
+            return await self._groups.list_by_branches([branch_id])
         if current_user.has_any_role(Role.MANAGER):
-            return await self._groups.list_by_branches(
-                list(current_user.branches_for(Role.MANAGER))
-            )
+            branches = current_user.branches_for(Role.MANAGER)
+            if branch_id is not None:
+                branches = branches & {branch_id}
+            return await self._groups.list_by_branches(list(branches))
         # TEACHER — faqat biriktirilgan guruhlar.
         group_ids = await self._groups.group_ids_for_teacher(current_user.id)
         if not group_ids:
@@ -80,6 +90,8 @@ class GroupService:
             .order_by(Group.name)
             .options(selectinload(Group.teachers))
         )
+        if branch_id is not None:
+            stmt = stmt.where(Group.branch_id == branch_id)
         return list((await self._session.execute(stmt)).scalars().all())
 
     async def get(self, group_id: uuid.UUID, current_user: CurrentUser) -> Group:

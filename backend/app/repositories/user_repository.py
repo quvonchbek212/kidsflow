@@ -81,7 +81,7 @@ class UserRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def list_staff(self) -> list[User]:
+    async def list_staff(self, branch_id: uuid.UUID | None = None) -> list[User]:
         """Yollanma xodimlar ro'yxati.
 
         Ikki toifa chiqarib tashlanadi:
@@ -95,6 +95,9 @@ class UserRepository:
 
         Ish haqi fondi ham shu metoddan o'qiydi, shuning uchun jadvaldagi
         qatorlar yig'indisi doim yuqoridagi fond raqamiga teng bo'ladi.
+
+        `branch_id` berilsa faqat shu filialga biriktirilgan rolga ega xodimlar
+        qaytariladi.
         """
         excluded_ids = select(UserRoleAssignment.user_id).where(
             UserRoleAssignment.role.in_([Role.PARENT.value, Role.OWNER.value])
@@ -104,6 +107,11 @@ class UserRepository:
             .where(User.id.not_in(excluded_ids))
             .order_by(User.created_at.desc())
         )
+        if branch_id is not None:
+            branch_staff_ids = select(UserRoleAssignment.user_id).where(
+                UserRoleAssignment.branch_id == branch_id
+            )
+            stmt = stmt.where(User.id.in_(branch_staff_ids))
         return list((await self._session.execute(stmt)).scalars().all())
 
     async def list_parents(self) -> list[User]:

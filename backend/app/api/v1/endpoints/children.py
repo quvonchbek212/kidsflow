@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Form, UploadFile, status
+from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
 from fastapi import File as FastFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,11 +32,14 @@ router = APIRouter(prefix="/children", tags=["children"])
 
 @router.get("", response_model=list[ChildResponse], summary="Bolalar ro'yxati")
 async def list_children(
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha ko'rinadigan"
+    ),
     current_user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[ChildResponse]:
     service = ChildService(session)
-    children = await service.list_visible(current_user)
+    children = await service.list_visible(current_user, branch_id)
     return await service.to_responses(children, current_user)
 
 
@@ -46,10 +49,13 @@ async def list_children(
     summary="Ota-onalar ro'yxati (MANAGER/OWNER)",
 )
 async def list_parents(
+    branch_id: uuid.UUID | None = Query(
+        default=None, description="Filial kesimi; berilmasa — barcha ko'rinadigan"
+    ),
     current_user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> list[ParentRow]:
-    rows = await ChildService(session).list_parents(current_user)
+    rows = await ChildService(session).list_parents(current_user, branch_id)
     return [ParentRow(**row) for row in rows]
 
 

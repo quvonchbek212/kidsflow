@@ -96,9 +96,11 @@ class UserService:
         )
         return (await self._session.execute(stmt)).scalar_one()
 
-    async def list_all(self, position: str | None = None) -> list[User]:
+    async def list_all(
+        self, position: str | None = None, branch_id: uuid.UUID | None = None
+    ) -> list[User]:
         """Xodimlar ro'yxati — vasiylar (PARENT) bu ro'yxatga kirmaydi."""
-        users = await self._users.list_staff()
+        users = await self._users.list_staff(branch_id=branch_id)
         if position is not None:
             users = [u for u in users if u.position == position]
         return users
@@ -185,8 +187,14 @@ class UserService:
         )
         return (await self._session.execute(stmt)).scalar_one()
 
-    async def payroll_summary(self) -> tuple[Decimal, list[User]]:
+    async def payroll_summary(
+        self, branch_id: uuid.UUID | None = None
+    ) -> tuple[Decimal, list[User]]:
         # Ish haqi fondi faqat xodimlar bo'yicha — vasiylar hisobga olinmaydi.
-        users = [u for u in await self._users.list_staff() if u.is_active]
+        # `branch_id` xodimlar jadvali bilan bir xil kesimda bo'lishi shart,
+        # aks holda fond raqami jadval yig'indisiga teng bo'lmay qolardi.
+        users = [
+            u for u in await self._users.list_staff(branch_id=branch_id) if u.is_active
+        ]
         total = sum((u.monthly_salary for u in users if u.monthly_salary), Decimal("0"))
         return total, users
