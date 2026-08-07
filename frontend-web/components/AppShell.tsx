@@ -18,6 +18,8 @@ import {
   IconBell,
   IconBuilding,
   IconCalendar,
+  IconCheck,
+  IconChevronDown,
   IconCollapse,
   IconEdit,
   IconGrid,
@@ -345,6 +347,8 @@ export function AppShell({
   const [pageMeta, setPageMetaState] = useState<PageMeta>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const branchRef = useRef<HTMLDivElement>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [kindergartenName, setKindergartenName] = useState("");
   const [branchId, setBranchIdState] = useState("");
@@ -385,10 +389,13 @@ export function AppShell({
       if (notifOpen && notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
       }
+      if (branchOpen && branchRef.current && !branchRef.current.contains(e.target as Node)) {
+        setBranchOpen(false);
+      }
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, [menuOpen, notifOpen]);
+  }, [menuOpen, notifOpen, branchOpen]);
 
   // Sidebar yig'ilgan holati `body` klassiga yoziladi (CSS shunga tayanadi).
   useEffect(() => {
@@ -678,30 +685,67 @@ export function AppShell({
               Bir nechta filialga kirish huquqi bo'lsa tanlagich, aks holda
               shunchaki hozirgi filial nomi (bitta filialli bog'chada tanlov
               ma'nosiz, lekin qaysi filialdaligini bilish foydali). */}
-          {canSwitchBranch ? (
-            <label className="sb__org">
-              <IconBuilding size={16} />
-              <select
-                className="sb__org-select"
-                aria-label={t.common.branch}
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-              >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            branch && (
-              <div className="sb__org">
-                <IconBuilding size={16} />
-                <span className="sb__org-name tr">{branch.name}</span>
+          {branch &&
+            (canSwitchBranch ? (
+              <div className="pop sb__orgbox" ref={branchRef}>
+                <button
+                  type="button"
+                  className={`sb__org${branchOpen ? " on" : ""}`}
+                  aria-haspopup="listbox"
+                  aria-expanded={branchOpen}
+                  aria-label={t.common.branch}
+                  title={branch.name}
+                  onClick={() => setBranchOpen((v) => !v)}
+                >
+                  <span className="sb__org-ico">
+                    <IconBuilding size={15} />
+                  </span>
+                  <span className="sb__org-text">
+                    <span className="sb__org-label">{t.common.branch}</span>
+                    <span className="sb__org-name tr">{branch.name}</span>
+                  </span>
+                  <span className="sb__org-caret">
+                    <IconChevronDown size={15} />
+                  </span>
+                </button>
+                {branchOpen && (
+                  <div className="pop__panel sb__org-panel" role="listbox">
+                    <div className="pop__head">{t.common.branch}</div>
+                    {branches.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        role="option"
+                        aria-selected={b.id === branchId}
+                        className={`pop__item sb__org-opt${b.id === branchId ? " on" : ""}`}
+                        onClick={() => {
+                          setBranchId(b.id);
+                          setBranchOpen(false);
+                        }}
+                      >
+                        <span className="sb__org-opt-text">
+                          <b className="tr">{b.name}</b>
+                          {b.address && <span className="tr">{b.address}</span>}
+                        </span>
+                        {b.id === branchId && <IconCheck size={15} />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )
-          )}
+            ) : (
+              <div className="sb__orgbox">
+                <div className="sb__org" title={branch.name}>
+                  <span className="sb__org-ico">
+                    <IconBuilding size={15} />
+                  </span>
+                  <span className="sb__org-text">
+                    <span className="sb__org-label">{t.common.branch}</span>
+                    <span className="sb__org-name tr">{branch.name}</span>
+                  </span>
+                </div>
+              </div>
+            ))}
 
           <nav className="sb__nav">
             {SECTIONS.map((section) => {
