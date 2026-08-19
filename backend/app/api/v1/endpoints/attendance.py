@@ -18,8 +18,10 @@ from app.schemas.attendance import (
     AttendanceResponse,
     AttendanceRosterRow,
     AttendanceTrendResponse,
+    BranchAttendanceSummary,
 )
 from app.services.attendance_service import AttendanceService
+from app.utils.timezone import today_local
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
@@ -114,3 +116,28 @@ async def attendance_trend(
         group_id, days, current_user
     )
     return AttendanceTrendResponse(group_id=group_id, points=points)
+
+
+@router.get(
+    "/branch-summary",
+    response_model=BranchAttendanceSummary,
+    summary="Filial bo'yicha kunlik davomat xulosasi",
+)
+async def branch_attendance_summary(
+    branch_id: uuid.UUID = Query(...),
+    summary_date: date = Query(default=None, alias="date"),
+    trend_days: int = Query(default=11, ge=1, le=90),
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> BranchAttendanceSummary:
+    """Barcha guruhlarning rosteri va umumiy trend — bitta so'rovda.
+
+    Bosh sahifa ilgari har bir guruh uchun `roster` va `trend` ni alohida
+    chaqirardi; 10 guruhli bog'chada bu 20 dan ortiq so'rov edi.
+    """
+    return await AttendanceService(session).branch_summary(
+        branch_id,
+        summary_date or today_local(),
+        trend_days,
+        current_user,
+    )

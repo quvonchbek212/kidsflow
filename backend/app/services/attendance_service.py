@@ -21,6 +21,9 @@ from app.schemas.attendance import (
     AttendanceMarkRequest,
     AttendanceRosterRow,
     AttendanceTrendPoint,
+    BranchAttendanceSummary,
+    BranchAttendanceTotals,
+    BranchGroupRoster,
 )
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
@@ -278,3 +281,95 @@ class AttendanceService:
             )
             current_date += timedelta(days=1)
         return points
+
+    async def branch_summary(
+        self,
+        branch_id: uuid.UUID,
+        summary_date: date,
+        trend_days: int,
+        current_user: CurrentUser,
+    ) -> BranchAttendanceSummary:
+        """Filialdagi barcha guruhlarning kunlik davomati va umumiy trendi.
+
+        Ilgari frontend har bir guruh uchun `roster` va `trend` ni alohida
+        chaqirardi — 10 guruhda bu 20 dan ortiq HTTP so'rov edi. Bu yerda
+        hammasi to'rtta SQL so'rovga jamlanadi: guruhlar, guruh→bolalar,
+        bolalar, davomat.
+        """
+        if not self._access.can_view_branch(current_user, branch_id):
+            raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+
+        groups = await self._groups.list_by_branches([branch_id])
+        groups = [g for g in groups if g.is_active]
+        # TEACHER faqat o'ziga biriktirilgan guruhlarni ko'radi.
+        if not self._access.is_manager_or_owner(current_user):
+            allowed = set(await self._groups.group_ids_for_teacher(current_user.id))
+            groups = [g for g in groups if g.id in allowed]
+
+        group_ids = [g.id for g in groups]
+        by_group = await self._enrollments.child_ids_by_group(group_ids)
+        all_child_ids = [cid for ids in by_group.values() for cid in ids]
+
+        children = {c.id: c for c in await self._children.list_by_ids(all_child_ids)}
+        attendance_map = await self._attendance.map_for_children_date(
+            all_child_ids, summary_date
+        )
+
+        counters = dict.fromkeys(("PRESENT", "LATE", "ABSENT", "SICK"), 0)
+        unmarked = 0
+        group_rosters: list[BranchGroupRoster] = []
+        for group in groups:
+            rows: list[AttendanceRosterRow] = []
+            for child_id in by_group.get(group.id, []):
+                child = children.get(child_id)
+                if child is None:
+                    continue
+                record = attendance_map.get(child_id)
+                if record is None:
+                    unmarked += 1
+                elif record.status in counters:
+                    counters[record.status] += 1
+                rows.append(
+                    AttendanceRosterRow(
+                        child_id=child.id,
+                        child_name=child.full_name,
+                        status=record.status if record else None,
+                        check_in_at=record.check_in_at if record else None,
+                        check_out_at=record.check_out_at if record else None,
+                    )
+                )
+            rows.sort(key=lambda r: r.child_name)
+            group_rosters.append(
+                BranchGroupRoster(group_id=group.id, group_name=group.name, rows=rows)
+            )
+
+        end_date = today_local()
+        start_date = end_date - timedelta(days=trend_days - 1)
+        counts = await self._attendance.counts_by_date(
+            all_child_ids, start_date, end_date
+        )
+        trend: list[AttendanceTrendPoint] = []
+        current_date = start_date
+        while current_date <= end_date:
+            trend.append(
+                AttendanceTrendPoint(
+                    attendance_date=current_date,
+                    present_count=counts.get(current_date, 0),
+                    total_count=len(all_child_ids),
+                )
+            )
+            current_date += timedelta(days=1)
+
+        return BranchAttendanceSummary(
+            attendance_date=summary_date,
+            groups=group_rosters,
+            totals=BranchAttendanceTotals(
+                present=counters["PRESENT"],
+                late=counters["LATE"],
+                absent=counters["ABSENT"],
+                sick=counters["SICK"],
+                unmarked=unmarked,
+                total=len(all_child_ids),
+            ),
+            trend=trend,
+        )

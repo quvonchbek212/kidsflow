@@ -207,3 +207,24 @@ class FinanceDashboardResponse(BaseModel):
     expenses_by_category: list[CategoryExpenseRow]
     # Faol bola yo'q yoki marjinal daromad <= 0 bo'lsa hisoblab bo'lmaydi (None).
     break_even: BreakEvenSummary | None
+
+
+class MonthlyFinancePoint(BaseModel):
+    """Bir oyning moliyaviy xulosasi (tendensiya grafigi uchun)."""
+
+    period_start: date
+    period_end: date
+    accrual_revenue: Decimal
+    cash_collected: Decimal
+    expenses: Decimal
+    net_cash: Decimal
+
+
+class MonthlyFinanceResponse(BaseModel):
+    """Bir necha oylik tendensiya — bitta so'rovda.
+
+    Ilgari frontend har bir oy uchun `/analytics/dashboard` ni alohida
+    chaqirardi: 6 oylik grafik uchun 6 ta to'liq dashboard hisobi.
+    """
+
+    months: list[MonthlyFinancePoint]

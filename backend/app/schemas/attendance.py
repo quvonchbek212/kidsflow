@@ -74,3 +74,34 @@ class AttendanceTrendPoint(BaseModel):
 class AttendanceTrendResponse(BaseModel):
     group_id: uuid.UUID
     points: list[AttendanceTrendPoint]
+
+
+class BranchGroupRoster(BaseModel):
+    """Bitta guruhning kunlik rosteri (filial xulosasi ichida)."""
+
+    group_id: uuid.UUID
+    group_name: str
+    rows: list[AttendanceRosterRow]
+
+
+class BranchAttendanceTotals(BaseModel):
+    present: int
+    late: int
+    absent: int
+    sick: int
+    unmarked: int
+    total: int
+
+
+class BranchAttendanceSummary(BaseModel):
+    """Filialdagi barcha guruhlarning davomati — bitta so'rovda.
+
+    Ilgari frontend har bir guruh uchun `/attendance/roster` va
+    `/attendance/trend` ni alohida chaqirardi: 10 guruhli bog'chada bosh
+    sahifa 20 dan ortiq so'rov yuborardi.
+    """
+
+    attendance_date: date
+    groups: list[BranchGroupRoster]
+    totals: BranchAttendanceTotals
+    trend: list[AttendanceTrendPoint]

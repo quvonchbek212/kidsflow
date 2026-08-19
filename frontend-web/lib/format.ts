@@ -168,3 +168,11 @@ export function invoiceTone(status: string): "pos" | "warn" | "neg" | "mute" {
   if (status === "OVERDUE" || status === "OPEN") return "neg";
   return "mute";
 }
+
+/** "2026-08-01" → "avg" — oylik grafik yorlig'i uchun qisqa oy nomi. */
+export function monthLabel(isoMonthStart: string, lang = "uz-UZ"): string {
+  const [year, month] = isoMonthStart.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString(lang, {
+    month: "short",
+  });
+}

@@ -20,10 +20,10 @@ import {
   invoiceStatus,
   invoiceTone,
   isoDate,
-  lastMonths,
+  mlnf,
   money,
   moneyPlain,
-  mlnf,
+  monthLabel,
 } from "@/lib/format";
 import { LoadError, recoverWith } from "@/components/ui/LoadError";
 import { useAuth } from "@/lib/useAuth";
@@ -78,83 +78,45 @@ function DashboardContent(): ReactNode {
     setReady(false);
     setLoadError(null);
 
+    // Ilgari bu blok 7 ta dashboard so'rovi + har bir guruh uchun 2 ta
+    // davomat so'rovi yuborardi (10 guruhda 27 ta). Endi ikkita agregat
+    // endpoint bor va sahifa 5 ta so'rov bilan ochiladi.
     Promise.all([
       api.dashboard(period.start, period.end, branchId),
-      api.listGroups(branchId),
-      Promise.all(
-        lastMonths(6).map((m) =>
-          api
-            .dashboard(m.start, m.end, branchId)
-            .then((d) => ({
-              label: m.label,
-              income: Number(d.accrual_revenue),
-              outcome: Number(d.expenses),
-            }))
-            .catch(() => ({ label: m.label, income: 0, outcome: 0 })),
-        ),
-      ),
+      api.branchAttendanceSummary(branchId, isoDate(new Date()), 11),
+      api.monthlyFinance(6, branchId),
     ])
-      .then(async ([dash, groupList, monthly]) => {
+      .then(async ([dash, attendance, monthly]) => {
         if (cancelled) return;
         setFinance(dash);
-        setMonths(monthly);
-        // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
-        const branchGroups = groupList.filter((g) => g.is_active);
-
-        const rosters = await Promise.all(
-          branchGroups.map((g) =>
-            api
-              .attendanceRoster(g.id, isoDate(new Date()))
-              .catch(recoverWith(`${g.name} davomati`, [])),
-          ),
+        setMonths(
+          monthly.months.map((m) => ({
+            label: monthLabel(m.period_start),
+            income: Number(m.accrual_revenue),
+            outcome: Number(m.expenses),
+          })),
         );
-        let present = 0;
-        let total = 0;
-        let sick = 0;
-        let absent = 0;
+
         const groupOfChild: Record<string, string> = {};
-        for (let i = 0; i < rosters.length; i++) {
-          for (const row of rosters[i]) {
-            groupOfChild[row.child_id] = branchGroups[i].name;
-            total += 1;
-            if (row.status === "PRESENT" || row.status === "LATE") present += 1;
-            else if (row.status === "SICK") sick += 1;
-            else if (row.status === "ABSENT") absent += 1;
+        for (const group of attendance.groups) {
+          for (const row of group.rows) {
+            groupOfChild[row.child_id] = group.group_name;
           }
         }
-        if (!cancelled) {
-          setToday({ present, total, sick, absent });
-          setChildGroups(groupOfChild);
-        }
-
-        // Davomat tendensiyasi: backendda faqat guruh kesimida bor, shuning
-        // uchun barcha guruhlar bo'yicha kunma-kun qo'shib chiqiladi.
-        const trends = await Promise.all(
-          branchGroups.map((g) =>
-            api
-              .attendanceTrend(g.id, 11)
-              .catch(recoverWith(`${g.name} tendensiyasi`, null)),
-          ),
+        setToday({
+          present: attendance.totals.present + attendance.totals.late,
+          total: attendance.totals.total,
+          sick: attendance.totals.sick,
+          absent: attendance.totals.absent,
+        });
+        setChildGroups(groupOfChild);
+        setTrend(
+          attendance.trend.map((p) => ({
+            label: p.attendance_date.slice(8),
+            present: p.present_count,
+            total: p.total_count,
+          })),
         );
-        const byDay = new Map<string, { present: number; total: number }>();
-        for (const tr of trends) {
-          for (const p of tr?.points ?? []) {
-            const acc = byDay.get(p.attendance_date) ?? {
-              present: 0,
-              total: 0,
-            };
-            acc.present += p.present_count;
-            acc.total += p.total_count;
-            byDay.set(p.attendance_date, acc);
-          }
-        }
-        if (!cancelled) {
-          setTrend(
-            [...byDay.entries()]
-              .sort((a, b) => a[0].localeCompare(b[0]))
-              .map(([date, acc]) => ({ label: date.slice(8), ...acc })),
-          );
-        }
 
         const [children, invoices] = await Promise.all([
           api.listChildren(branchId).catch(recoverWith("Bolalar ismlari", [])),

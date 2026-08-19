@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +28,8 @@ from app.schemas.finance import (
     DebtAgingBucket,
     FinanceDashboardResponse,
     GroupRevenueRow,
+    MonthlyFinancePoint,
+    MonthlyFinanceResponse,
 )
 from app.utils.money import ZERO, money
 from app.utils.timezone import today_local
@@ -185,3 +187,68 @@ class AnalyticsService:
         if current_user.is_owner:
             return [b.id for b in await self._branches.list_all()]
         return list(current_user.branches_for(Role.MANAGER))
+
+    async def monthly(
+        self,
+        current_user: CurrentUser,
+        months: int,
+        branch_id: uuid.UUID | None = None,
+    ) -> MonthlyFinanceResponse:
+        """Oxirgi N oyning moliyaviy tendensiyasi — bitta so'rovda.
+
+        Ilgari frontend har bir oy uchun to'liq `dashboard()` ni chaqirardi;
+        6 oylik grafik 6 ta alohida hisob degani edi va ularning har biri
+        aging, revenue-by-group va break-even kabi kerak bo'lmagan qismlarni
+        ham hisoblardi. Bu yerda faqat grafikka kerak bo'lgan to'rt raqam
+        yig'iladi.
+        """
+        branch_ids = await self._visible_branch_ids(current_user)
+        if branch_id is not None:
+            if branch_id not in branch_ids:
+                raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
+            branch_ids = [branch_id]
+        if not branch_ids:
+            return MonthlyFinanceResponse(months=[])
+
+        points: list[MonthlyFinancePoint] = []
+        for start, end in self._recent_month_ranges(months):
+            accrual = await self._analytics.accrual_revenue_by_branch(
+                branch_ids, start, end
+            )
+            cash = await self._analytics.cash_collected_by_branch(
+                branch_ids, start, end
+            )
+            expenses = await self._analytics.expenses_by_branch(branch_ids, start, end)
+            total_cash = money(sum(cash.values(), ZERO))
+            total_exp = money(sum(expenses.values(), ZERO))
+            points.append(
+                MonthlyFinancePoint(
+                    period_start=start,
+                    period_end=end,
+                    accrual_revenue=money(sum(accrual.values(), ZERO)),
+                    cash_collected=total_cash,
+                    expenses=total_exp,
+                    net_cash=money(total_cash - total_exp),
+                )
+            )
+        return MonthlyFinanceResponse(months=points)
+
+    @staticmethod
+    def _recent_month_ranges(months: int) -> list[tuple[date, date]]:
+        """Oxirgi N oyning (joriy oy bilan tugaydigan) boshi va oxiri."""
+        today = today_local()
+        ranges: list[tuple[date, date]] = []
+        year, month = today.year, today.month
+        for _ in range(months):
+            start = date(year, month, 1)
+            end = date(
+                year + (month // 12),
+                (month % 12) + 1,
+                1,
+            ) - timedelta(days=1)
+            ranges.append((start, end))
+            month -= 1
+            if month == 0:
+                month = 12
+                year -= 1
+        return list(reversed(ranges))

@@ -12,7 +12,11 @@ import {
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconUpload, IconUsers } from "@/components/icons";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
-import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
+import {
+  LoadError,
+  logSecondaryFailure,
+  recoverWith,
+} from "@/components/ui/LoadError";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -94,19 +98,16 @@ function ChildrenContent(): ReactNode {
           .catch(logSecondaryFailure("Qarzdorlik"));
 
         // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
-        const branchGroups = groupList.filter((g) => g.is_active);
-        setGroups(branchGroups);
-        const rosters = await Promise.all(
-          branchGroups.map((g) =>
-            api
-              .attendanceRoster(g.id, isoDate(new Date()))
-              .then((rows) => ({ group: g, rows }))
-              .catch(() => ({ group: g, rows: [] })),
-          ),
-        );
+        setGroups(groupList.filter((g) => g.is_active));
+
+        // Bola→guruh xaritasi bitta so'rovda keladi. Ilgari har bir guruh
+        // uchun alohida roster so'rovi yuborilardi.
+        const attendance = await api
+          .branchAttendanceSummary(branchId, isoDate(new Date()))
+          .catch(recoverWith("Guruh taqsimoti", null));
         const map: Record<string, string> = {};
-        for (const { group, rows } of rosters) {
-          for (const row of rows) map[row.child_id] = group.id;
+        for (const group of attendance?.groups ?? []) {
+          for (const row of group.rows) map[row.child_id] = group.group_id;
         }
         setChildGroup(map);
       })

@@ -82,24 +82,14 @@ function BillingContent(): ReactNode {
         setFeePlans(plans.filter((p) => p.branch_id === branchId));
         setInvoices(inv);
 
-        const groups = (
-          await api
-            .listGroups(branchId)
-            .catch(recoverWith("Guruhlar ro'yxati", []))
-        ).filter((g) => g.is_active);
-        const rosters = await Promise.all(
-          groups.map((g) =>
-            api
-              .attendanceRoster(g.id, isoDate(new Date()))
-              .then((rows) => ({ name: g.name, rows }))
-              .catch(
-                recoverWith(`${g.name} davomati`, { name: g.name, rows: [] }),
-              ),
-          ),
-        );
+        // Bola→guruh nomi xaritasi bitta so'rovda. Ilgari avval guruhlar
+        // ro'yxati, keyin har bir guruh uchun alohida roster olinardi.
+        const attendance = await api
+          .branchAttendanceSummary(branchId, isoDate(new Date()))
+          .catch(recoverWith("Guruh taqsimoti", null));
         const map: Record<string, string> = {};
-        for (const { name, rows } of rosters) {
-          for (const row of rows) map[row.child_id] = name;
+        for (const group of attendance?.groups ?? []) {
+          for (const row of group.rows) map[row.child_id] = group.group_name;
         }
         setChildGroup(map);
       })

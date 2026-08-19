@@ -11,7 +11,11 @@ import {
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconGrid } from "@/components/icons";
-import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
+import {
+  LoadError,
+  logSecondaryFailure,
+  recoverWith,
+} from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { ApiError, api, type Group, type StaffUser } from "@/lib/api";
@@ -53,20 +57,20 @@ function GroupsContent(): ReactNode {
     if (!branchId) return;
     setReady(false);
     setLoadError(null);
-    api
-      .listGroups(branchId)
-      .then(async (branchGroups) => {
+    // Guruhlar va ularning bolalari bitta so'rovda. Ilgari har bir guruh
+    // uchun alohida roster so'rovi yuborilardi.
+    Promise.all([
+      api.listGroups(branchId),
+      api
+        .branchAttendanceSummary(branchId, isoDate(new Date()))
+        .catch(recoverWith("Guruh tarkibi", null)),
+    ])
+      .then(([branchGroups, attendance]) => {
         setGroups(branchGroups);
-        const rosters = await Promise.all(
-          branchGroups.map((g) =>
-            api
-              .attendanceRoster(g.id, isoDate(new Date()))
-              .then((rows) => rows.map((r) => r.child_name))
-              .catch(() => [] as string[]),
-          ),
-        );
         const map: Record<string, string[]> = {};
-        branchGroups.forEach((g, i) => (map[g.id] = rosters[i]));
+        for (const group of attendance?.groups ?? []) {
+          map[group.group_id] = group.rows.map((r) => r.child_name);
+        }
         setRoster(map);
       })
       .catch(setLoadError)

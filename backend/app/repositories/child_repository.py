@@ -194,6 +194,28 @@ class EnrollmentRepository:
         )
         return list((await self._session.execute(stmt)).scalars().all())
 
+    async def child_ids_by_group(
+        self, group_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, list[uuid.UUID]]:
+        """Guruh ID → undagi faol bolalar ID'lari.
+
+        `child_ids_in_groups` yassi ro'yxat qaytaradi va qaysi bola qaysi
+        guruhda ekanini bilib bo'lmaydi — shu sabab filial xulosasi har bir
+        guruh uchun alohida so'rov yuborishga majbur edi. Bu metod hammasini
+        bitta so'rovda beradi.
+        """
+        if not group_ids:
+            return {}
+        stmt = select(Enrollment.group_id, Enrollment.child_id).where(
+            Enrollment.group_id.in_(group_ids),
+            Enrollment.status == EnrollmentStatus.ACTIVE.value,
+        )
+        rows = (await self._session.execute(stmt)).all()
+        result: dict[uuid.UUID, list[uuid.UUID]] = {gid: [] for gid in group_ids}
+        for group_id, child_id in rows:
+            result.setdefault(group_id, []).append(child_id)
+        return result
+
     async def list_active_in_branch(self, branch_id: uuid.UUID) -> list[Enrollment]:
         """Filialdagi barcha faol enrollmentlar (invoice generatsiyasi uchun)."""
         stmt = select(Enrollment).where(

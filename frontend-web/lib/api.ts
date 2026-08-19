@@ -467,6 +467,38 @@ export interface AttendanceTrend {
   points: AttendanceTrendPoint[];
 }
 
+export interface BranchGroupRoster {
+  group_id: string;
+  group_name: string;
+  rows: AttendanceRosterRow[];
+}
+
+export interface BranchAttendanceTotals {
+  present: number;
+  late: number;
+  absent: number;
+  sick: number;
+  unmarked: number;
+  total: number;
+}
+
+/** Filialdagi barcha guruhlarning davomati — bitta so'rovda. */
+export interface BranchAttendanceSummary {
+  attendance_date: string;
+  groups: BranchGroupRoster[];
+  totals: BranchAttendanceTotals;
+  trend: AttendanceTrendPoint[];
+}
+
+export interface MonthlyFinancePoint {
+  period_start: string;
+  period_end: string;
+  accrual_revenue: string;
+  cash_collected: string;
+  expenses: string;
+  net_cash: string;
+}
+
 // --- Turlar: oziq-ovqat / oshxona ---
 
 export interface FoodProduct {
@@ -869,6 +901,40 @@ export const api = {
     entries: { child_id: string; status: string; note?: string }[];
   }): Promise<unknown> {
     return request("/attendance/bulk", { method: "POST", body });
+  },
+
+  /**
+   * Filialdagi barcha guruhlarning kunlik davomati va umumiy trendi.
+   *
+   * Ilgari bosh sahifa har bir guruh uchun `attendanceRoster` va
+   * `attendanceTrend` ni alohida chaqirardi — 10 guruhda bu 20 dan ortiq
+   * so'rov edi.
+   */
+  branchAttendanceSummary(
+    branchId: string,
+    date: string,
+    trendDays = 11,
+  ): Promise<BranchAttendanceSummary> {
+    const params = new URLSearchParams({
+      branch_id: branchId,
+      date,
+      trend_days: String(trendDays),
+    });
+    return request<BranchAttendanceSummary>(
+      `/attendance/branch-summary?${params.toString()}`,
+    );
+  },
+
+  /** Oxirgi N oyning moliyaviy tendensiyasi — bitta so'rovda. */
+  monthlyFinance(
+    months = 6,
+    branchId?: string,
+  ): Promise<{ months: MonthlyFinancePoint[] }> {
+    const params = new URLSearchParams({ months: String(months) });
+    if (branchId) params.set("branch_id", branchId);
+    return request<{ months: MonthlyFinancePoint[] }>(
+      `/analytics/monthly?${params.toString()}`,
+    );
   },
 
   attendanceTrend(groupId: string, days = 11): Promise<AttendanceTrend> {
