@@ -24,6 +24,7 @@ from app.schemas.attendance import (
 )
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
+from app.utils.timezone import today_local
 
 # Outbox hodisa turlari (7-bosqich B: xabar yuborish). `OutboxProcessor`
 # shu qiymatlarni taniydi (`app/services/outbox_processor.py`).
@@ -261,7 +262,7 @@ class AttendanceService:
 
         child_ids = await self._enrollments.child_ids_in_groups([group_id])
         total = len(child_ids)
-        end_date = date.today()
+        end_date = today_local()
         start_date = end_date - timedelta(days=days - 1)
         counts = await self._attendance.counts_by_date(child_ids, start_date, end_date)
 

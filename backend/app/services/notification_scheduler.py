@@ -20,6 +20,7 @@ from app.repositories.branch_repository import BranchRepository
 from app.repositories.child_repository import ChildRepository
 from app.repositories.finance_repository import InvoiceRepository
 from app.repositories.messaging_repository import DailyJobRepository, OutboxRepository
+from app.utils.timezone import today_local
 
 # Outbox hodisa turlari — `OutboxProcessor._handle_event` shularni taniydi.
 PAYMENT_REMINDER = "PAYMENT_REMINDER"
@@ -37,7 +38,7 @@ async def run_daily(session: AsyncSession, today: date | None = None) -> int:
     Qaytaradi: navbatga qo'yilgan OutboxEvent'lar soni (test/kuzatuv uchun).
     Bugun allaqachon bajarilgan bo'lsa — 0 qaytaradi, hech narsa qilmaydi.
     """
-    today = today or date.today()
+    today = today or today_local()
     jobs = DailyJobRepository(session)
     if not await jobs.try_claim(_JOB_NAME, today):
         return 0

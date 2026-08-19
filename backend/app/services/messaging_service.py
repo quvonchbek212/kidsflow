@@ -9,7 +9,6 @@ sifatida yoziladi; workerning `dispatch_notifications()` uni avtomatik yuboradi.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +27,7 @@ from app.repositories.group_repository import GroupRepository
 from app.repositories.messaging_repository import NotificationRepository
 from app.schemas.messaging import BroadcastCreateRequest, MessagingStatsResponse
 from app.services.audit_service import AuditService
+from app.utils.timezone import month_start_utc
 
 
 class MessagingService:
@@ -105,11 +105,8 @@ class MessagingService:
         )
         user_ids = [user_id for user_id, _ in targets]
 
-        month_start = datetime.now(UTC).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
         sent_this_month = await self._notifications.count_sent_for_users_since(
-            user_ids, month_start
+            user_ids, month_start_utc()
         )
         return MessagingStatsResponse(
             connected_families=len(user_ids),

@@ -30,6 +30,7 @@ from app.schemas.finance import (
     GroupRevenueRow,
 )
 from app.utils.money import ZERO, money
+from app.utils.timezone import today_local
 
 
 class AnalyticsService:
@@ -98,7 +99,7 @@ class AnalyticsService:
         total_exp = money(sum((s.expenses for s in branch_summaries), ZERO))
         total_accrual = money(sum((s.accrual_revenue for s in branch_summaries), ZERO))
 
-        aging_rows = await self._analytics.debt_aging(branch_ids, date.today())
+        aging_rows = await self._analytics.debt_aging(branch_ids, today_local())
         aging = [
             DebtAgingBucket(label=label, total=total) for label, total in aging_rows
         ]

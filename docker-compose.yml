@@ -42,6 +42,10 @@ services:
       - ./backend/.env
     environment:
       FILE_STORAGE_PATH: /app/storage
+      # Konteyner standart UTC bo'ladi. Taqvim hisoblari `today_local()` orqali
+      # sozlamadagi zonani oladi, lekin log vaqtlari va har qanday e'tibordan
+      # chetda qolgan `date.today()` ham to'g'ri kunni ko'rsatishi uchun.
+      TZ: ${TZ:-Asia/Tashkent}
     volumes:
       - file_storage:/app/storage
     depends_on:
@@ -72,6 +76,10 @@ services:
       - ./backend/.env
     environment:
       FILE_STORAGE_PATH: /app/storage
+      # Konteyner standart UTC bo'ladi. Taqvim hisoblari `today_local()` orqali
+      # sozlamadagi zonani oladi, lekin log vaqtlari va har qanday e'tibordan
+      # chetda qolgan `date.today()` ham to'g'ri kunni ko'rsatishi uchun.
+      TZ: ${TZ:-Asia/Tashkent}
     volumes:
       - file_storage:/app/storage
     depends_on:

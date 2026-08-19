@@ -31,6 +31,7 @@ from app.services.access_service import AccessService
 from app.services.child_service import ChildService
 from app.services.enrollment_service import EnrollmentService
 from app.utils.phone import InvalidPhoneError, normalize_phone
+from app.utils.timezone import today_local
 
 _DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
 
@@ -125,7 +126,7 @@ class ImportService:
                 errors.append("Tug'ilgan sana formatini aniqlab bo'lmadi.")
             elif birth_date is None:
                 errors.append("Tug'ilgan sana ko'rsatilmagan.")
-            elif birth_date > date.today():
+            elif birth_date > today_local():
                 errors.append("Tug'ilgan sana kelajakda bo'lishi mumkin emas.")
                 birth_date = None
 
@@ -183,7 +184,7 @@ class ImportService:
                     EnrollmentCreateRequest(
                         branch_id=branch_id,
                         group_id=group_id,
-                        start_date=date.today(),
+                        start_date=today_local(),
                         status=EnrollmentStatus.ACTIVE,
                     ),
                     current_user,

@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 
 from app.models.enums import Gender, GuardianRelationship
 from app.utils.phone import normalize_phone
+from app.utils.timezone import today_local
 from app.utils.validators import normalize_email
 
 
@@ -21,7 +22,7 @@ class ChildCreateRequest(BaseModel):
     @field_validator("birth_date")
     @classmethod
     def _birth_not_future(cls, value: date) -> date:
-        if value > date.today():
+        if value > today_local():
             raise ValueError("Tug'ilgan sana kelajakda bo'lishi mumkin emas.")
         return value
 

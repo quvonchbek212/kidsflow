@@ -26,3 +26,8 @@ redis==5.2.1
 
 # --- Excel/CSV import (7-bosqich B) ---
 openpyxl==3.1.5
+
+# --- Vaqt zonasi bazasi ---
+# `zoneinfo` tizim bazasiga tayanadi, u esa slim/alpine image'larda va Windowsda
+# bo'lmasligi mumkin. Bu paket bazani Python bilan birga olib keladi.
+tzdata==2024.2
