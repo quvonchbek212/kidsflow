@@ -12,6 +12,7 @@ import {
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { LoadError, recoverWith } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -63,29 +64,37 @@ function BillingContent(): ReactNode {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [childGroup, setChildGroup] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   function load(): void {
     if (!branchId) return;
     setReady(false);
+    setLoadError(null);
     Promise.all([
       api.listChildren(branchId),
       api.listFeePlans(),
-      api.branchInvoices(branchId, billingMonth).catch(() => []),
+      api
+        .branchInvoices(branchId, billingMonth)
+        .catch(recoverWith("Hisob-fakturalar", [])),
     ])
       .then(async ([childList, plans, inv]) => {
         setChildren(childList);
         setFeePlans(plans.filter((p) => p.branch_id === branchId));
         setInvoices(inv);
 
-        const groups = (await api.listGroups(branchId).catch(() => [])).filter(
-          (g) => g.is_active,
-        );
+        const groups = (
+          await api
+            .listGroups(branchId)
+            .catch(recoverWith("Guruhlar ro'yxati", []))
+        ).filter((g) => g.is_active);
         const rosters = await Promise.all(
           groups.map((g) =>
             api
               .attendanceRoster(g.id, isoDate(new Date()))
               .then((rows) => ({ name: g.name, rows }))
-              .catch(() => ({ name: g.name, rows: [] })),
+              .catch(
+                recoverWith(`${g.name} davomati`, { name: g.name, rows: [] }),
+              ),
           ),
         );
         const map: Record<string, string> = {};
@@ -94,6 +103,7 @@ function BillingContent(): ReactNode {
         }
         setChildGroup(map);
       })
+      .catch(setLoadError)
       .finally(() => setReady(true));
   }
 
@@ -544,7 +554,9 @@ function BillingContent(): ReactNode {
         </div>
       </div>
 
-      {!ready ? (
+      {loadError ? (
+        <LoadError error={loadError} onRetry={load} />
+      ) : !ready ? (
         <div className="card">
           <div className="card__body" style={{ paddingTop: "var(--s5)" }}>
             <div className="sk sk-line" style={{ width: "40%" }} />

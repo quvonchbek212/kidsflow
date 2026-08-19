@@ -11,6 +11,7 @@ import {
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconGrid } from "@/components/icons";
+import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { ApiError, api, type Group, type StaffUser } from "@/lib/api";
@@ -46,10 +47,12 @@ function GroupsContent(): ReactNode {
   const [roster, setRoster] = useState<Record<string, string[]>>({});
   const [teachers, setTeachers] = useState<StaffUser[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   function load(): void {
     if (!branchId) return;
     setReady(false);
+    setLoadError(null);
     api
       .listGroups(branchId)
       .then(async (branchGroups) => {
@@ -66,14 +69,14 @@ function GroupsContent(): ReactNode {
         branchGroups.forEach((g, i) => (map[g.id] = rosters[i]));
         setRoster(map);
       })
-      .catch(() => {})
+      .catch(setLoadError)
       .finally(() => setReady(true));
 
     // Guruhga faqat shu filialdagi tarbiyachi biriktiriladi.
     api
       .listStaff("TEACHER", branchId)
       .then(setTeachers)
-      .catch(() => setTeachers([]));
+      .catch(logSecondaryFailure("Tarbiyachilar ro'yxati"));
   }
 
   useEffect(load, [branchId]);
@@ -274,6 +277,10 @@ function GroupsContent(): ReactNode {
       );
     }
     render();
+  }
+
+  if (loadError) {
+    return <LoadError error={loadError} onRetry={load} />;
   }
 
   if (!ready) {

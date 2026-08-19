@@ -35,6 +35,11 @@ import {
   IconUsers,
   IconWallet,
 } from "@/components/icons";
+import {
+  LoadError,
+  logSecondaryFailure,
+  recoverWith,
+} from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { APP_I18N, type AppStrings } from "@/lib/app-i18n";
 import {
@@ -404,19 +409,27 @@ export function AppShell({
   const [branches, setBranches] = useState<Branch[]>([]);
   const [kindergartenName, setKindergartenName] = useState("");
   const [branchId, setBranchIdState] = useState("");
+  const [branchesError, setBranchesError] = useState<unknown>(null);
   const [period, setPeriodState] = useState<Period>(() => monthRange());
 
+  // Filiallar ro'yxati butun ilova uchun kalit: sahifalar `branchId`
+  // aniqlanmaguncha so'rov yubormaydi. Shuning uchun bu so'rov yiqilsa
+  // xatoni ko'rsatish shart — aks holda sahifalar abadiy "yuklanmoqda"
+  // holatida qotib qolardi va sabab ko'rinmasdi.
+  const loadBranches = useCallback((): void => {
+    setBranchesError(null);
+    api.listBranches().then(setBranches).catch(setBranchesError);
+  }, []);
+
+  useEffect(loadBranches, [loadBranches]);
+
   useEffect(() => {
-    api
-      .listBranches()
-      .then(setBranches)
-      .catch(() => {});
     // Yon panel sarlavhasi bog'cha nomini ko'rsatadi (filial nomini emas) —
     // u Sozlamalar sahifasida kiritiladi.
     api
       .getSettings()
       .then((s) => setKindergartenName(s.name))
-      .catch(() => {});
+      .catch(logSecondaryFailure("Bog'cha nomi"));
     const saved = window.localStorage.getItem("kidsflow_branch_id");
     if (saved) setBranchIdState(saved);
   }, []);
@@ -549,10 +562,12 @@ export function AppShell({
     }
     let cancelled = false;
     Promise.all([
-      api.dashboard(period.start, period.end, branchId).catch(() => null),
-      api.listGroups(branchId).catch(() => [] as Group[]),
-      api.listChildren(branchId).catch(() => []),
-      api.listStaff(undefined, branchId).catch(() => []),
+      api
+        .dashboard(period.start, period.end, branchId)
+        .catch(recoverWith("Moliyaviy xulosa", null)),
+      api.listGroups(branchId).catch(recoverWith("Guruhlar", [] as Group[])),
+      api.listChildren(branchId).catch(recoverWith("Bolalar", [])),
+      api.listStaff(undefined, branchId).catch(recoverWith("Xodimlar", [])),
     ]).then(([dash, groups, children, staff]) => {
       if (cancelled) return;
 
@@ -1072,7 +1087,13 @@ export function AppShell({
             </div>
           </header>
           <main className="content">
-            {pageAllowed ? (
+            {branchesError ? (
+              <LoadError
+                error={branchesError}
+                onRetry={loadBranches}
+                title="Filiallar ro'yxatini olishda xatolik"
+              />
+            ) : pageAllowed ? (
               children
             ) : (
               <div className="boot-screen">KIDSFLOW</div>

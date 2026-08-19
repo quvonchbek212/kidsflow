@@ -12,6 +12,7 @@ import {
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconUpload, IconUsers } from "@/components/icons";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -59,12 +60,14 @@ function ChildrenContent(): ReactNode {
   const [parentPhones, setParentPhones] = useState<Record<string, string>>({});
   const [childDebt, setChildDebt] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   function load(): void {
     // Filial aniqlanmaguncha so'rov yuborilmaydi — aks holda server filtrsiz
     // javob qaytarib, barcha filiallar aralashib ketardi.
     if (!branchId) return;
     setReady(false);
+    setLoadError(null);
     Promise.all([api.listChildren(branchId), api.listGroups(branchId)])
       .then(async ([childList, groupList]) => {
         setChildren(childList);
@@ -76,7 +79,7 @@ function ChildrenContent(): ReactNode {
             for (const p of rows) if (p.phone) phones[p.id] = p.phone;
             setParentPhones(phones);
           })
-          .catch(() => {});
+          .catch(logSecondaryFailure("Ota-onalar telefonlari"));
 
         api
           .branchInvoices(branchId, monthRange().start)
@@ -88,7 +91,7 @@ function ChildrenContent(): ReactNode {
             }
             setChildDebt(debts);
           })
-          .catch(() => {});
+          .catch(logSecondaryFailure("Qarzdorlik"));
 
         // Filial kesimini server bajaradi; bu yerda faqat faollari qoladi.
         const branchGroups = groupList.filter((g) => g.is_active);
@@ -107,7 +110,7 @@ function ChildrenContent(): ReactNode {
         }
         setChildGroup(map);
       })
-      .catch(() => {})
+      .catch(setLoadError)
       .finally(() => setReady(true));
   }
 
@@ -868,7 +871,9 @@ function ChildrenContent(): ReactNode {
 
   return (
     <>
-      {!ready ? (
+      {loadError ? (
+        <LoadError error={loadError} onRetry={load} />
+      ) : !ready ? (
         <div className="card">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div className="sk-row" key={i}>

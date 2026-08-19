@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { useModal } from "@/components/ui/ModalProvider";
+import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useConfirm } from "@/components/ui/useConfirm";
 import {
@@ -44,6 +45,7 @@ function DailyReportsContent(): ReactNode {
   const [date, setDate] = useState(isoDate(new Date()));
   const [roster, setRoster] = useState<DailyReportRosterRow[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
@@ -62,7 +64,7 @@ function DailyReportsContent(): ReactNode {
         setGroups(list);
         setGroupId(list.length > 0 ? list[0].id : "");
       })
-      .catch(() => {});
+      .catch(setLoadError);
   }, [branchId]);
 
   const load = useCallback((): void => {
@@ -72,10 +74,14 @@ function DailyReportsContent(): ReactNode {
       return;
     }
     setReady(false);
+    setLoadError(null);
     api
       .dailyReportRoster(groupId, date)
       .then(setRoster)
-      .catch(() => setRoster([]))
+      .catch((err) => {
+        setRoster([]);
+        setLoadError(err);
+      })
       .finally(() => setReady(true));
   }, [groupId, date]);
 
@@ -345,7 +351,9 @@ function DailyReportsContent(): ReactNode {
           ))}
         </div>
 
-        {!ready ? (
+        {loadError ? (
+          <LoadError error={loadError} onRetry={load} />
+        ) : !ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : roster.length === 0 ? (
           <div className="panel-empty">{t.common.empty}</div>

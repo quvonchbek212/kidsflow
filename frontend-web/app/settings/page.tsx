@@ -11,6 +11,7 @@ import {
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import type { AppStrings } from "@/lib/app-i18n";
+import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { ApiError, api, type Branch, type Group } from "@/lib/api";
@@ -158,10 +159,12 @@ function SettingsContent(): ReactNode {
   const [legalName, setLegalName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [hoursText, setHoursText] = useState("");
   const [autoInvoiceDay, setAutoInvoiceDay] = useState("");
 
-  useEffect(() => {
+  const loadSettings = useCallback((): void => {
+    setLoadError(null);
     api
       .getSettings()
       .then((s) => {
@@ -172,23 +175,25 @@ function SettingsContent(): ReactNode {
         setHoursText(s.hours_text ?? "");
         setAutoInvoiceDay(s.auto_invoice_day ? String(s.auto_invoice_day) : "");
       })
-      .catch(() => {})
+      .catch(setLoadError)
       .finally(() => setReady(true));
   }, []);
+
+  useEffect(loadSettings, [loadSettings]);
 
   useEffect(() => {
     if (!branchId) return;
     api
       .listGroups(branchId)
       .then((list) => setGroups(list.filter((g) => g.is_active)))
-      .catch(() => {});
+      .catch(logSecondaryFailure("Guruhlar ro'yxati"));
   }, [branchId]);
 
   const loadBranches = useCallback((): void => {
     api
       .listBranches()
       .then(setBranches)
-      .catch(() => {});
+      .catch(logSecondaryFailure("Filiallar ro'yxati"));
   }, []);
 
   useEffect(loadBranches, [loadBranches]);
@@ -231,6 +236,10 @@ function SettingsContent(): ReactNode {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loadError) {
+    return <LoadError error={loadError} onRetry={loadSettings} />;
   }
 
   if (!ready) {

@@ -12,6 +12,7 @@ import {
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useConfirm } from "@/components/ui/useConfirm";
+import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -61,11 +62,13 @@ function StaffContent(): ReactNode {
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [payroll, setPayroll] = useState<PayrollSummary | null>(null);
   const [forbidden, setForbidden] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
   const [ready, setReady] = useState(false);
 
   function load(): void {
     if (!branchId) return;
     setReady(false);
+    setLoadError(null);
     api
       .listStaff(undefined, branchId)
       .then((list) => {
@@ -73,13 +76,16 @@ function StaffContent(): ReactNode {
         setForbidden(false);
       })
       .catch((err) => {
+        // 403 alohida ishlanadi: bu nosozlik emas, huquq yetishmasligi —
+        // sahifa buning uchun o'z tushuntirish blokiga ega.
         if (err instanceof ApiError && err.status === 403) setForbidden(true);
+        else setLoadError(err);
       })
       .finally(() => setReady(true));
     api
       .payrollSummary(branchId)
       .then(setPayroll)
-      .catch(() => {});
+      .catch(logSecondaryFailure("Ish haqi fondi"));
   }
 
   useEffect(load, [branchId]);
@@ -390,7 +396,7 @@ function StaffContent(): ReactNode {
         .then((list) => {
           runs = list;
         })
-        .catch(() => {})
+        .catch(logSecondaryFailure("Ish haqi tarixi"))
         .finally(() => {
           historyReady = true;
           render();
@@ -635,7 +641,9 @@ function StaffContent(): ReactNode {
         </div>
       )}
 
-      {!ready ? (
+      {loadError ? (
+        <LoadError error={loadError} onRetry={load} />
+      ) : !ready ? (
         <div className="card">
           <div className="card__body" style={{ paddingTop: "var(--s5)" }}>
             <div className="sk sk-line" style={{ width: "40%" }} />

@@ -2864,3 +2864,85 @@ html[data-theme="dark"] #cmdk {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+
+/* ---- Xato sahifalari (error.tsx, global-error.tsx, not-found.tsx) ----
+   Bu sahifalar AppShell'dan tashqarida chiziladi (yon panel va sarlavhasiz),
+   shuning uchun o'z markazlashtirilgan tartibiga ega. */
+.fault {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+  background: var(--bg);
+}
+.fault__box {
+  max-width: 30rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s3);
+}
+.fault__mark {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-md);
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  margin-bottom: var(--s2);
+}
+.fault__title {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+.fault__text {
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+.fault__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  justify-content: center;
+  margin-top: var(--s3);
+}
+/* Qo'llab-quvvatlashga aytish uchun so'rov raqami. */
+.fault__ref {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  background: var(--surface-2);
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--r-sm);
+  word-break: break-all;
+  margin-top: var(--s2);
+}
+
+/* ---- Yuklash xatosi paneli (LoadError) ---- */
+.load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  border-left: 3px solid var(--neg);
+}
+.load-error__title {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+  color: var(--ink);
+}
+.load-error__text {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.92rem;
+}

@@ -25,6 +25,7 @@ import {
   moneyPlain,
   mlnf,
 } from "@/lib/format";
+import { LoadError, recoverWith } from "@/components/ui/LoadError";
 import { useAuth } from "@/lib/useAuth";
 
 export default function DashboardPage(): ReactNode {
@@ -67,11 +68,15 @@ function DashboardContent(): ReactNode {
     { label: string; present: number; total: number }[]
   >([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  // Qayta urinish tugmasi shu sanoqni oshiradi va effekt qaytadan ishlaydi.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!branchId) return;
     let cancelled = false;
     setReady(false);
+    setLoadError(null);
 
     Promise.all([
       api.dashboard(period.start, period.end, branchId),
@@ -98,7 +103,9 @@ function DashboardContent(): ReactNode {
 
         const rosters = await Promise.all(
           branchGroups.map((g) =>
-            api.attendanceRoster(g.id, isoDate(new Date())).catch(() => []),
+            api
+              .attendanceRoster(g.id, isoDate(new Date()))
+              .catch(recoverWith(`${g.name} davomati`, [])),
           ),
         );
         let present = 0;
@@ -124,7 +131,9 @@ function DashboardContent(): ReactNode {
         // uchun barcha guruhlar bo'yicha kunma-kun qo'shib chiqiladi.
         const trends = await Promise.all(
           branchGroups.map((g) =>
-            api.attendanceTrend(g.id, 11).catch(() => null),
+            api
+              .attendanceTrend(g.id, 11)
+              .catch(recoverWith(`${g.name} tendensiyasi`, null)),
           ),
         );
         const byDay = new Map<string, { present: number; total: number }>();
@@ -148,10 +157,10 @@ function DashboardContent(): ReactNode {
         }
 
         const [children, invoices] = await Promise.all([
-          api.listChildren(branchId).catch(() => []),
+          api.listChildren(branchId).catch(recoverWith("Bolalar ismlari", [])),
           api
             .branchInvoices(branchId, period.start.slice(0, 7) + "-01")
-            .catch(() => []),
+            .catch(recoverWith("Hisob-fakturalar", [])),
         ]);
         if (!cancelled) {
           const names: Record<string, string> = {};
@@ -172,8 +181,10 @@ function DashboardContent(): ReactNode {
       })
       // Ruxsat yetmasa (masalan tarbiyachi) so'rov 403 qaytaradi — bu ushlanmasa
       // brauzerda "unhandled rejection" bo'lib sahifani buzadi.
-      .catch(() => {
-        if (!cancelled) setFinance(null);
+      .catch((err) => {
+        if (cancelled) return;
+        setFinance(null);
+        setLoadError(err);
       })
       .finally(() => {
         if (!cancelled) setReady(true);
@@ -182,7 +193,7 @@ function DashboardContent(): ReactNode {
     return () => {
       cancelled = true;
     };
-  }, [branchId, period]);
+  }, [branchId, period, reloadKey]);
 
   const netProfit = finance
     ? Number(finance.accrual_revenue) - Number(finance.expenses)
@@ -254,6 +265,12 @@ function DashboardContent(): ReactNode {
       </span>
     );
   };
+
+  if (loadError) {
+    return (
+      <LoadError error={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
+    );
+  }
 
   if (!ready) {
     return (

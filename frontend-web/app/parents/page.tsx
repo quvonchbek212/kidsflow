@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconMessage, IconUsers } from "@/components/icons";
+import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
@@ -49,6 +50,7 @@ function ParentsContent(): ReactNode {
   const [stats, setStats] = useState<MessagingStats | null>(null);
   const [settings, setSettings] = useState<KindergartenSettings | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
   // Dashboarddagi "Qarzdorlarga eslatma" tugmasi shu yerga `?audience=debtors`
   // bilan olib keladi — auditoriya darhol tanlangan bo'ladi.
@@ -67,22 +69,23 @@ function ParentsContent(): ReactNode {
   function load(): void {
     // Filial aniqlanmaguncha kutamiz — server filtri shu parametrga tayanadi.
     if (!branchId) return;
-    api
-      .listParents(branchId)
-      .then(setParents)
-      .catch(() => {});
-    api
-      .listGroups(branchId)
-      .then(setGroups)
-      .catch(() => {});
+    setLoadError(null);
+    // Ota-onalar ro'yxati — sahifaning asosiy mazmuni; u kelmasa xato
+    // ko'rsatiladi. Qolganlari sahifani boyitadi, ularsiz ham ishlaydi.
+    Promise.all([api.listParents(branchId), api.listGroups(branchId)])
+      .then(([parentRows, groupRows]) => {
+        setParents(parentRows);
+        setGroups(groupRows);
+      })
+      .catch(setLoadError);
     api
       .getSettings()
       .then(setSettings)
-      .catch(() => {});
+      .catch(logSecondaryFailure("Sozlamalar"));
     api
       .messagingStats(branchId)
       .then(setStats)
-      .catch(() => {})
+      .catch(logSecondaryFailure("Xabar statistikasi"))
       .finally(() => setReady(true));
   }
 
@@ -148,7 +151,7 @@ function ParentsContent(): ReactNode {
                 void navigator.clipboard
                   ?.writeText(invitation.code)
                   .then(() => toast.show(t.messaging.inviteCopied))
-                  .catch(() => {});
+                  .catch(logSecondaryFailure("Nusxa olish"));
               }}
             >
               {t.messaging.inviteCopy}
@@ -326,7 +329,9 @@ function ParentsContent(): ReactNode {
             <h3>{t.messaging.parentsListTitle}</h3>
           </div>
         </div>
-        {!ready ? (
+        {loadError ? (
+          <LoadError error={loadError} onRetry={load} />
+        ) : !ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : parents.length === 0 ? (
           <div className="panel-empty">{t.common.empty}</div>
