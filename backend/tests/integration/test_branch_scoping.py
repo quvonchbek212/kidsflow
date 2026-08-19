@@ -1,4 +1,7 @@
-"""Filial izolyatsiyasi: ro'yxat endpointlarining `branch_id` kesimi.
+"""Ro'yxat endpointlarining `branch_id` kesimi.
+
+Rol bo'yicha izolyatsiya `tests/security/test_branch_isolation.py` da; bu yerda
+esa OWNER tanlagan filial hurmat qilinishini tekshiramiz.
 
 Ma'lumotlar bazada `branch_id` orqali ajratilgan (2.1-bo'lim), lekin ro'yxat
 endpointlari uzoq vaqt faqat *rol* bo'yicha cheklanardi — OWNER uchun bu
