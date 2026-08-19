@@ -12,6 +12,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -50,6 +51,17 @@ class User(UUIDMixin, TimestampMixin, Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Parolni taxmin qilishga qarshi (11-bo'lim). IP bo'yicha rate limit bor,
+    # lekin u bir nechta IP dan sekin taqsimlangan hujumga qarshi ojiz —
+    # sanoq hisob darajasida yuritilishi kerak. Muvaffaqiyatli loginda nolga
+    # tushadi; `locked_until` o'tib ketgan bo'lsa qulf o'z-o'zidan tarqaydi.
+    failed_login_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 

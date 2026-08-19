@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,7 @@ from app.schemas.auth import ProfileUpdateRequest, TokenResponse
 from app.services.audit_service import AuditService
 from app.services.email_sender import EmailSender, get_default_email_sender
 from app.utils.phone import InvalidPhoneError, normalize_phone
+from app.utils.timezone import as_utc
 from app.utils.validators import normalize_email
 
 
@@ -53,11 +54,37 @@ class AuthService:
     ) -> TokenResponse:
         user = await self._find_user_by_login(login)
 
+        # Qulf tekshiruvi parolni tekshirishdan OLDIN: aks holda qulflangan
+        # hisobda ham har urinishda Argon2 hisoblanib, server bekorga yuklanardi.
+        if user is not None and self._is_locked(user):
+            self._audit.record(
+                action="LOGIN_BLOCKED",
+                entity_type="user",
+                entity_id=user.id,
+                actor_user_id=user.id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+            )
+            await self._session.commit()
+            raise AuthenticationError(
+                "Hisob vaqtincha bloklangan. "
+                f"{get_settings().login_lockout_minutes} daqiqadan so'ng urinib ko'ring."
+            )
+
         if (
             user is None
             or user.password_hash is None
             or not verify_password(password, user.password_hash)
         ):
+            if user is not None:
+                # Sanoq hisob darajasida yuritiladi — IP bo'yicha rate limit
+                # bir nechta IP dan taqsimlangan hujumni to'xtata olmaydi.
+                user.failed_login_count += 1
+                if user.failed_login_count >= get_settings().login_max_failed_attempts:
+                    user.locked_until = datetime.now(UTC) + timedelta(
+                        minutes=get_settings().login_lockout_minutes
+                    )
+                    user.failed_login_count = 0
             # Muvaffaqiyatsiz login auditga yoziladi (11-bo'lim). Xato ko'tarilgach
             # so'rov tranzaksiyasi rollback qilinadi, shuning uchun yozuvni shu
             # yerda commit qilamiz — aks holda u yo'qolib ketardi va brute-force
@@ -77,6 +104,10 @@ class AuthService:
             raise AuthenticationError("Hisob faol emas.")
 
         user.last_login_at = datetime.now(UTC)
+        # Muvaffaqiyatli kirish sanoqni tozalaydi: qulf faqat ketma-ket
+        # muvaffaqiyatsiz urinishlar uchun.
+        user.failed_login_count = 0
+        user.locked_until = None
         self._audit.record(
             action="LOGIN_SUCCESS",
             entity_type="user",
@@ -86,6 +117,17 @@ class AuthService:
             user_agent=user_agent,
         )
         return self._issue_tokens(user)
+
+    @staticmethod
+    def _is_locked(user: User) -> bool:
+        """Hisob hozir qulflanganmi.
+
+        Muddat o'tib ketgan bo'lsa qulf o'z-o'zidan tarqaydi — alohida
+        tozalash vazifasi (cron) kerak emas.
+        """
+        if user.locked_until is None:
+            return False
+        return as_utc(user.locked_until) > datetime.now(UTC)
 
     async def refresh(self, raw_token: str) -> TokenResponse:
         """Refresh token rotation: eski token bekor qilinib, yangisi beriladi."""

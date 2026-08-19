@@ -56,6 +56,21 @@ def month_start_local() -> date:
     return today_local().replace(day=1)
 
 
+def as_utc(moment: datetime) -> datetime:
+    """Bazadan o'qilgan vaqtni UTC bilan belgilangan holga keltiradi.
+
+    PostgreSQL `timestamptz` ni zona ma'lumoti bilan qaytaradi, SQLite esa
+    (testlarda ishlatiladi) zonasiz. Ikkalasini Pythonda solishtirish
+    `TypeError: can't compare offset-naive and offset-aware datetimes` beradi.
+
+    Loyihaning ko'p joyida bunday solishtirish SQL ichida bajariladi va bu
+    muammo chiqmaydi; Pythonda solishtirish kerak bo'lganda shu funksiya
+    ishlatiladi. Zonasiz qiymat UTC deb qabul qilinadi — barcha vaqt nuqtalari
+    shu ko'rinishda yoziladi.
+    """
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
+
+
 def month_start_utc() -> datetime:
     """Mahalliy oy boshlangan payt, UTC da ifodalangan.
 

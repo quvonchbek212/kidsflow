@@ -20,6 +20,7 @@ from app.dependencies import get_current_user, get_settings
 from app.schemas.file import FileResponse
 from app.services.file_service import FileService
 from app.utils.file_storage import FileValidationError
+from app.utils.http_headers import content_disposition
 
 router = APIRouter(prefix="/files", tags=["files"])
 
@@ -71,5 +72,5 @@ async def download_file(
     return Response(
         content=result.content,
         media_type=result.content_type,
-        headers={"Content-Disposition": f'inline; filename="{result.original_name}"'},
+        headers={"Content-Disposition": content_disposition(result.original_name)},
     )

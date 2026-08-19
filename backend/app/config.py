@@ -61,6 +61,12 @@ class Settings(BaseSettings):
     setup_rate_limit_max: int = 5
     setup_rate_limit_window_seconds: int = 300
 
+    # Hisob darajasidagi qulf. IP bo'yicha limit bir nechta IP dan taqsimlangan
+    # hujumni to'xtata olmaydi, shuning uchun ketma-ket muvaffaqiyatsiz
+    # urinishlar foydalanuvchi bo'yicha ham sanaladi.
+    login_max_failed_attempts: int = 5
+    login_lockout_minutes: int = 15
+
     # --- Monitoring / observability ---
     # So'rov loglarini (method/path/status/davomiylik) yoqish.
     request_logging_enabled: bool = True
