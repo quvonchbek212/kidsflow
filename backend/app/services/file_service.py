@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError, PermissionDeniedError
+from app.core.exceptions import FileRejectedError, NotFoundError, PermissionDeniedError
 from app.core.permissions import CurrentUser
 from app.models.enums import FileScanStatus, Role
 from app.models.file import File
@@ -16,6 +16,7 @@ from app.repositories.file_repository import FileRepository
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
 from app.utils import file_storage
+from app.utils.virus_scan import scan_bytes
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,14 @@ class FileService:
         ):
             raise PermissionDeniedError("Fayl yuklash uchun ruxsat yo'q.")
 
+        # Antivirus tekshiruvi saqlashdan oldin: zarar topilsa fayl diskka
+        # umuman tushmasin.
+        scan_status = await scan_bytes(content)
+        if scan_status is FileScanStatus.INFECTED:
+            raise FileRejectedError(
+                "Fayl xavfsizlik tekshiruvidan o'tmadi va qabul qilinmadi."
+            )
+
         stored = file_storage.save_file(content, content_type)
         record = File(
             storage_key=stored.storage_key,
@@ -55,8 +64,10 @@ class FileService:
             size_bytes=stored.size_bytes,
             checksum=stored.checksum,
             uploaded_by=current_user.id,
-            # Haqiqiy AV skani 5-bosqichda; hozircha imzo tekshirildi → CLEAN.
-            scan_status=FileScanStatus.CLEAN.value,
+            # Skaner o'chirilgan bo'lsa bu PENDING bo'ladi — "tekshirilmagan"
+            # degani. Ilgari bu yerda so'zsiz CLEAN yozilardi va ustun
+            # tekshirilgandek ko'rinardi, aslida esa hech narsa tekshirilmasdi.
+            scan_status=scan_status.value,
         )
         self._files.add(record)
         await self._session.flush()
@@ -77,6 +88,14 @@ class FileService:
 
         if not await self._can_access(record, current_user):
             raise PermissionDeniedError("Bu faylga kirish huquqi yo'q.")
+
+        # Zararli deb belgilangan fayl hech kimga berilmaydi. Bu tekshiruv
+        # ilgari umuman yo'q edi: `scan_status` yozilardi, lekin hech qachon
+        # o'qilmasdi — ya'ni INFECTED fayl ham bemalol yuklab olinardi.
+        if record.scan_status == FileScanStatus.INFECTED.value:
+            raise FileRejectedError(
+                "Bu fayl xavfsizlik tekshiruvidan o'tmagan va berilmaydi."
+            )
 
         try:
             content = file_storage.read_file(record.storage_key)

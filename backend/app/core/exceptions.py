@@ -6,8 +6,13 @@ xato xabarlari).
 
 from __future__ import annotations
 
+import logging
+import uuid
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger(__name__)
 
 
 class AppError(Exception):
@@ -47,6 +52,13 @@ class TooManyRequestsError(AppError):
     detail = "So'rovlar juda ko'p. Birozdan so'ng qayta urinib ko'ring."
 
 
+class FileRejectedError(AppError):
+    """Fayl xavfsizlik tekshiruvidan o'tmadi (11-bo'lim)."""
+
+    status_code = status.HTTP_400_BAD_REQUEST
+    detail = "Fayl qabul qilinmadi."
+
+
 class SetupAlreadyCompletedError(ConflictError):
     detail = "Tizim allaqachon sozlangan."
 
@@ -63,4 +75,35 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
+        )
+
+    @app.exception_handler(Exception)
+    async def _handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
+        """Ushlanmagan istisnolar ham `{"detail": …}` shaklida qaytadi.
+
+        Busiz ular Starlette'ning standart oddiy matnli "Internal Server Error"
+        javobiga tushardi. Frontenddagi `extractDetail()` uni tahlil qila
+        olmasdi va foydalanuvchi tushunarsiz xato ko'rardi.
+
+        Xatoning o'zi (traceback bilan) faqat log'ga tushadi — javobda hech
+        qanday ichki tafsilot bo'lmaydi. `request_id` esa javobga ham,
+        log'ga ham yoziladi: foydalanuvchi qo'ng'iroq qilganda shu raqam
+        bo'yicha aynan o'sha so'rovni topish mumkin.
+        """
+        request_id = request.headers.get("X-Request-ID") or uuid.uuid4().hex
+        logger.exception(
+            "Ushlanmagan xatolik",
+            extra={
+                "request_id": request_id,
+                "path": request.url.path,
+                "method": request.method,
+            },
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Kutilmagan xatolik yuz berdi.",
+                "request_id": request_id,
+            },
+            headers={"X-Request-ID": request_id},
         )

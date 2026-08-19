@@ -57,6 +57,7 @@ import {
   periodLabel,
 } from "@/lib/format";
 import type { Lang } from "@/lib/landing-content";
+import { primaryRole } from "@/lib/roles";
 
 interface NotifItem {
   key: string;
@@ -527,7 +528,7 @@ export function AppShell({
   }
 
   const t = APP_I18N[lang];
-  const role = user?.roles?.[0]?.role ?? "";
+  const role = primaryRole(user?.roles);
   const roleLabel = t.roleLabels[role] ?? role;
   const displayName = user?.full_name || user?.username || "";
   const userInitials = initials(displayName || "U");

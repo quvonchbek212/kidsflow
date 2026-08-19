@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import { primaryRole } from "@/lib/roles";
 import { setTokens } from "@/lib/auth";
 import type { Lang } from "@/lib/landing-content";
 
@@ -84,7 +85,7 @@ export default function LoginPage(): ReactNode {
         refreshToken: tokens.refresh_token,
       });
       const me = await api.me();
-      const role = me.roles[0]?.role ?? "";
+      const role = primaryRole(me.roles);
       router.replace(role === "TEACHER" ? "/attendance" : "/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.error);

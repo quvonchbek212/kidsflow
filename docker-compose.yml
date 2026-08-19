@@ -114,6 +114,27 @@ services:
     ports:
       - "3000:3000"
 
+  # Antivirus. Ixtiyoriy: standart holda backend uni ishlatmaydi
+  # (FILE_SCAN_ENABLED=false) va yuklangan fayllar PENDING deb belgilanadi.
+  # Yoqish uchun backend/.env da FILE_SCAN_ENABLED=true qiling.
+  #
+  # Image ~1 GB va birinchi ishga tushishda virus bazasini yuklab oladi
+  # (bir necha daqiqa), shuning uchun `profiles` ostida — oddiy
+  # `docker compose up` uni ko'tarmaydi. Kerak bo'lganda:
+  #   docker compose --profile antivirus up -d
+  clamav:
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    profiles: ["antivirus"]
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -129,3 +150,4 @@ volumes:
   postgres_data:
   redis_data:
   file_storage:
+  clamav_data:

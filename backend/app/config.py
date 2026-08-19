@@ -74,6 +74,12 @@ class Settings(BaseSettings):
     # --- Fayl saqlash (11-bo'lim) ---
     file_storage_path: str = "storage"
     max_upload_bytes: int = 10 * 1024 * 1024  # 10 MB
+    # Antivirus (ClamAV). O'chirilgan bo'lsa fayllar PENDING deb belgilanadi —
+    # ya'ni "tekshirilmagan", ilgarigidek yolg'ondan CLEAN emas.
+    file_scan_enabled: bool = False
+    clamav_host: str = "clamav"
+    clamav_port: int = 3310
+    file_scan_timeout_seconds: float = 30.0
     allowed_upload_types: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["image/jpeg", "image/png", "application/pdf"],
     )
