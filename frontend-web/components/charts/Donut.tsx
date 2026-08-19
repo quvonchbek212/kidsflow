@@ -83,9 +83,20 @@ export function Donut({
 
   return (
     <div className="donut-wrap">
-      <svg width={160} height={160} viewBox="0 0 160 160" style={{ flex: "none" }}>
+      <svg
+        width={160}
+        height={160}
+        viewBox="0 0 160 160"
+        style={{ flex: "none" }}
+      >
         {paths}
-        <text x="80" y="76" textAnchor="middle" fontSize="10" fill="var(--ink-3)">
+        <text
+          x="80"
+          y="76"
+          textAnchor="middle"
+          fontSize="10"
+          fill="var(--ink-3)"
+        >
           {totalLabel.toUpperCase()}
         </text>
         <text
@@ -105,7 +116,13 @@ export function Donut({
           <div key={row.label}>
             <i style={{ background: PALETTE[i % PALETTE.length] }} />
             <span style={{ flex: 1 }}>{row.label}</span>
-            <span style={{ color: "var(--ink-3)", fontSize: 11.5, fontFamily: "var(--mono)" }}>
+            <span
+              style={{
+                color: "var(--ink-3)",
+                fontSize: 11.5,
+                fontFamily: "var(--mono)",
+              }}
+            >
               {((row.total / total) * 100).toFixed(0)}%
             </span>
             <b>{(row.total / 1e6).toFixed(1)}M</b>

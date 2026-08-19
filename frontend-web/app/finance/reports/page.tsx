@@ -30,7 +30,10 @@ function ReportsContent(): ReactNode {
   const { t, branchId, period, setPageMeta } = useAppUI();
 
   useEffect(() => {
-    setPageMeta({ title: t.reports.title, subtitle: `${t.reports.subtitle} · ${period.start} — ${period.end}` });
+    setPageMeta({
+      title: t.reports.title,
+      subtitle: `${t.reports.subtitle} · ${period.start} — ${period.end}`,
+    });
   }, [setPageMeta, t, period]);
 
   const [finance, setFinance] = useState<FinanceDashboard | null>(null);
@@ -166,7 +169,10 @@ function ReportsContent(): ReactNode {
               <tbody>
                 {plRows.map((row, i) =>
                   row.kind === "section" ? (
-                    <tr key={`${row.label}-${i}`} style={{ background: "var(--surface-2)" }}>
+                    <tr
+                      key={`${row.label}-${i}`}
+                      style={{ background: "var(--surface-2)" }}
+                    >
                       <td
                         colSpan={2}
                         style={{
@@ -185,9 +191,16 @@ function ReportsContent(): ReactNode {
                       key={`${row.label}-${i}`}
                       style={
                         row.kind === "total"
-                          ? { fontWeight: 700, fontSize: 16, background: "var(--brand-bg)" }
+                          ? {
+                              fontWeight: 700,
+                              fontSize: 16,
+                              background: "var(--brand-bg)",
+                            }
                           : row.kind === "sum"
-                            ? { fontWeight: 600, borderTop: "1px solid var(--line)" }
+                            ? {
+                                fontWeight: 600,
+                                borderTop: "1px solid var(--line)",
+                              }
                             : undefined
                       }
                     >
@@ -241,7 +254,11 @@ function ReportsContent(): ReactNode {
                       </b>
                     </div>
                     <div className="bar">
-                      <i style={{ width: `${(row.amount / maxGroupRevenue) * 100}%` }} />
+                      <i
+                        style={{
+                          width: `${(row.amount / maxGroupRevenue) * 100}%`,
+                        }}
+                      />
                     </div>
                   </div>
                 ))

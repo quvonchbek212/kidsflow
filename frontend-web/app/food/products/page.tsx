@@ -89,7 +89,11 @@ function ProductsContent(): ReactNode {
                 {t.common.name}
                 <span className="req">*</span>
               </label>
-              <input className="input" required onChange={(e) => (name = e.target.value)} />
+              <input
+                className="input"
+                required
+                onChange={(e) => (name = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>
@@ -163,7 +167,9 @@ function ProductsContent(): ReactNode {
               <select
                 className="input"
                 defaultValue={movementType}
-                onChange={(e) => (movementType = e.target.value as "IN" | "OUT")}
+                onChange={(e) =>
+                  (movementType = e.target.value as "IN" | "OUT")
+                }
               >
                 <option value="IN">{t.food.movementIn}</option>
                 <option value="OUT">{t.food.movementOut}</option>
@@ -182,7 +188,11 @@ function ProductsContent(): ReactNode {
             </div>
             <div className="field span-2">
               <label>{t.food.reason}</label>
-              <select className="input" defaultValue={reason} onChange={(e) => (reason = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={reason}
+                onChange={(e) => (reason = e.target.value)}
+              >
                 {REASONS.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -196,7 +206,11 @@ function ProductsContent(): ReactNode {
             {saving ? t.common.saving : t.common.save}
           </button>
         </form>,
-        { title: t.food.stockMovement, subtitle: product.name, size: "default" },
+        {
+          title: t.food.stockMovement,
+          subtitle: product.name,
+          size: "default",
+        },
       );
     }
     render();
@@ -204,13 +218,16 @@ function ProductsContent(): ReactNode {
 
   return (
     <>
-
       <div className="card">
         <div className="card__head">
           <div>
             <h3>{t.food.productsTitle}</h3>
           </div>
-          <button type="button" className="btn btn-sm" onClick={openProductForm}>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={openProductForm}
+          >
             <IconPlus size={14} /> {t.food.addProduct}
           </button>
         </div>

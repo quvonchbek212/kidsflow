@@ -172,7 +172,8 @@ export const IconX = ({ size }: P): ReactNode =>
 export const IconPlus = ({ size }: P): ReactNode =>
   base(<path d="M12 5v14M5 12h14" />, size);
 
-export const IconCheck = ({ size }: P): ReactNode => base(<path d="M20 6 9 17l-5-5" />, size);
+export const IconCheck = ({ size }: P): ReactNode =>
+  base(<path d="M20 6 9 17l-5-5" />, size);
 
 export const IconChevronLeft = ({ size }: P): ReactNode =>
   base(<path d="m15 18-6-6 6-6" />, size);

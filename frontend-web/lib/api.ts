@@ -70,7 +70,9 @@ async function request<T>(
   allowRetry = true,
 ): Promise<T> {
   const { method = "GET", body, auth = true } = options;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
 
   if (auth) {
     const token = getToken();
@@ -217,7 +219,12 @@ export interface Child {
   }[];
 }
 
-export type DiscountType = "NONE" | "SIBLING" | "STAFF_CHILD" | "SOCIAL" | "OTHER";
+export type DiscountType =
+  | "NONE"
+  | "SIBLING"
+  | "STAFF_CHILD"
+  | "SOCIAL"
+  | "OTHER";
 
 export interface Enrollment {
   id: string;
@@ -634,7 +641,10 @@ export const api = {
   },
 
   updateBranch(branchId: string, input: BranchUpdateInput): Promise<Branch> {
-    return request<Branch>(`/branches/${branchId}`, { method: "PATCH", body: input });
+    return request<Branch>(`/branches/${branchId}`, {
+      method: "PATCH",
+      body: input,
+    });
   },
 
   // --- bolalar ---
@@ -681,7 +691,11 @@ export const api = {
       can_pick_up?: boolean;
       receives_notifications?: boolean;
     },
-  ): Promise<{ guardian_user_id: string; child_id: string; relationship_type: string }> {
+  ): Promise<{
+    guardian_user_id: string;
+    child_id: string;
+    relationship_type: string;
+  }> {
     return request(`/children/${childId}/guardians`, { method: "POST", body });
   },
 
@@ -754,9 +768,14 @@ export const api = {
   },
 
   // --- kunlik hisobot ---
-  dailyReportRoster(groupId: string, date: string): Promise<DailyReportRosterRow[]> {
+  dailyReportRoster(
+    groupId: string,
+    date: string,
+  ): Promise<DailyReportRosterRow[]> {
     const params = new URLSearchParams({ group_id: groupId, date });
-    return request<DailyReportRosterRow[]>(`/daily-reports/roster?${params.toString()}`);
+    return request<DailyReportRosterRow[]>(
+      `/daily-reports/roster?${params.toString()}`,
+    );
   },
 
   createDailyReport(
@@ -770,7 +789,10 @@ export const api = {
     });
   },
 
-  updateDailyReport(reportId: string, input: DailyReportInput): Promise<DailyReport> {
+  updateDailyReport(
+    reportId: string,
+    input: DailyReportInput,
+  ): Promise<DailyReport> {
     return request<DailyReport>(`/daily-reports/${reportId}`, {
       method: "PATCH",
       body: input,
@@ -823,9 +845,14 @@ export const api = {
     });
   },
 
-  attendanceRoster(groupId: string, date: string): Promise<AttendanceRosterRow[]> {
+  attendanceRoster(
+    groupId: string,
+    date: string,
+  ): Promise<AttendanceRosterRow[]> {
     const params = new URLSearchParams({ group_id: groupId, date });
-    return request<AttendanceRosterRow[]>(`/attendance/roster?${params.toString()}`);
+    return request<AttendanceRosterRow[]>(
+      `/attendance/roster?${params.toString()}`,
+    );
   },
 
   markAttendance(body: {
@@ -845,7 +872,10 @@ export const api = {
   },
 
   attendanceTrend(groupId: string, days = 11): Promise<AttendanceTrend> {
-    const params = new URLSearchParams({ group_id: groupId, days: String(days) });
+    const params = new URLSearchParams({
+      group_id: groupId,
+      days: String(days),
+    });
     return request<AttendanceTrend>(`/attendance/trend?${params.toString()}`);
   },
 
@@ -902,7 +932,9 @@ export const api = {
   },
 
   payrollSummary(branchId?: string): Promise<PayrollSummary> {
-    return request<PayrollSummary>(`/users/payroll-summary${branchQuery(branchId)}`);
+    return request<PayrollSummary>(
+      `/users/payroll-summary${branchQuery(branchId)}`,
+    );
   },
 
   // --- moliya ---
@@ -937,7 +969,11 @@ export const api = {
 
   addInvoiceAdjustment(
     invoiceId: string,
-    body: { adjustment_type: "DISCOUNT" | "SURCHARGE" | "WRITE_OFF"; amount: string; reason?: string },
+    body: {
+      adjustment_type: "DISCOUNT" | "SURCHARGE" | "WRITE_OFF";
+      amount: string;
+      reason?: string;
+    },
   ): Promise<Invoice> {
     return request<Invoice>(`/invoices/${invoiceId}/adjustments`, {
       method: "POST",
@@ -946,7 +982,9 @@ export const api = {
   },
 
   cancelInvoice(invoiceId: string): Promise<Invoice> {
-    return request<Invoice>(`/invoices/${invoiceId}/cancel`, { method: "POST" });
+    return request<Invoice>(`/invoices/${invoiceId}/cancel`, {
+      method: "POST",
+    });
   },
 
   recordPayment(body: {
@@ -961,7 +999,9 @@ export const api = {
   },
 
   reversePayment(paymentId: string): Promise<Payment> {
-    return request<Payment>(`/payments/${paymentId}/reverse`, { method: "POST" });
+    return request<Payment>(`/payments/${paymentId}/reverse`, {
+      method: "POST",
+    });
   },
 
   listFeePlans(): Promise<FeePlan[]> {
@@ -984,7 +1024,10 @@ export const api = {
     name: string;
     is_variable?: boolean;
   }): Promise<ExpenseCategory> {
-    return request<ExpenseCategory>("/expense-categories", { method: "POST", body });
+    return request<ExpenseCategory>("/expense-categories", {
+      method: "POST",
+      body,
+    });
   },
 
   updateExpenseCategory(
@@ -1021,7 +1064,9 @@ export const api = {
   },
 
   reverseExpense(expenseId: string): Promise<Expense> {
-    return request<Expense>(`/expenses/${expenseId}/reverse`, { method: "POST" });
+    return request<Expense>(`/expenses/${expenseId}/reverse`, {
+      method: "POST",
+    });
   },
 
   dashboard(
@@ -1034,7 +1079,9 @@ export const api = {
       period_end: periodEnd,
     });
     if (branchId) params.set("branch_id", branchId);
-    return request<FinanceDashboard>(`/analytics/dashboard?${params.toString()}`);
+    return request<FinanceDashboard>(
+      `/analytics/dashboard?${params.toString()}`,
+    );
   },
 
   // --- oziq-ovqat / oshxona ---
@@ -1125,7 +1172,9 @@ export const api = {
   },
 
   reversePayrollRun(runId: string): Promise<PayrollRun> {
-    return request<PayrollRun>(`/payroll/runs/${runId}/reverse`, { method: "POST" });
+    return request<PayrollRun>(`/payroll/runs/${runId}/reverse`, {
+      method: "POST",
+    });
   },
 
   // --- sozlamalar ---
@@ -1144,7 +1193,10 @@ export const api = {
       notification_toggles: Record<string, boolean>;
     }>,
   ): Promise<KindergartenSettings> {
-    return request<KindergartenSettings>("/settings", { method: "PATCH", body });
+    return request<KindergartenSettings>("/settings", {
+      method: "PATCH",
+      body,
+    });
   },
 
   // --- xabar yuborish ---

@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconUpload, IconUsers } from "@/components/icons";
@@ -141,7 +147,8 @@ function ChildrenContent(): ReactNode {
     {
       key: "group",
       label: t.children.group,
-      sortValue: (c) => groups.find((g) => g.id === childGroup[c.id])?.name ?? "",
+      sortValue: (c) =>
+        groups.find((g) => g.id === childGroup[c.id])?.name ?? "",
       render: (c) => (
         <span style={{ color: "var(--ink-2)" }}>
           {groups.find((g) => g.id === childGroup[c.id])?.name ?? "—"}
@@ -163,7 +170,8 @@ function ChildrenContent(): ReactNode {
       label: t.children.parent,
       render: (c) => (
         <span className="tr" style={{ color: "var(--ink-2)" }}>
-          {(c.guardians.find((g) => g.is_primary) ?? c.guardians[0])?.full_name ?? "—"}
+          {(c.guardians.find((g) => g.is_primary) ?? c.guardians[0])
+            ?.full_name ?? "—"}
         </span>
       ),
     },
@@ -171,8 +179,11 @@ function ChildrenContent(): ReactNode {
       key: "phone",
       label: t.common.phone,
       render: (c) => {
-        const guardian = c.guardians.find((g) => g.is_primary) ?? c.guardians[0];
-        const phone = guardian ? parentPhones[guardian.guardian_user_id] : undefined;
+        const guardian =
+          c.guardians.find((g) => g.is_primary) ?? c.guardians[0];
+        const phone = guardian
+          ? parentPhones[guardian.guardian_user_id]
+          : undefined;
         return (
           <span className="num" style={{ fontSize: 13, color: "var(--ink-2)" }}>
             {phone ?? "—"}
@@ -238,7 +249,8 @@ function ChildrenContent(): ReactNode {
         ) : (
           child.guardians.map((g) => (
             <div key={g.guardian_user_id} style={{ marginBottom: 8 }}>
-              <b>{g.full_name}</b> <span className="muted">({g.relationship_type})</span>
+              <b>{g.full_name}</b>{" "}
+              <span className="muted">({g.relationship_type})</span>
             </div>
           ))
         )}
@@ -270,7 +282,12 @@ function ChildrenContent(): ReactNode {
           <button
             type="button"
             className="btn--quiet btn"
-            style={{ width: "100%", marginTop: 8, color: "var(--neg)", justifyContent: "center" }}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              color: "var(--neg)",
+              justifyContent: "center",
+            }}
             onClick={async () => {
               const ok = await confirm({
                 title: t.common.deactivateTitle,
@@ -346,7 +363,8 @@ function ChildrenContent(): ReactNode {
                     group_id: groupId,
                     start_date: startDate,
                     status: "ACTIVE",
-                    discount_type: discountType !== "NONE" ? discountType : undefined,
+                    discount_type:
+                      discountType !== "NONE" ? discountType : undefined,
                     discount_percent: discountPercent || undefined,
                   });
                 }
@@ -398,7 +416,11 @@ function ChildrenContent(): ReactNode {
             </div>
             <div className="field">
               <label>{t.children.gender}</label>
-              <select className="input" defaultValue={gender} onChange={(e) => (gender = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={gender}
+                onChange={(e) => (gender = e.target.value)}
+              >
                 <option value="">—</option>
                 <option value="MALE">{t.children.boy}</option>
                 <option value="FEMALE">{t.children.girl}</option>
@@ -447,11 +469,17 @@ function ChildrenContent(): ReactNode {
                   <select
                     className="input"
                     defaultValue={discountType}
-                    onChange={(e) => (discountType = e.target.value as DiscountType)}
+                    onChange={(e) =>
+                      (discountType = e.target.value as DiscountType)
+                    }
                   >
                     <option value="NONE">{t.children.discountNone}</option>
-                    <option value="SIBLING">{t.children.discountSibling}</option>
-                    <option value="STAFF_CHILD">{t.children.discountStaffChild}</option>
+                    <option value="SIBLING">
+                      {t.children.discountSibling}
+                    </option>
+                    <option value="STAFF_CHILD">
+                      {t.children.discountStaffChild}
+                    </option>
                     <option value="SOCIAL">{t.children.discountSocial}</option>
                     <option value="OTHER">{t.children.discountOther}</option>
                   </select>
@@ -473,7 +501,10 @@ function ChildrenContent(): ReactNode {
               <div className="form-grid">
                 <div className="field">
                   <label>{t.common.fullName}</label>
-                  <input className="input" onChange={(e) => (guardianName = e.target.value)} />
+                  <input
+                    className="input"
+                    onChange={(e) => (guardianName = e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>{t.common.phone}</label>
@@ -485,7 +516,11 @@ function ChildrenContent(): ReactNode {
                 </div>
                 <div className="field">
                   <label>{t.children.relation}</label>
-                  <select className="input" defaultValue={relation} onChange={(e) => (relation = e.target.value)}>
+                  <select
+                    className="input"
+                    defaultValue={relation}
+                    onChange={(e) => (relation = e.target.value)}
+                  >
                     <option value="MOTHER">{t.children.rMother}</option>
                     <option value="FATHER">{t.children.rFather}</option>
                     <option value="RELATIVE">{t.children.rRelative}</option>
@@ -497,11 +532,19 @@ function ChildrenContent(): ReactNode {
           )}
 
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.common.save}
           </button>
         </form>,
-        { title: existing ? t.children.editChild : t.children.addChild, size: "wide" },
+        {
+          title: existing ? t.children.editChild : t.children.addChild,
+          size: "wide",
+        },
       );
     }
 
@@ -544,7 +587,11 @@ function ChildrenContent(): ReactNode {
           </p>
           <div className="field">
             <label>{t.children.newGroup}</label>
-            <select className="input" defaultValue={newGroupId} onChange={(e) => (newGroupId = e.target.value)}>
+            <select
+              className="input"
+              defaultValue={newGroupId}
+              onChange={(e) => (newGroupId = e.target.value)}
+            >
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
@@ -565,14 +612,26 @@ function ChildrenContent(): ReactNode {
             <label>
               {t.common.reason} ({t.common.optional})
             </label>
-            <input className="input" onChange={(e) => (reason = e.target.value)} />
+            <input
+              className="input"
+              onChange={(e) => (reason = e.target.value)}
+            />
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.children.transfer}
           </button>
         </form>,
-        { title: t.children.transferGroup, subtitle: child.full_name, size: "narrow" },
+        {
+          title: t.children.transferGroup,
+          subtitle: child.full_name,
+          size: "narrow",
+        },
       );
     }
     render();
@@ -594,7 +653,12 @@ function ChildrenContent(): ReactNode {
       error = "";
       render();
       try {
-        const result = await api.importChildren(branchId, importGroupId, dryRun, file);
+        const result = await api.importChildren(
+          branchId,
+          importGroupId,
+          dryRun,
+          file,
+        );
         if (dryRun) {
           preview = result;
           step = 2;
@@ -615,14 +679,22 @@ function ChildrenContent(): ReactNode {
     function render(): void {
       modal.open(
         <div>
-          <div className="steps" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            {[t.children.importUploadStep, t.children.importPreviewStep, t.children.importConfirmStep].map(
-              (label, i) => (
-                <span key={label} className={`chip${step === i + 1 ? " on" : ""}`}>
-                  {i + 1}. {label}
-                </span>
-              ),
-            )}
+          <div
+            className="steps"
+            style={{ display: "flex", gap: 8, marginBottom: 16 }}
+          >
+            {[
+              t.children.importUploadStep,
+              t.children.importPreviewStep,
+              t.children.importConfirmStep,
+            ].map((label, i) => (
+              <span
+                key={label}
+                className={`chip${step === i + 1 ? " on" : ""}`}
+              >
+                {i + 1}. {label}
+              </span>
+            ))}
           </div>
 
           {step === 1 && (
@@ -669,21 +741,35 @@ function ChildrenContent(): ReactNode {
 
           {step === 2 && preview && (
             <>
-              <div style={{ display: "flex", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  marginBottom: 16,
+                  flexWrap: "wrap",
+                }}
+              >
                 <div className="kpi" style={{ flex: 1, minWidth: 150 }}>
                   <div className="kpi__top">
-                    <span className="kpi__label">{t.children.importTotalRows}</span>
+                    <span className="kpi__label">
+                      {t.children.importTotalRows}
+                    </span>
                   </div>
                   <div className="kpi__value">{preview.total_rows}</div>
                 </div>
                 <div className="kpi" style={{ flex: 1, minWidth: 150 }}>
                   <div className="kpi__top">
-                    <span className="kpi__label">{t.children.importValidRows}</span>
+                    <span className="kpi__label">
+                      {t.children.importValidRows}
+                    </span>
                   </div>
                   <div className="kpi__value">{preview.valid_rows}</div>
                 </div>
               </div>
-              <div className="tbl-wrap" style={{ maxHeight: 320, overflowY: "auto" }}>
+              <div
+                className="tbl-wrap"
+                style={{ maxHeight: 320, overflowY: "auto" }}
+              >
                 <table className="tbl">
                   <thead>
                     <tr>
@@ -705,7 +791,9 @@ function ChildrenContent(): ReactNode {
                           {r.valid ? (
                             <span className="muted">—</span>
                           ) : (
-                            <span style={{ color: "var(--neg)" }}>{r.errors.join("; ")}</span>
+                            <span style={{ color: "var(--neg)" }}>
+                              {r.errors.join("; ")}
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -744,7 +832,8 @@ function ChildrenContent(): ReactNode {
           {step === 3 && preview && (
             <>
               <p className="info-box" style={{ marginBottom: 16 }}>
-                {preview.valid_rows} / {preview.total_rows} — {t.children.importValidRows}
+                {preview.valid_rows} / {preview.total_rows} —{" "}
+                {t.children.importValidRows}
               </p>
               {error && <p className="error">{error}</p>}
               <div style={{ display: "flex", gap: 8 }}>
@@ -783,7 +872,10 @@ function ChildrenContent(): ReactNode {
         <div className="card">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div className="sk-row" key={i}>
-              <div className="sk" style={{ width: 34, height: 34, borderRadius: 10 }} />
+              <div
+                className="sk"
+                style={{ width: 34, height: 34, borderRadius: 10 }}
+              />
               <div style={{ flex: 1 }}>
                 <div className="sk sk-line" style={{ width: "38%" }} />
                 <div className="sk sk-line" style={{ width: "22%" }} />
@@ -813,7 +905,9 @@ function ChildrenContent(): ReactNode {
             { key: "waiting", label: t.children.filterWaiting },
             { key: "left", label: t.children.filterLeft },
           ]}
-          filterFn={(c, f) => (f === "debt" ? (childDebt[c.id] ?? 0) > 0 : c.status === f)}
+          filterFn={(c, f) =>
+            f === "debt" ? (childDebt[c.id] ?? 0) > 0 : c.status === f
+          }
           onRowClick={openDetail}
           emptyTitle={t.common.nothingFound}
           emptySub={t.common.nothingFoundSub}
@@ -822,10 +916,18 @@ function ChildrenContent(): ReactNode {
           ofLabel={t.common.of}
           actions={
             <>
-              <button type="button" className="btn-ghost btn btn-sm" onClick={openImportWizard}>
+              <button
+                type="button"
+                className="btn-ghost btn btn-sm"
+                onClick={openImportWizard}
+              >
                 <IconUpload size={14} /> {t.children.importTitle}
               </button>
-              <button type="button" className="btn btn-sm" onClick={openAddChild}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={openAddChild}
+              >
                 <IconUsers size={14} /> {t.children.addChild}
               </button>
             </>

@@ -67,9 +67,18 @@ function ParentsContent(): ReactNode {
   function load(): void {
     // Filial aniqlanmaguncha kutamiz — server filtri shu parametrga tayanadi.
     if (!branchId) return;
-    api.listParents(branchId).then(setParents).catch(() => {});
-    api.listGroups(branchId).then(setGroups).catch(() => {});
-    api.getSettings().then(setSettings).catch(() => {});
+    api
+      .listParents(branchId)
+      .then(setParents)
+      .catch(() => {});
+    api
+      .listGroups(branchId)
+      .then(setGroups)
+      .catch(() => {});
+    api
+      .getSettings()
+      .then(setSettings)
+      .catch(() => {});
     api
       .messagingStats(branchId)
       .then(setStats)
@@ -184,7 +193,6 @@ function ParentsContent(): ReactNode {
 
   return (
     <>
-
       {/* KPI — mockupdagi 3 ustunli qator. "O'qilish darajasi" ataylab yo'q:
           backendda o'qilganlik kuzatuvi yo'q, soxta raqam ko'rsatilmaydi. */}
       <div className="grid g-3 mb-4">
@@ -193,7 +201,9 @@ function ParentsContent(): ReactNode {
             <span className="kpi__label">{t.messaging.connectedFamilies}</span>
             <IconMessage size={18} />
           </div>
-          <div className="kpi__value">{ready ? (stats?.connected_families ?? 0) : "—"}</div>
+          <div className="kpi__value">
+            {ready ? (stats?.connected_families ?? 0) : "—"}
+          </div>
         </div>
         <div className="kpi">
           <div className="kpi__top">
@@ -259,7 +269,9 @@ function ParentsContent(): ReactNode {
                 <select
                   className="input"
                   value={audience}
-                  onChange={(e) => setAudience(e.target.value as BroadcastAudience)}
+                  onChange={(e) =>
+                    setAudience(e.target.value as BroadcastAudience)
+                  }
                 >
                   <option value="all">{t.messaging.audienceAll}</option>
                   <option value="group">{t.messaging.audienceGroup}</option>
@@ -269,7 +281,11 @@ function ParentsContent(): ReactNode {
               {audience === "group" && (
                 <div className="field">
                   <label>{t.pages.chooseGroup}</label>
-                  <select className="input" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                  <select
+                    className="input"
+                    value={groupId}
+                    onChange={(e) => setGroupId(e.target.value)}
+                  >
                     <option value="">—</option>
                     {groups.map((g) => (
                       <option key={g.id} value={g.id}>
@@ -335,14 +351,21 @@ function ParentsContent(): ReactNode {
                         <b className="tr">{p.full_name}</b>
                       </div>
                     </td>
-                    <td className="num" style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                    <td
+                      className="num"
+                      style={{ fontSize: 13, color: "var(--ink-2)" }}
+                    >
                       {p.phone ?? "—"}
                     </td>
                     <td style={{ color: "var(--ink-2)" }}>{p.email ?? "—"}</td>
-                    <td style={{ color: "var(--ink-2)" }}>{p.children_names.join(", ") || "—"}</td>
+                    <td style={{ color: "var(--ink-2)" }}>
+                      {p.children_names.join(", ") || "—"}
+                    </td>
                     <td className="r">
                       {p.telegram_linked ? (
-                        <span className="badge badge--pos">{t.common.active}</span>
+                        <span className="badge badge--pos">
+                          {t.common.active}
+                        </span>
                       ) : (
                         <button
                           type="button"
@@ -350,7 +373,9 @@ function ParentsContent(): ReactNode {
                           disabled={inviting === p.id}
                           onClick={() => void onInvite(p)}
                         >
-                          {inviting === p.id ? t.common.saving : t.messaging.inviteGet}
+                          {inviting === p.id
+                            ? t.common.saving
+                            : t.messaging.inviteGet}
                         </button>
                       )}
                     </td>

@@ -38,7 +38,10 @@ export default function RootLayout({
   children: ReactNode;
 }): ReactNode {
   return (
-    <html lang="uz" className={`${bricolage.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="uz"
+      className={`${bricolage.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <body>
         <ToastProvider>
           <ModalProvider>{children}</ModalProvider>

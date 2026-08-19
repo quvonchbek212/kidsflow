@@ -32,7 +32,8 @@ const T: Record<
     confirm: "Yangi parolni takrorlang",
     submit: "Parolni saqlash",
     submitting: "Saqlanmoqda...",
-    success: "Parol muvaffaqiyatli o'zgartirildi. Endi tizimga kirishingiz mumkin.",
+    success:
+      "Parol muvaffaqiyatli o'zgartirildi. Endi tizimga kirishingiz mumkin.",
     mismatch: "Parollar mos kelmadi.",
     missingToken: "Havola yaroqsiz — token topilmadi.",
   },
@@ -113,7 +114,13 @@ function ResetPasswordForm(): ReactNode {
       </div>
       <div className="auth-formside">
         <div className="auth-form">
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: 16,
+            }}
+          >
             <Link href="/login" className="btn-ghost btn btn-sm">
               ← {t.back}
             </Link>
@@ -164,7 +171,12 @@ function ResetPasswordForm(): ReactNode {
                 />
               </div>
               {error && <p className="error">{error}</p>}
-              <button className="btn btn--full" type="submit" disabled={loading} style={{ marginTop: 8 }}>
+              <button
+                className="btn btn--full"
+                type="submit"
+                disabled={loading}
+                style={{ marginTop: 8 }}
+              >
                 {loading ? t.submitting : t.submit}
               </button>
             </form>

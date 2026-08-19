@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import type { AppStrings } from "@/lib/app-i18n";
@@ -54,7 +60,10 @@ function BranchForm({
         capacity: capacity.trim() ? Number(capacity) : null,
       };
       if (existing) {
-        await api.updateBranch(existing.id, { ...payload, is_active: isActive });
+        await api.updateBranch(existing.id, {
+          ...payload,
+          is_active: isActive,
+        });
       } else {
         await api.createBranch(payload);
       }
@@ -176,7 +185,10 @@ function SettingsContent(): ReactNode {
   }, [branchId]);
 
   const loadBranches = useCallback((): void => {
-    api.listBranches().then(setBranches).catch(() => {});
+    api
+      .listBranches()
+      .then(setBranches)
+      .catch(() => {});
   }, []);
 
   useEffect(loadBranches, [loadBranches]);
@@ -233,7 +245,6 @@ function SettingsContent(): ReactNode {
 
   return (
     <>
-
       {/* Mockupdagidek ikki ustun: chapda bog'cha profili, o'ngda tariflar.
           Payme/Click/2FA uchun ATAYLAB hech qanday element yo'q — loyiha qarori. */}
       <div className="grid g-2">
@@ -251,19 +262,36 @@ function SettingsContent(): ReactNode {
                     {t.settings.name}
                     <span className="req">*</span>
                   </label>
-                  <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
+                  <input
+                    className="input"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
                 <div className="field span-2">
                   <label>{t.settings.legalName}</label>
-                  <input className="input" value={legalName} onChange={(e) => setLegalName(e.target.value)} />
+                  <input
+                    className="input"
+                    value={legalName}
+                    onChange={(e) => setLegalName(e.target.value)}
+                  />
                 </div>
                 <div className="field span-2">
                   <label>{t.settings.address}</label>
-                  <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} />
+                  <input
+                    className="input"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>{t.common.phone}</label>
-                  <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <input
+                    className="input"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>{t.settings.hoursText}</label>
@@ -342,7 +370,11 @@ function SettingsContent(): ReactNode {
             <h3>{t.settings.branchesSection}</h3>
             <p>{t.settings.branchesSub}</p>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openBranch(null)}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => openBranch(null)}
+          >
             + {t.settings.addBranch}
           </button>
         </div>
@@ -368,7 +400,9 @@ function SettingsContent(): ReactNode {
                       {!b.is_active && (
                         <>
                           {" "}
-                          <span className="badge badge--mute">{t.settings.branchInactive}</span>
+                          <span className="badge badge--mute">
+                            {t.settings.branchInactive}
+                          </span>
                         </>
                       )}
                     </td>

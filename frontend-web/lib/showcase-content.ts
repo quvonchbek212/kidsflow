@@ -18,7 +18,8 @@ export interface ShowcaseContent {
 export const SHOWCASE: Record<Lang, ShowcaseContent> = {
   uz: {
     title: "Har bir rol uchun",
-    subtitle: "Bir platforma — to'rt xil foydalanuvchi, har biriga mos ish o'rni.",
+    subtitle:
+      "Bir platforma — to'rt xil foydalanuvchi, har biriga mos ish o'rni.",
     slides: [
       {
         icon: "👑",
@@ -68,7 +69,8 @@ export const SHOWCASE: Record<Lang, ShowcaseContent> = {
   },
   ru: {
     title: "Для каждой роли",
-    subtitle: "Одна платформа — четыре типа пользователей, у каждого своё место.",
+    subtitle:
+      "Одна платформа — четыре типа пользователей, у каждого своё место.",
     slides: [
       {
         icon: "👑",
@@ -118,7 +120,8 @@ export const SHOWCASE: Record<Lang, ShowcaseContent> = {
   },
   en: {
     title: "For every role",
-    subtitle: "One platform — four kinds of users, each with the right workspace.",
+    subtitle:
+      "One platform — four kinds of users, each with the right workspace.",
     slides: [
       {
         icon: "👑",

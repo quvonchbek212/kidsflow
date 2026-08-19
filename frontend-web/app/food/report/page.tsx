@@ -38,7 +38,6 @@ function ReportContent(): ReactNode {
 
   return (
     <>
-
       {report && report.rows.length > 0 && (
         <div className="kpi mb-4" style={{ maxWidth: 280 }}>
           <div className="kpi__top">

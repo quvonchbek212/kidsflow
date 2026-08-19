@@ -79,7 +79,10 @@ export default function LoginPage(): ReactNode {
     setError(null);
     try {
       const tokens = await api.login(login, password);
-      setTokens({ accessToken: tokens.access_token, refreshToken: tokens.refresh_token });
+      setTokens({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+      });
       const me = await api.me();
       const role = me.roles[0]?.role ?? "";
       router.replace(role === "TEACHER" ? "/attendance" : "/dashboard");
@@ -136,7 +139,10 @@ export default function LoginPage(): ReactNode {
             <div className="field">
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <label>{t.password}</label>
-                <Link href="/forgot-password" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                <Link
+                  href="/forgot-password"
+                  style={{ fontSize: 12.5, fontWeight: 600 }}
+                >
                   {t.forgot}
                 </Link>
               </div>
@@ -150,7 +156,12 @@ export default function LoginPage(): ReactNode {
               />
             </div>
             {error && <p className="error">{error}</p>}
-            <button className="btn btn--full" type="submit" disabled={loading} style={{ marginTop: 8 }}>
+            <button
+              className="btn btn--full"
+              type="submit"
+              disabled={loading}
+              style={{ marginTop: 8 }}
+            >
               {loading ? t.submitting : t.submit}
             </button>
           </form>

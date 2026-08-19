@@ -8,7 +8,10 @@ function cell(value: string | number): string {
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function downloadCsv(filename: string, rows: (string | number)[][]): void {
+export function downloadCsv(
+  filename: string,
+  rows: (string | number)[][],
+): void {
   const body = rows.map((r) => r.map(cell).join(";")).join("\r\n");
   // BOM — Excel faylni UTF-8 deb tanishi uchun (kirill/o'zbek harflari).
   const blob = new Blob(["﻿" + body], { type: "text/csv;charset=utf-8;" });

@@ -23,7 +23,8 @@ export function Sparkline({ points }: { points: SparklinePoint[] }): ReactNode {
   const padT = 12;
   const maxTotal = Math.max(1, ...points.map((p) => p.total));
 
-  const x = (i: number) => padL + i * ((W - padL) / Math.max(1, points.length - 1));
+  const x = (i: number) =>
+    padL + i * ((W - padL) / Math.max(1, points.length - 1));
   const y = (v: number) => padT + (H - padT - padB) * (1 - v / maxTotal);
 
   const pts = points.map((p, i) => `${x(i)},${y(p.present)}`).join(" ");
@@ -35,7 +36,12 @@ export function Sparkline({ points }: { points: SparklinePoint[] }): ReactNode {
           points={`${padL},${H - padB} ${pts} ${x(points.length - 1)},${H - padB}`}
           fill="var(--brand-bg)"
         />
-        <polyline points={pts} fill="none" stroke="var(--brand-2)" strokeWidth={2.2} />
+        <polyline
+          points={pts}
+          fill="none"
+          stroke="var(--brand-2)"
+          strokeWidth={2.2}
+        />
         {points.map((p, i) => (
           <circle
             key={p.label}
@@ -50,8 +56,11 @@ export function Sparkline({ points }: { points: SparklinePoint[] }): ReactNode {
               show(
                 e,
                 <>
-                  {p.label} — <b>{p.present}/{p.total}</b> (
-                  {p.total > 0 ? Math.round((p.present / p.total) * 100) : 0}%)
+                  {p.label} —{" "}
+                  <b>
+                    {p.present}/{p.total}
+                  </b>{" "}
+                  ({p.total > 0 ? Math.round((p.present / p.total) * 100) : 0}%)
                 </>,
               )
             }

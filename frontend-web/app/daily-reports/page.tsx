@@ -47,7 +47,10 @@ function DailyReportsContent(): ReactNode {
   const [busy, setBusy] = useState("");
 
   useEffect(() => {
-    setPageMeta({ title: t.dailyReports.title, subtitle: t.dailyReports.subtitle });
+    setPageMeta({
+      title: t.dailyReports.title,
+      subtitle: t.dailyReports.subtitle,
+    });
   }, [setPageMeta, t]);
 
   // Guruhlar tanlangan filial bo'yicha — filial almashsa tanlov ham qayta quriladi.
@@ -290,12 +293,20 @@ function DailyReportsContent(): ReactNode {
   }
 
   const publishedCount = roster.filter((r) => r.report?.is_published).length;
-  const draftCount = roster.filter((r) => r.report && !r.report.is_published).length;
+  const draftCount = roster.filter(
+    (r) => r.report && !r.report.is_published,
+  ).length;
   const missingCount = roster.filter((r) => !r.report).length;
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <input
           className="input"
           type="date"
@@ -353,7 +364,9 @@ function DailyReportsContent(): ReactNode {
                   <tr key={row.child_id}>
                     <td>
                       <div className="cell-name">
-                        <span className="avatar">{initials(row.child_name)}</span>
+                        <span className="avatar">
+                          {initials(row.child_name)}
+                        </span>
                         <b className="tr">{row.child_name}</b>
                       </div>
                     </td>
@@ -367,7 +380,9 @@ function DailyReportsContent(): ReactNode {
                           {t.dailyReports.published}
                         </span>
                       ) : (
-                        <span className="badge badge--warn">{t.dailyReports.draft}</span>
+                        <span className="badge badge--warn">
+                          {t.dailyReports.draft}
+                        </span>
                       )}
                     </td>
                     <td className="r">
@@ -388,7 +403,9 @@ function DailyReportsContent(): ReactNode {
                             type="button"
                             className="btn btn--sm"
                             disabled={busy === row.report.id}
-                            onClick={() => void onPublish(row.report as DailyReport)}
+                            onClick={() =>
+                              void onPublish(row.report as DailyReport)
+                            }
                           >
                             {busy === row.report.id
                               ? t.dailyReports.publishing

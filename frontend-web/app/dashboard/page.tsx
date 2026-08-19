@@ -7,7 +7,12 @@ import { BarChart, type BarChartMonth } from "@/components/charts/BarChart";
 import { Donut } from "@/components/charts/Donut";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { AppShell, useAppUI } from "@/components/AppShell";
-import { IconCalendar, IconTrendingDown, IconUsers, IconWallet } from "@/components/icons";
+import {
+  IconCalendar,
+  IconTrendingDown,
+  IconUsers,
+  IconWallet,
+} from "@/components/icons";
 import { api, type FinanceDashboard, type Invoice } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
 import {
@@ -58,7 +63,9 @@ function DashboardContent(): ReactNode {
   const [childNames, setChildNames] = useState<Record<string, string>>({});
   const [childGroups, setChildGroups] = useState<Record<string, string>>({});
   const [debtorCount, setDebtorCount] = useState(0);
-  const [trend, setTrend] = useState<{ label: string; present: number; total: number }[]>([]);
+  const [trend, setTrend] = useState<
+    { label: string; present: number; total: number }[]
+  >([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -73,7 +80,11 @@ function DashboardContent(): ReactNode {
         lastMonths(6).map((m) =>
           api
             .dashboard(m.start, m.end, branchId)
-            .then((d) => ({ label: m.label, income: Number(d.accrual_revenue), outcome: Number(d.expenses) }))
+            .then((d) => ({
+              label: m.label,
+              income: Number(d.accrual_revenue),
+              outcome: Number(d.expenses),
+            }))
             .catch(() => ({ label: m.label, income: 0, outcome: 0 })),
         ),
       ),
@@ -86,7 +97,9 @@ function DashboardContent(): ReactNode {
         const branchGroups = groupList.filter((g) => g.is_active);
 
         const rosters = await Promise.all(
-          branchGroups.map((g) => api.attendanceRoster(g.id, isoDate(new Date())).catch(() => [])),
+          branchGroups.map((g) =>
+            api.attendanceRoster(g.id, isoDate(new Date())).catch(() => []),
+          ),
         );
         let present = 0;
         let total = 0;
@@ -110,12 +123,17 @@ function DashboardContent(): ReactNode {
         // Davomat tendensiyasi: backendda faqat guruh kesimida bor, shuning
         // uchun barcha guruhlar bo'yicha kunma-kun qo'shib chiqiladi.
         const trends = await Promise.all(
-          branchGroups.map((g) => api.attendanceTrend(g.id, 11).catch(() => null)),
+          branchGroups.map((g) =>
+            api.attendanceTrend(g.id, 11).catch(() => null),
+          ),
         );
         const byDay = new Map<string, { present: number; total: number }>();
         for (const tr of trends) {
           for (const p of tr?.points ?? []) {
-            const acc = byDay.get(p.attendance_date) ?? { present: 0, total: 0 };
+            const acc = byDay.get(p.attendance_date) ?? {
+              present: 0,
+              total: 0,
+            };
             acc.present += p.present_count;
             acc.total += p.total_count;
             byDay.set(p.attendance_date, acc);
@@ -131,17 +149,23 @@ function DashboardContent(): ReactNode {
 
         const [children, invoices] = await Promise.all([
           api.listChildren(branchId).catch(() => []),
-          api.branchInvoices(branchId, period.start.slice(0, 7) + "-01").catch(() => []),
+          api
+            .branchInvoices(branchId, period.start.slice(0, 7) + "-01")
+            .catch(() => []),
         ]);
         if (!cancelled) {
           const names: Record<string, string> = {};
           for (const c of children) names[c.id] = c.full_name;
           setChildNames(names);
-          setRecentPaid(invoices.filter((i) => Number(i.paid_amount) > 0).slice(0, 8));
+          setRecentPaid(
+            invoices.filter((i) => Number(i.paid_amount) > 0).slice(0, 8),
+          );
           // Qarzdor oilalar soni — qoldig'i bor hisob-fakturalar bo'yicha.
           setDebtorCount(
             new Set(
-              invoices.filter((i) => Number(i.outstanding_amount) > 0).map((i) => i.child_id),
+              invoices
+                .filter((i) => Number(i.outstanding_amount) > 0)
+                .map((i) => i.child_id),
             ).size,
           );
         }
@@ -160,7 +184,9 @@ function DashboardContent(): ReactNode {
     };
   }, [branchId, period]);
 
-  const netProfit = finance ? Number(finance.accrual_revenue) - Number(finance.expenses) : 0;
+  const netProfit = finance
+    ? Number(finance.accrual_revenue) - Number(finance.expenses)
+    : 0;
   const margin =
     finance && Number(finance.accrual_revenue) > 0
       ? ((netProfit / Number(finance.accrual_revenue)) * 100).toFixed(1)
@@ -171,7 +197,9 @@ function DashboardContent(): ReactNode {
   // mini-kartochkalarning pastki qatorida ko'rsatiladi (mockupdagidek).
   const biggestCategory =
     finance && finance.expenses_by_category.length > 0
-      ? finance.expenses_by_category.reduce((a, b) => (Number(b.total) > Number(a.total) ? b : a))
+      ? finance.expenses_by_category.reduce((a, b) =>
+          Number(b.total) > Number(a.total) ? b : a,
+        )
       : null;
   const over30 = (finance?.aging ?? [])
     .filter((a) => a.label === "aging_31_60" || a.label === "aging_60_plus")
@@ -197,12 +225,21 @@ function DashboardContent(): ReactNode {
   const namedFixed = fixedCats.slice(0, 2);
   const restFixed = fixedCats.slice(2).reduce((s, c) => s + Number(c.total), 0);
   const unitRows: { label: string; perChild: number }[] = [
-    ...variableCats.map((c) => ({ label: c.category_name, perChild: Number(c.total) / kids })),
-    ...namedFixed.map((c) => ({ label: c.category_name, perChild: Number(c.total) / kids })),
-    ...(restFixed > 0 ? [{ label: t.dashboard.uOther, perChild: restFixed / kids }] : []),
+    ...variableCats.map((c) => ({
+      label: c.category_name,
+      perChild: Number(c.total) / kids,
+    })),
+    ...namedFixed.map((c) => ({
+      label: c.category_name,
+      perChild: Number(c.total) / kids,
+    })),
+    ...(restFixed > 0
+      ? [{ label: t.dashboard.uOther, perChild: restFixed / kids }]
+      : []),
   ];
   const netPerChild =
-    Number(breakeven?.fee_per_child ?? 0) - unitRows.reduce((s, r) => s + r.perChild, 0);
+    Number(breakeven?.fee_per_child ?? 0) -
+    unitRows.reduce((s, r) => s + r.perChild, 0);
 
   const changeBadge = (key: "income" | "outcome"): ReactNode => {
     const pct = pctChange(key);
@@ -223,7 +260,10 @@ function DashboardContent(): ReactNode {
       <div className="bento">
         <div className="kpi b-6 r-2" style={{ minHeight: 240 }}>
           <div className="sk sk-line" style={{ width: "40%" }} />
-          <div className="sk" style={{ height: 48, width: "60%", margin: "16px 0" }} />
+          <div
+            className="sk"
+            style={{ height: 48, width: "60%", margin: "16px 0" }}
+          />
         </div>
         <div className="kpi b-3" style={{ minHeight: 110 }}>
           <div className="sk sk-line" style={{ width: "60%" }} />
@@ -240,7 +280,11 @@ function DashboardContent(): ReactNode {
       {/* Hero KPI — mockupdagidek pastida uch ustunli xulosa chizig'i bor */}
       <div
         className="kpi kpi--accent b-6 r-2"
-        style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
       >
         <div className="kpi__top">
           <span className="kpi__label">{t.dashboard.netProfit}</span>
@@ -258,7 +302,11 @@ function DashboardContent(): ReactNode {
           {breakeven && (
             <div className="kpi__foot" style={{ marginTop: "var(--s4)" }}>
               {t.dashboard.aboveBreakeven}:{" "}
-              {mlnf(Number(finance!.accrual_revenue) - Number(breakeven.breakeven_revenue))} {t.common.mln}
+              {mlnf(
+                Number(finance!.accrual_revenue) -
+                  Number(breakeven.breakeven_revenue),
+              )}{" "}
+              {t.common.mln}
             </div>
           )}
         </div>
@@ -275,11 +323,25 @@ function DashboardContent(): ReactNode {
           {[
             [t.dashboard.income, mlnf(finance?.accrual_revenue ?? 0)],
             [t.dashboard.outcome, mlnf(finance?.expenses ?? 0)],
-            [t.dashboard.breakeven, breakeven ? mlnf(breakeven.breakeven_revenue) : "—"],
+            [
+              t.dashboard.breakeven,
+              breakeven ? mlnf(breakeven.breakeven_revenue) : "—",
+            ],
           ].map(([label, value]) => (
             <div key={label}>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,.65)", fontWeight: 600 }}>{label}</div>
-              <div className="num" style={{ fontSize: 20, fontWeight: 600, marginTop: 3 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "rgba(255,255,255,.65)",
+                  fontWeight: 600,
+                }}
+              >
+                {label}
+              </div>
+              <div
+                className="num"
+                style={{ fontSize: 20, fontWeight: 600, marginTop: 3 }}
+              >
                 {value} {t.common.mln}
               </div>
             </div>
@@ -300,7 +362,8 @@ function DashboardContent(): ReactNode {
             </div>
           </div>
           <div className="mini__sub">
-            {t.dashboard.collectedLabel}: {mlnf(finance?.cash_collected ?? 0)} {t.common.mln}
+            {t.dashboard.collectedLabel}: {mlnf(finance?.cash_collected ?? 0)}{" "}
+            {t.common.mln}
           </div>
         </div>
       </div>
@@ -364,12 +427,20 @@ function DashboardContent(): ReactNode {
               <span className="kpi__unit">/ {today.total}</span>
             </div>
             <div className="bar" style={{ marginTop: "var(--s3)" }}>
-              <i style={{ width: today.total ? `${(today.present / today.total) * 100}%` : "0%" }} />
+              <i
+                style={{
+                  width: today.total
+                    ? `${(today.present / today.total) * 100}%`
+                    : "0%",
+                }}
+              />
             </div>
           </div>
           <div className="mini__sub">
-            <b style={{ color: "var(--warn)" }}>{today.sick}</b> {t.dashboard.sick} ·{" "}
-            <b style={{ color: "var(--neg)" }}>{today.absent}</b> {t.dashboard.absent}
+            <b style={{ color: "var(--warn)" }}>{today.sick}</b>{" "}
+            {t.dashboard.sick} ·{" "}
+            <b style={{ color: "var(--neg)" }}>{today.absent}</b>{" "}
+            {t.dashboard.absent}
           </div>
         </div>
       </div>
@@ -386,8 +457,18 @@ function DashboardContent(): ReactNode {
             style={{ marginLeft: "auto" }}
             onClick={() =>
               downloadCsv(t.dashboard.chartTitle, [
-                [t.common.period, t.dashboard.income, t.dashboard.outcome, t.dashboard.netProfit],
-                ...months.map((m) => [m.label, m.income, m.outcome, m.income - m.outcome]),
+                [
+                  t.common.period,
+                  t.dashboard.income,
+                  t.dashboard.outcome,
+                  t.dashboard.netProfit,
+                ],
+                ...months.map((m) => [
+                  m.label,
+                  m.income,
+                  m.outcome,
+                  m.income - m.outcome,
+                ]),
               ])
             }
           >
@@ -450,34 +531,44 @@ function DashboardContent(): ReactNode {
           </div>
         </div>
         <div className="card__body">
-        {finance?.aging.map((row) => {
-          const totalDebt = finance.aging.reduce((s, r) => s + Number(r.total), 0) || 1;
-          const label =
-            row.label === "not_due"
-              ? t.dashboard.notDue
-              : row.label === "aging_1_30"
-                ? t.dashboard.aging1_30
-                : row.label === "aging_31_60"
-                  ? t.dashboard.aging31_60
-                  : t.dashboard.aging60plus;
-          const color =
-            row.label === "not_due"
-              ? "var(--brand-2)"
-              : row.label === "aging_1_30"
-                ? "var(--warn)"
-                : row.label === "aging_31_60"
-                  ? "var(--warn-2)"
-                  : "var(--neg)";
-          return (
-            <div className="aging__row" key={row.label} style={{ marginBottom: 14 }}>
-              <b>{label}</b>
-              <span className="num">{money(row.total)}</span>
-              <div className="aging__bar">
-                <i style={{ width: `${(Number(row.total) / totalDebt) * 100}%`, background: color }} />
+          {finance?.aging.map((row) => {
+            const totalDebt =
+              finance.aging.reduce((s, r) => s + Number(r.total), 0) || 1;
+            const label =
+              row.label === "not_due"
+                ? t.dashboard.notDue
+                : row.label === "aging_1_30"
+                  ? t.dashboard.aging1_30
+                  : row.label === "aging_31_60"
+                    ? t.dashboard.aging31_60
+                    : t.dashboard.aging60plus;
+            const color =
+              row.label === "not_due"
+                ? "var(--brand-2)"
+                : row.label === "aging_1_30"
+                  ? "var(--warn)"
+                  : row.label === "aging_31_60"
+                    ? "var(--warn-2)"
+                    : "var(--neg)";
+            return (
+              <div
+                className="aging__row"
+                key={row.label}
+                style={{ marginBottom: 14 }}
+              >
+                <b>{label}</b>
+                <span className="num">{money(row.total)}</span>
+                <div className="aging__bar">
+                  <i
+                    style={{
+                      width: `${(Number(row.total) / totalDebt) * 100}%`,
+                      background: color,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
           <button
             type="button"
             className="btn-ghost btn btn--full"
@@ -521,7 +612,10 @@ function DashboardContent(): ReactNode {
                 {money(netPerChild)}
               </span>
             </div>
-            <p className="muted" style={{ fontSize: 12, marginTop: 12, lineHeight: 1.5 }}>
+            <p
+              className="muted"
+              style={{ fontSize: 12, marginTop: 12, lineHeight: 1.5 }}
+            >
               {t.dashboard.unitNote}: <b>{breakeven.breakeven_children}</b>
             </p>
           </div>
@@ -537,7 +631,11 @@ function DashboardContent(): ReactNode {
         </div>
         <div className="card__body">
           <div className="quick">
-            <button type="button" className="quick__b" onClick={() => router.push("/billing?new=1")}>
+            <button
+              type="button"
+              className="quick__b"
+              onClick={() => router.push("/billing?new=1")}
+            >
               <IconWallet size={18} />
               {t.payments.takePayment}
             </button>
@@ -549,11 +647,19 @@ function DashboardContent(): ReactNode {
               <IconTrendingDown size={18} />
               {t.expenses.addExpense}
             </button>
-            <button type="button" className="quick__b" onClick={() => router.push("/children?new=1")}>
+            <button
+              type="button"
+              className="quick__b"
+              onClick={() => router.push("/children?new=1")}
+            >
               <IconUsers size={18} />
               {t.children.addChild}
             </button>
-            <button type="button" className="quick__b" onClick={() => router.push("/attendance")}>
+            <button
+              type="button"
+              className="quick__b"
+              onClick={() => router.push("/attendance")}
+            >
               <IconCalendar size={18} />
               {t.nav.attendance}
             </button>
@@ -583,7 +689,11 @@ function DashboardContent(): ReactNode {
           <div>
             <h3>{t.dashboard.recentPayments}</h3>
           </div>
-          <button type="button" className="btn--quiet btn" onClick={() => router.push("/billing")}>
+          <button
+            type="button"
+            className="btn--quiet btn"
+            onClick={() => router.push("/billing")}
+          >
             {t.dashboard.viewAll} →
           </button>
         </div>
@@ -620,13 +730,19 @@ function DashboardContent(): ReactNode {
                       <td style={{ color: "var(--ink-2)" }}>
                         {childGroups[inv.child_id] ?? "—"}
                       </td>
-                      <td className="r num">{moneyPlain(inv.adjusted_amount)}</td>
+                      <td className="r num">
+                        {moneyPlain(inv.adjusted_amount)}
+                      </td>
                       <td className="r num" style={{ color: "var(--pos)" }}>
                         {moneyPlain(inv.paid_amount)}
                       </td>
-                      <td className="r num">{moneyPlain(inv.outstanding_amount)}</td>
+                      <td className="r num">
+                        {moneyPlain(inv.outstanding_amount)}
+                      </td>
                       <td className="r">
-                        <span className={`badge badge--${invoiceTone(inv.status)}`}>
+                        <span
+                          className={`badge badge--${invoiceTone(inv.status)}`}
+                        >
                           {invoiceStatus(inv.status)}
                         </span>
                       </td>

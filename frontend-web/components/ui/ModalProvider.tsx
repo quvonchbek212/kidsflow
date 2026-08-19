@@ -39,10 +39,15 @@ export function useModal(): ModalContextValue {
   return ctx;
 }
 
-export function ModalProvider({ children }: { children: ReactNode }): ReactNode {
-  const [entry, setEntry] = useState<{ content: ReactNode; options: ModalOptions } | null>(
-    null,
-  );
+export function ModalProvider({
+  children,
+}: {
+  children: ReactNode;
+}): ReactNode {
+  const [entry, setEntry] = useState<{
+    content: ReactNode;
+    options: ModalOptions;
+  } | null>(null);
   const [visible, setVisible] = useState(false);
   const onCloseRef = useRef<(() => void) | undefined>(undefined);
 
@@ -103,7 +108,9 @@ export function ModalProvider({ children }: { children: ReactNode }): ReactNode 
               </button>
             </div>
             <div className="modal__body">{entry.content}</div>
-            {entry.options.footer && <div className="modal__foot">{entry.options.footer}</div>}
+            {entry.options.footer && (
+              <div className="modal__foot">{entry.options.footer}</div>
+            )}
           </div>
         )}
       </div>

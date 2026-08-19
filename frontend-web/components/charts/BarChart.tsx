@@ -131,8 +131,18 @@ export function BarChart({
                   strokeDasharray="7 6"
                   strokeLinecap="round"
                 />
-                <rect x={padL + 6} y={ly - 30} width={lw} height={22} rx={6} fill="var(--be-fill)" />
-                <path d={`M${padL + 16} ${ly - 8} l5 5 l5 -5 Z`} fill="var(--be-fill)" />
+                <rect
+                  x={padL + 6}
+                  y={ly - 30}
+                  width={lw}
+                  height={22}
+                  rx={6}
+                  fill="var(--be-fill)"
+                />
+                <path
+                  d={`M${padL + 16} ${ly - 8} l5 5 l5 -5 Z`}
+                  fill="var(--be-fill)"
+                />
                 <text
                   className="on-solid"
                   x={padL + 6 + lw / 2}

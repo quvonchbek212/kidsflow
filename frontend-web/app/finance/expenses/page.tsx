@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { Donut } from "@/components/charts/Donut";
@@ -47,7 +53,10 @@ function ExpensesContent(): ReactNode {
   function load(): void {
     if (!branchId) return;
     setReady(false);
-    Promise.all([api.listExpenseCategories(), api.listExpenses(branchId, periodStart, periodEnd)])
+    Promise.all([
+      api.listExpenseCategories(),
+      api.listExpenses(branchId, periodStart, periodEnd),
+    ])
       .then(([cats, exp]) => {
         setCategories(cats);
         setExpenses(exp);
@@ -115,7 +124,11 @@ function ExpensesContent(): ReactNode {
           <div className="form-grid">
             <div className="field">
               <label>{t.expenses.category}</label>
-              <select className="input" defaultValue={categoryId} onChange={(e) => (categoryId = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={categoryId}
+                onChange={(e) => (categoryId = e.target.value)}
+              >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -127,7 +140,12 @@ function ExpensesContent(): ReactNode {
               <label>
                 {t.payments.amount} ({t.common.sum})
               </label>
-              <input className="input" inputMode="decimal" required onChange={(e) => (amount = e.target.value)} />
+              <input
+                className="input"
+                inputMode="decimal"
+                required
+                onChange={(e) => (amount = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.common.date}</label>
@@ -140,15 +158,24 @@ function ExpensesContent(): ReactNode {
             </div>
             <div className="field">
               <label>{t.expenses.vendor}</label>
-              <input className="input" onChange={(e) => (vendor = e.target.value)} />
+              <input
+                className="input"
+                onChange={(e) => (vendor = e.target.value)}
+              />
             </div>
           </div>
           <div className="field">
             <label>{t.expenses.description}</label>
-            <input className="input" onChange={(e) => (description = e.target.value)} />
+            <input
+              className="input"
+              onChange={(e) => (description = e.target.value)}
+            />
           </div>
           <label className="check" style={{ marginBottom: 16 }}>
-            <input type="checkbox" onChange={(e) => (recurring = e.target.checked)} />
+            <input
+              type="checkbox"
+              onChange={(e) => (recurring = e.target.checked)}
+            />
             <span>{t.expenses.recurring}</span>
           </label>
           {error && <p className="error">{error}</p>}
@@ -187,7 +214,9 @@ function ExpensesContent(): ReactNode {
                 type="button"
                 className={`chip${c.is_variable ? " on" : ""}`}
                 onClick={async () => {
-                  await api.updateExpenseCategory(c.id, { is_variable: !c.is_variable });
+                  await api.updateExpenseCategory(c.id, {
+                    is_variable: !c.is_variable,
+                  });
                   load();
                   render();
                 }}
@@ -204,14 +233,18 @@ function ExpensesContent(): ReactNode {
               error = "";
               render();
               try {
-                await api.createExpenseCategory({ name: newName, is_variable: newVariable });
+                await api.createExpenseCategory({
+                  name: newName,
+                  is_variable: newVariable,
+                });
                 newName = "";
                 newVariable = false;
                 saving = false;
                 load();
                 render();
               } catch (err) {
-                error = err instanceof ApiError ? err.message : t.common.errTitle;
+                error =
+                  err instanceof ApiError ? err.message : t.common.errTitle;
                 saving = false;
                 render();
               }
@@ -219,10 +252,17 @@ function ExpensesContent(): ReactNode {
           >
             <div className="field">
               <label>{t.expenses.categoryName}</label>
-              <input className="input" required onChange={(e) => (newName = e.target.value)} />
+              <input
+                className="input"
+                required
+                onChange={(e) => (newName = e.target.value)}
+              />
             </div>
             <label className="check" style={{ marginBottom: 16 }}>
-              <input type="checkbox" onChange={(e) => (newVariable = e.target.checked)} />
+              <input
+                type="checkbox"
+                onChange={(e) => (newVariable = e.target.checked)}
+              />
               <span>{t.expenses.variableFlag}</span>
             </label>
             <p className="field__hint" style={{ marginBottom: 12 }}>
@@ -254,7 +294,9 @@ function ExpensesContent(): ReactNode {
       toast.show(t.common.reverseDone);
       load();
     } catch (err) {
-      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, { type: "neg" });
+      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, {
+        type: "neg",
+      });
     }
   }
 
@@ -262,7 +304,9 @@ function ExpensesContent(): ReactNode {
   const byCategory = categories
     .map((c) => ({
       label: c.name,
-      total: expenses.filter((e) => e.category_id === c.id).reduce((s, e) => s + Number(e.amount), 0),
+      total: expenses
+        .filter((e) => e.category_id === c.id)
+        .reduce((s, e) => s + Number(e.amount), 0),
     }))
     .filter((r) => r.total > 0);
 
@@ -272,7 +316,10 @@ function ExpensesContent(): ReactNode {
       label: t.common.date,
       sortValue: (e) => e.expense_date,
       render: (e) => (
-        <span className="num" style={{ fontSize: 13, color: "var(--ink-2)", whiteSpace: "nowrap" }}>
+        <span
+          className="num"
+          style={{ fontSize: 13, color: "var(--ink-2)", whiteSpace: "nowrap" }}
+        >
           {e.expense_date}
         </span>
       ),
@@ -281,7 +328,9 @@ function ExpensesContent(): ReactNode {
       key: "category",
       label: t.expenses.category,
       sortValue: (e) => categoryName(e.category_id),
-      render: (e) => <span className="badge badge--mute">{categoryName(e.category_id)}</span>,
+      render: (e) => (
+        <span className="badge badge--mute">{categoryName(e.category_id)}</span>
+      ),
     },
     {
       // Izoh va sotuvchi bitta ustunda — mockupda ham jadval besh ustunli,
@@ -292,7 +341,9 @@ function ExpensesContent(): ReactNode {
         <span>
           <b style={{ fontWeight: 500 }}>{e.description || e.vendor || "—"}</b>
           {e.description && e.vendor && (
-            <small style={{ display: "block", color: "var(--ink-3)", fontSize: 12 }}>
+            <small
+              style={{ display: "block", color: "var(--ink-3)", fontSize: 12 }}
+            >
               {e.vendor}
             </small>
           )}
@@ -307,7 +358,11 @@ function ExpensesContent(): ReactNode {
       render: (e) => (
         <span
           className="num"
-          style={{ fontWeight: 600, whiteSpace: "nowrap", opacity: e.status === "REVERSED" ? 0.5 : 1 }}
+          style={{
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            opacity: e.status === "REVERSED" ? 0.5 : 1,
+          }}
         >
           {moneyPlain(e.amount)}
         </span>
@@ -338,10 +393,29 @@ function ExpensesContent(): ReactNode {
   return (
     <>
       {/* Sarlavha topbarda turadi (mockupdagidek), bu yerda faqat davr. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <div style={{ display: "flex", gap: 8 }}>
-          <input className="input" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} style={{ marginTop: 0 }} />
-          <input className="input" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} style={{ marginTop: 0 }} />
+          <input
+            className="input"
+            type="date"
+            value={periodStart}
+            onChange={(e) => setPeriodStart(e.target.value)}
+            style={{ marginTop: 0 }}
+          />
+          <input
+            className="input"
+            type="date"
+            value={periodEnd}
+            onChange={(e) => setPeriodEnd(e.target.value)}
+            style={{ marginTop: 0 }}
+          />
         </div>
       </div>
 
@@ -357,7 +431,9 @@ function ExpensesContent(): ReactNode {
             columns={columns}
             rows={expenses}
             rowKey={(e) => e.id}
-            searchText={(e) => `${categoryName(e.category_id)} ${e.vendor ?? ""} ${e.description ?? ""}`}
+            searchText={(e) =>
+              `${categoryName(e.category_id)} ${e.vendor ?? ""} ${e.description ?? ""}`
+            }
             searchPlaceholder={t.common.search}
             emptyTitle={t.common.nothingFound}
             emptySub={t.common.nothingFoundSub}
@@ -366,10 +442,18 @@ function ExpensesContent(): ReactNode {
             ofLabel={t.common.of}
             actions={
               <>
-                <button type="button" className="btn-ghost btn btn-sm" onClick={openCategoryManager}>
+                <button
+                  type="button"
+                  className="btn-ghost btn btn-sm"
+                  onClick={openCategoryManager}
+                >
                   {t.expenses.manageCategories}
                 </button>
-                <button type="button" className="btn btn-sm" onClick={openExpenseForm}>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={openExpenseForm}
+                >
                   + {t.expenses.addExpense}
                 </button>
               </>

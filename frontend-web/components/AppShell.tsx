@@ -37,8 +37,20 @@ import {
 } from "@/components/icons";
 import { useModal } from "@/components/ui/ModalProvider";
 import { APP_I18N, type AppStrings } from "@/lib/app-i18n";
-import { ApiError, api, type Branch, type CurrentUser, type Group } from "@/lib/api";
-import { initials, isoDate, money, monthRange, periodLabel } from "@/lib/format";
+import {
+  ApiError,
+  api,
+  type Branch,
+  type CurrentUser,
+  type Group,
+} from "@/lib/api";
+import {
+  initials,
+  isoDate,
+  money,
+  monthRange,
+  periodLabel,
+} from "@/lib/format";
 import type { Lang } from "@/lib/landing-content";
 
 interface NotifItem {
@@ -113,15 +125,30 @@ interface NavItem {
 
 // Tartib mockupdagi bilan bir xil: Umumiy → Bog'cha → Moliya → Boshqa.
 const NAV_ITEMS: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", section: "general", icon: (s) => <IconGrid size={s} /> },
+  {
+    key: "dashboard",
+    href: "/dashboard",
+    section: "general",
+    icon: (s) => <IconGrid size={s} />,
+  },
   {
     key: "reports",
     href: "/finance/reports",
     section: "general",
     icon: (s) => <IconReceipt size={s} />,
   },
-  { key: "children", href: "/children", section: "kindergarten", icon: (s) => <IconUsers size={s} /> },
-  { key: "groups", href: "/groups", section: "kindergarten", icon: (s) => <IconBuilding size={s} /> },
+  {
+    key: "children",
+    href: "/children",
+    section: "kindergarten",
+    icon: (s) => <IconUsers size={s} />,
+  },
+  {
+    key: "groups",
+    href: "/groups",
+    section: "kindergarten",
+    icon: (s) => <IconBuilding size={s} />,
+  },
   {
     key: "attendance",
     href: "/attendance",
@@ -134,16 +161,36 @@ const NAV_ITEMS: NavItem[] = [
     section: "kindergarten",
     icon: (s) => <IconEdit size={s} />,
   },
-  { key: "staff", href: "/staff", section: "kindergarten", icon: (s) => <IconUser size={s} /> },
-  { key: "payments", href: "/billing", section: "finance", icon: (s) => <IconWallet size={s} /> },
+  {
+    key: "staff",
+    href: "/staff",
+    section: "kindergarten",
+    icon: (s) => <IconUser size={s} />,
+  },
+  {
+    key: "payments",
+    href: "/billing",
+    section: "finance",
+    icon: (s) => <IconWallet size={s} />,
+  },
   {
     key: "expenses",
     href: "/finance/expenses",
     section: "finance",
     icon: (s) => <IconTrendingDown size={s} />,
   },
-  { key: "parents", href: "/parents", section: "other", icon: (s) => <IconMessage size={s} /> },
-  { key: "settings", href: "/settings", section: "other", icon: (s) => <IconSettings size={s} /> },
+  {
+    key: "parents",
+    href: "/parents",
+    section: "other",
+    icon: (s) => <IconMessage size={s} />,
+  },
+  {
+    key: "settings",
+    href: "/settings",
+    section: "other",
+    icon: (s) => <IconSettings size={s} />,
+  },
 ];
 
 const SECTIONS: Section[] = ["general", "kindergarten", "finance", "other"];
@@ -152,7 +199,8 @@ const SECTIONS: Section[] = ["general", "kindergarten", "finance", "other"];
 const TEACHER_KEYS: NavKey[] = ["attendance", "dailyReports"];
 
 function navForRole(role: string): NavItem[] {
-  if (role === "TEACHER") return NAV_ITEMS.filter((i) => TEACHER_KEYS.includes(i.key));
+  if (role === "TEACHER")
+    return NAV_ITEMS.filter((i) => TEACHER_KEYS.includes(i.key));
   return NAV_ITEMS;
 }
 
@@ -313,7 +361,11 @@ function PeriodForm({
           />
         </div>
       </div>
-      <button type="button" className="btn btn--full" onClick={() => onApply(draft)}>
+      <button
+        type="button"
+        className="btn btn--full"
+        onClick={() => onApply(draft)}
+      >
         {t.common.apply}
       </button>
     </>
@@ -355,7 +407,10 @@ export function AppShell({
   const [period, setPeriodState] = useState<Period>(() => monthRange());
 
   useEffect(() => {
-    api.listBranches().then(setBranches).catch(() => {});
+    api
+      .listBranches()
+      .then(setBranches)
+      .catch(() => {});
     // Yon panel sarlavhasi bog'cha nomini ko'rsatadi (filial nomini emas) —
     // u Sozlamalar sahifasida kiritiladi.
     api
@@ -377,19 +432,33 @@ export function AppShell({
   // faqat haqiqatan o'zgarganda holat yangilanadi.
   const setPageMeta = useCallback((meta: PageMeta) => {
     setPageMetaState((prev) =>
-      prev.title === meta.title && prev.subtitle === meta.subtitle ? prev : meta,
+      prev.title === meta.title && prev.subtitle === meta.subtitle
+        ? prev
+        : meta,
     );
   }, []);
 
   useEffect(() => {
     function onClick(e: MouseEvent): void {
-      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false);
       }
-      if (notifOpen && notifRef.current && !notifRef.current.contains(e.target as Node)) {
+      if (
+        notifOpen &&
+        notifRef.current &&
+        !notifRef.current.contains(e.target as Node)
+      ) {
         setNotifOpen(false);
       }
-      if (branchOpen && branchRef.current && !branchRef.current.contains(e.target as Node)) {
+      if (
+        branchOpen &&
+        branchRef.current &&
+        !branchRef.current.contains(e.target as Node)
+      ) {
         setBranchOpen(false);
       }
     }
@@ -404,7 +473,9 @@ export function AppShell({
   }, [collapsed]);
 
   useEffect(() => {
-    const savedLang = window.localStorage.getItem("kidsflow_lang") as Lang | null;
+    const savedLang = window.localStorage.getItem(
+      "kidsflow_lang",
+    ) as Lang | null;
     if (savedLang) setLangState(savedLang);
     const savedTheme = window.localStorage.getItem("kidsflow_theme");
     if (savedTheme === "dark") {
@@ -573,7 +644,8 @@ export function AppShell({
   // aks holda uning `useEffect`lari backendga so'rov yuborib, 403 xatolar
   // to'plamini va ushlanmagan istisnolarni keltirib chiqaradi.
   const roleKnown = Boolean(role);
-  const pageAllowed = !active || !roleKnown || navItems.some((i) => i.key === active);
+  const pageAllowed =
+    !active || !roleKnown || navItems.some((i) => i.key === active);
 
   useEffect(() => {
     if (!roleKnown || pageAllowed) return;
@@ -607,7 +679,10 @@ export function AppShell({
           modal.close();
           // Yon paneldagi ism darhol yangilanishi uchun sahifa qayta yuklanadi
           // (user props orqali yuqoridan keladi, shu yerda o'zgartirib bo'lmaydi).
-          if (updated.full_name !== user.full_name || updated.phone !== user.phone) {
+          if (
+            updated.full_name !== user.full_name ||
+            updated.phone !== user.phone
+          ) {
             router.refresh();
           }
         }}
@@ -618,17 +693,42 @@ export function AppShell({
 
   function openQuickAdd(): void {
     const items: [string, string, ReactNode, string][] = [
-      [t.children.addChild, t.quick.childSub, <IconUsers size={19} key="c" />, "/children?new=1"],
-      [t.payments.takePayment, t.quick.paymentSub, <IconWallet size={19} key="p" />, "/billing?new=1"],
+      [
+        t.children.addChild,
+        t.quick.childSub,
+        <IconUsers size={19} key="c" />,
+        "/children?new=1",
+      ],
+      [
+        t.payments.takePayment,
+        t.quick.paymentSub,
+        <IconWallet size={19} key="p" />,
+        "/billing?new=1",
+      ],
       [
         t.expenses.addExpense,
         t.quick.expenseSub,
         <IconTrendingDown size={19} key="e" />,
         "/finance/expenses?new=1",
       ],
-      [t.staff.addStaff, t.quick.staffSub, <IconUser size={19} key="s" />, "/staff?new=1"],
-      [t.groups.addGroup, t.quick.groupSub, <IconBuilding size={19} key="g" />, "/groups?new=1"],
-      [t.messaging.broadcastTitle, t.quick.messageSub, <IconMessage size={19} key="m" />, "/parents"],
+      [
+        t.staff.addStaff,
+        t.quick.staffSub,
+        <IconUser size={19} key="s" />,
+        "/staff?new=1",
+      ],
+      [
+        t.groups.addGroup,
+        t.quick.groupSub,
+        <IconBuilding size={19} key="g" />,
+        "/groups?new=1",
+      ],
+      [
+        t.messaging.broadcastTitle,
+        t.quick.messageSub,
+        <IconMessage size={19} key="m" />,
+        "/parents",
+      ],
     ];
     modal.open(
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -649,10 +749,18 @@ export function AppShell({
               router.push(href);
             }}
           >
-            <span style={{ color: "var(--brand)", flex: "none", display: "grid" }}>{icon}</span>
+            <span
+              style={{ color: "var(--brand)", flex: "none", display: "grid" }}
+            >
+              {icon}
+            </span>
             <span>
               <b style={{ display: "block", fontSize: 14 }}>{label}</b>
-              <small style={{ fontWeight: 400, color: "var(--ink-3)", fontSize: 12 }}>{sub}</small>
+              <small
+                style={{ fontWeight: 400, color: "var(--ink-3)", fontSize: 12 }}
+              >
+                {sub}
+              </small>
             </span>
           </button>
         ))}
@@ -678,7 +786,9 @@ export function AppShell({
       <div>
         <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
           <div className="sb__brand">
-            <span className="sb__brand-mark">{brandName.charAt(0).toUpperCase()}</span>
+            <span className="sb__brand-mark">
+              {brandName.charAt(0).toUpperCase()}
+            </span>
             <span className="sb__name tr">{brandName}</span>
           </div>
 
@@ -785,7 +895,11 @@ export function AppShell({
 
           <div className="sb__foot">
             <div className="pop" ref={menuRef} style={{ width: "100%" }}>
-              <button type="button" className="sb__user" onClick={() => setMenuOpen((v) => !v)}>
+              <button
+                type="button"
+                className="sb__user"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
                 <span className="avatar">{userInitials}</span>
                 <div>
                   <b className="tr">{displayName}</b>
@@ -793,7 +907,10 @@ export function AppShell({
                 </div>
               </button>
               {menuOpen && (
-                <div className="pop__panel pop__panel--up" style={{ left: 0, right: 0 }}>
+                <div
+                  className="pop__panel pop__panel--up"
+                  style={{ left: 0, right: 0 }}
+                >
                   <button
                     type="button"
                     className="pop__item"
@@ -884,7 +1001,9 @@ export function AppShell({
                     aria-label={t.notifications}
                   >
                     <IconBell size={18} />
-                    {notifs.length > 0 && <span className="bell__badge">{notifs.length}</span>}
+                    {notifs.length > 0 && (
+                      <span className="bell__badge">{notifs.length}</span>
+                    )}
                   </button>
                   {notifOpen && (
                     <div className="pop__panel" style={{ minWidth: 320 }}>
@@ -931,19 +1050,33 @@ export function AppShell({
                   )}
                 </div>
               )}
-              <button type="button" className="period" onClick={openPeriodPicker}>
+              <button
+                type="button"
+                className="period"
+                onClick={openPeriodPicker}
+              >
                 <IconCalendar size={15} />
-                <span className="period__label">{periodLabel(period.start, period.end, lang)}</span>
+                <span className="period__label">
+                  {periodLabel(period.start, period.end, lang)}
+                </span>
               </button>
               {isOwnerOrManager && (
-                <button type="button" className="btn btn-sm new-btn" onClick={openQuickAdd}>
+                <button
+                  type="button"
+                  className="btn btn-sm new-btn"
+                  onClick={openQuickAdd}
+                >
                   + <span className="new-txt">{t.common.newLabel}</span>
                 </button>
               )}
             </div>
           </header>
           <main className="content">
-            {pageAllowed ? children : <div className="boot-screen">KIDSFLOW</div>}
+            {pageAllowed ? (
+              children
+            ) : (
+              <div className="boot-screen">KIDSFLOW</div>
+            )}
           </main>
         </div>
       </div>

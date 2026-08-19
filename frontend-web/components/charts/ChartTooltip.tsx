@@ -9,7 +9,11 @@ export function useChartTooltip(): {
   show: (e: MouseEvent, content: ReactNode) => void;
   hide: () => void;
 } {
-  const [tip, setTip] = useState<{ x: number; y: number; content: ReactNode } | null>(null);
+  const [tip, setTip] = useState<{
+    x: number;
+    y: number;
+    content: ReactNode;
+  } | null>(null);
 
   function show(e: MouseEvent, content: ReactNode): void {
     setTip({ x: e.clientX + 14, y: e.clientY - 12, content });

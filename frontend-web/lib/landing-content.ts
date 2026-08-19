@@ -28,7 +28,13 @@ export interface LandingContent {
     ctaPrimary: string;
     ctaSecondary: string;
   };
-  mockup: { modules: string; realtime: string; realtimeSub: string; selfService: string; selfServiceSub: string };
+  mockup: {
+    modules: string;
+    realtime: string;
+    realtimeSub: string;
+    selfService: string;
+    selfServiceSub: string;
+  };
   featuresTitle: string;
   featuresSubtitle: string;
   features: Feature[];
@@ -69,7 +75,8 @@ export const CONTENT: Record<Lang, LandingContent> = {
       selfServiceSub: "UZ / RU / EN",
     },
     featuresTitle: "Imkoniyatlar",
-    featuresSubtitle: "Bog'chaning kundalik ishlarini avtomatlashtiradigan modullar.",
+    featuresSubtitle:
+      "Bog'chaning kundalik ishlarini avtomatlashtiradigan modullar.",
     features: [
       {
         icon: "📋",
@@ -256,7 +263,10 @@ export const CONTENT: Record<Lang, LandingContent> = {
     howTitle: "Как работает",
     howSubtitle: "Запуск в четыре простых шага.",
     steps: [
-      { title: "Настройка", desc: "Создайте сад, первый филиал и аккаунт владельца." },
+      {
+        title: "Настройка",
+        desc: "Создайте сад, первый филиал и аккаунт владельца.",
+      },
       {
         title: "Добавьте ребёнка и родителя",
         desc: "Зачислите ребёнка в группу, выдайте родителю одноразовый код Telegram.",
@@ -370,7 +380,10 @@ export const CONTENT: Record<Lang, LandingContent> = {
     howTitle: "How it works",
     howSubtitle: "Get started in four simple steps.",
     steps: [
-      { title: "Setup", desc: "Create the kindergarten, the first branch and the owner account." },
+      {
+        title: "Setup",
+        desc: "Create the kindergarten, the first branch and the owner account.",
+      },
       {
         title: "Add a child and a parent",
         desc: "Enroll the child into a group, give the parent a one-time Telegram code.",

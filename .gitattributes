@@ -1,0 +1,20 @@
+# Repozitoriyada barcha matn fayllari LF bilan saqlanadi.
+#
+# Busiz Windowsda ishlaganda git har bir faylni CRLF ga o'girib qo'yardi va
+# Prettier (`endOfLine: "lf"`) 36 ta faylning hammasini "noto'g'ri formatlangan"
+# deb belgilardi — hech kim tegmagan fayllarni ham. Tekshiruv hech qachon
+# yashil bo'lmagani uchun uni o'qishdan to'xtagan edik.
+* text=auto eol=lf
+
+# Ikkilik fayllar o'zgartirilmasin.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+
+# Shell skriptlari doim LF (CRLF bo'lsa Linuxda ishga tushmaydi).
+*.sh text eol=lf

@@ -48,9 +48,13 @@ export function CommandPalette({
   }
 
   return (
-    <div id="cmdk" className={open ? "on" : undefined} onClick={(e) => {
-      if (e.target === e.currentTarget) onClose();
-    }}>
+    <div
+      id="cmdk"
+      className={open ? "on" : undefined}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="cmdk__box">
         <input
           ref={inputRef}
@@ -77,7 +81,14 @@ export function CommandPalette({
         />
         <div className="cmdk__list">
           {filtered.length === 0 ? (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--ink-3)", fontSize: 13.5 }}>
+            <div
+              style={{
+                padding: 24,
+                textAlign: "center",
+                color: "var(--ink-3)",
+                fontSize: 13.5,
+              }}
+            >
               {emptyLabel}
             </div>
           ) : (

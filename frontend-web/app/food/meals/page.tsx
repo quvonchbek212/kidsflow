@@ -56,8 +56,10 @@ function MealsContent(): ReactNode {
 
   useEffect(load, [branchId]);
 
-  const productName = (id: string): string => products.find((p) => p.id === id)?.name ?? id;
-  const productUnit = (id: string): string => products.find((p) => p.id === id)?.unit ?? "";
+  const productName = (id: string): string =>
+    products.find((p) => p.id === id)?.name ?? id;
+  const productUnit = (id: string): string =>
+    products.find((p) => p.id === id)?.unit ?? "";
 
   function openMealForm(): void {
     let name = "";
@@ -102,11 +104,18 @@ function MealsContent(): ReactNode {
                 {t.common.name}
                 <span className="req">*</span>
               </label>
-              <input className="input" required onChange={(e) => (name = e.target.value)} />
+              <input
+                className="input"
+                required
+                onChange={(e) => (name = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.expenses.description}</label>
-              <input className="input" onChange={(e) => (description = e.target.value)} />
+              <input
+                className="input"
+                onChange={(e) => (description = e.target.value)}
+              />
             </div>
           </div>
 
@@ -133,7 +142,10 @@ function MealsContent(): ReactNode {
                 defaultValue={row.quantity_per_serving}
                 title={t.food.perServing}
                 onChange={(e) => {
-                  rows[i] = { ...rows[i], quantity_per_serving: e.target.value };
+                  rows[i] = {
+                    ...rows[i],
+                    quantity_per_serving: e.target.value,
+                  };
                 }}
               />
               <button
@@ -154,7 +166,10 @@ function MealsContent(): ReactNode {
             className="btn-ghost btn btn-sm"
             disabled={products.length === 0}
             onClick={() => {
-              rows = [...rows, { product_id: products[0].id, quantity_per_serving: "1" }];
+              rows = [
+                ...rows,
+                { product_id: products[0].id, quantity_per_serving: "1" },
+              ];
               render();
             }}
           >
@@ -230,11 +245,19 @@ function MealsContent(): ReactNode {
           </div>
           <p className="field__hint">
             {meal.ingredients
-              .map((ing) => `${productName(ing.product_id)} ${ing.quantity_per_serving} ${productUnit(ing.product_id)}`)
+              .map(
+                (ing) =>
+                  `${productName(ing.product_id)} ${ing.quantity_per_serving} ${productUnit(ing.product_id)}`,
+              )
               .join(" · ")}
           </p>
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.common.save}
           </button>
         </form>,
@@ -246,7 +269,6 @@ function MealsContent(): ReactNode {
 
   return (
     <>
-
       <div className="card">
         <div className="card__head">
           <div>

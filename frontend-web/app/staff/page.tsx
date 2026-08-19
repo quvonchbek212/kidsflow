@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
@@ -19,7 +25,14 @@ import {
 import { initials, money, monthRange } from "@/lib/format";
 import { useAuth } from "@/lib/useAuth";
 
-const POSITIONS = ["MANAGER", "TEACHER", "COOK", "CLEANER", "NURSE", "ASSISTANT"] as const;
+const POSITIONS = [
+  "MANAGER",
+  "TEACHER",
+  "COOK",
+  "CLEANER",
+  "NURSE",
+  "ASSISTANT",
+] as const;
 
 export default function StaffPage(): ReactNode {
   const { user, loading } = useAuth();
@@ -165,11 +178,21 @@ function StaffContent(): ReactNode {
                 {t.common.fullName}
                 <span className="req">*</span>
               </label>
-              <input className="input" defaultValue={fullName} required onChange={(e) => (fullName = e.target.value)} />
+              <input
+                className="input"
+                defaultValue={fullName}
+                required
+                onChange={(e) => (fullName = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.common.birthDate}</label>
-              <input className="input" type="date" defaultValue={birthDate} onChange={(e) => (birthDate = e.target.value)} />
+              <input
+                className="input"
+                type="date"
+                defaultValue={birthDate}
+                onChange={(e) => (birthDate = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.staff.passportNumber}</label>
@@ -185,7 +208,11 @@ function StaffContent(): ReactNode {
           <div className="form-grid">
             <div className="field">
               <label>{t.staff.position}</label>
-              <select className="input" defaultValue={position} onChange={(e) => (position = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={position}
+                onChange={(e) => (position = e.target.value)}
+              >
                 {POSITIONS.map((p) => (
                   <option key={p} value={p}>
                     {positionLabel(p)}
@@ -197,18 +224,30 @@ function StaffContent(): ReactNode {
               <label>
                 {t.staff.salary} ({t.common.sum})
               </label>
-              <input className="input" inputMode="decimal" defaultValue={salary} onChange={(e) => (salary = e.target.value)} />
+              <input
+                className="input"
+                inputMode="decimal"
+                defaultValue={salary}
+                onChange={(e) => (salary = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.staff.hireDate}</label>
-              <input className="input" type="date" defaultValue={hireDate} onChange={(e) => (hireDate = e.target.value)} />
+              <input
+                className="input"
+                type="date"
+                defaultValue={hireDate}
+                onChange={(e) => (hireDate = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.staff.employmentType}</label>
               <select
                 className="input"
                 defaultValue={employmentType}
-                onChange={(e) => (employmentType = e.target.value as EmploymentType)}
+                onChange={(e) =>
+                  (employmentType = e.target.value as EmploymentType)
+                }
               >
                 <option value="">—</option>
                 <option value="FULL_TIME">{t.staff.fullTime}</option>
@@ -227,15 +266,29 @@ function StaffContent(): ReactNode {
                     {t.staff.login}
                     <span className="req">*</span>
                   </label>
-                  <input className="input" required minLength={3} onChange={(e) => (username = e.target.value)} />
+                  <input
+                    className="input"
+                    required
+                    minLength={3}
+                    onChange={(e) => (username = e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>{t.common.phone}</label>
-                  <input className="input" defaultValue={phone} onChange={(e) => (phone = e.target.value)} />
+                  <input
+                    className="input"
+                    defaultValue={phone}
+                    onChange={(e) => (phone = e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>{t.common.email}</label>
-                  <input className="input" type="email" defaultValue={email} onChange={(e) => (email = e.target.value)} />
+                  <input
+                    className="input"
+                    type="email"
+                    defaultValue={email}
+                    onChange={(e) => (email = e.target.value)}
+                  />
                 </div>
                 <div className="field">
                   <label>
@@ -252,7 +305,11 @@ function StaffContent(): ReactNode {
                 </div>
                 <div className="field span-2">
                   <label>{t.common.role}</label>
-                  <select className="input" defaultValue={role} onChange={(e) => (role = e.target.value)}>
+                  <select
+                    className="input"
+                    defaultValue={role}
+                    onChange={(e) => (role = e.target.value)}
+                  >
                     <option value="OWNER">{t.roleLabels.OWNER}</option>
                     <option value="MANAGER">{t.roleLabels.MANAGER}</option>
                     <option value="TEACHER">{t.roleLabels.TEACHER}</option>
@@ -264,8 +321,17 @@ function StaffContent(): ReactNode {
 
           {error && <p className="error">{error}</p>}
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button className="btn" type="submit" disabled={saving} style={{ flex: 1 }}>
-              {saving ? t.common.saving : existing ? t.common.save : t.common.create}
+            <button
+              className="btn"
+              type="submit"
+              disabled={saving}
+              style={{ flex: 1 }}
+            >
+              {saving
+                ? t.common.saving
+                : existing
+                  ? t.common.save
+                  : t.common.create}
             </button>
             {existing && existing.is_active && (
               <button
@@ -292,14 +358,19 @@ function StaffContent(): ReactNode {
             )}
           </div>
         </form>,
-        { title: existing ? t.staff.editStaff : t.staff.addStaff, size: "wide" },
+        {
+          title: existing ? t.staff.editStaff : t.staff.addStaff,
+          size: "wide",
+        },
       );
     }
     render();
   }
 
   function payrollStatusLabel(status: string): string {
-    return status === "REVERSED" ? t.staff.payrollReversed : t.staff.payrollRecorded;
+    return status === "REVERSED"
+      ? t.staff.payrollReversed
+      : t.staff.payrollRecorded;
   }
 
   function openPayrollModal(staffMember: StaffUser): void {
@@ -328,7 +399,10 @@ function StaffContent(): ReactNode {
 
     function netPay(): number {
       return (
-        Number(baseSalary || 0) + Number(bonus || 0) - Number(deduction || 0) - Number(advanceDeducted || 0)
+        Number(baseSalary || 0) +
+        Number(bonus || 0) -
+        Number(deduction || 0) -
+        Number(advanceDeducted || 0)
       );
     }
 
@@ -355,7 +429,8 @@ function StaffContent(): ReactNode {
                 toast.show(t.staff.payrollSaved);
                 loadHistory();
               } catch (err) {
-                error = err instanceof ApiError ? err.message : t.common.errTitle;
+                error =
+                  err instanceof ApiError ? err.message : t.common.errTitle;
               } finally {
                 saving = false;
                 render();
@@ -507,7 +582,11 @@ function StaffContent(): ReactNode {
       sortValue: (s) => positionLabel(s.position),
       render: (s) => positionLabel(s.position),
     },
-    { key: "employment", label: t.staff.employmentType, render: (s) => employmentLabel(s.employment_type) },
+    {
+      key: "employment",
+      label: t.staff.employmentType,
+      render: (s) => employmentLabel(s.employment_type),
+    },
     {
       key: "salary",
       label: t.staff.salary,
@@ -547,7 +626,6 @@ function StaffContent(): ReactNode {
 
   return (
     <>
-
       {payroll && (
         <div className="kpi" style={{ maxWidth: 260, marginBottom: 16 }}>
           <div className="kpi__top">
@@ -573,7 +651,9 @@ function StaffContent(): ReactNode {
           rows={staff}
           rowKey={(s) => s.id}
           // Qidiruvda ikkalasi ham: "Tarbiyachi" deb ham, "TEACHER" deb ham topiladi.
-          searchText={(s) => `${s.full_name} ${s.position ?? ""} ${positionLabel(s.position)}`}
+          searchText={(s) =>
+            `${s.full_name} ${s.position ?? ""} ${positionLabel(s.position)}`
+          }
           searchPlaceholder={t.common.search}
           filters={[
             { key: "all", label: t.staff.filterAll },
@@ -587,7 +667,11 @@ function StaffContent(): ReactNode {
           showingLabel={t.common.showing}
           ofLabel={t.common.of}
           actions={
-            <button type="button" className="btn btn-sm" onClick={() => openStaffForm(null)}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => openStaffForm(null)}
+            >
               + {t.staff.addStaff}
             </button>
           }

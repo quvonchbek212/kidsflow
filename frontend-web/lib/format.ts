@@ -5,7 +5,10 @@ export function money(value: string | number): string {
   if (Number.isNaN(num)) return String(value);
   // So'm butun sonda ko'rsatiladi — backend NUMERIC(18,2) qaytargani uchun
   // yaxlitlamasak "603,225.806 so'm" kabi qatorlar chiqadi.
-  return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(num) + " so'm";
+  return (
+    new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(num) +
+    " so'm"
+  );
 }
 
 /** Jadval kataklari uchun: faqat raqam, "so'm"siz (mockupdagidek). Valyuta
@@ -14,7 +17,9 @@ export function money(value: string | number): string {
 export function moneyPlain(value: string | number): string {
   const num = typeof value === "string" ? Number(value) : value;
   if (Number.isNaN(num)) return String(value);
-  return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(num);
+  return new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(
+    num,
+  );
 }
 
 export function monthRange(date = new Date()): { start: string; end: string } {
@@ -37,12 +42,19 @@ export function isoDate(date: Date): string {
 }
 
 /** Oxirgi `n` oy (joriy oy bilan tugaydi), har biri uchun {start,end,label}. */
-export function lastMonths(n: number, date = new Date()): { start: string; end: string; label: string }[] {
+export function lastMonths(
+  n: number,
+  date = new Date(),
+): { start: string; end: string; label: string }[] {
   const out: { start: string; end: string; label: string }[] = [];
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(date.getFullYear(), date.getMonth() - i, 1);
     const { start, end } = monthRange(d);
-    out.push({ start, end, label: d.toLocaleDateString("uz-UZ", { month: "short" }) });
+    out.push({
+      start,
+      end,
+      label: d.toLocaleDateString("uz-UZ", { month: "short" }),
+    });
   }
   return out;
 }
@@ -103,7 +115,8 @@ const MONTH_NAMES: Record<string, string[]> = {
 export function periodLabel(start: string, end: string, lang = "uz"): string {
   const from = new Date(start);
   const to = new Date(end);
-  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return `${start} — ${end}`;
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()))
+    return `${start} — ${end}`;
   const monthStart = monthRange(from);
   if (monthStart.start === start && monthStart.end === end) {
     const names = MONTH_NAMES[lang] ?? MONTH_NAMES.uz;
@@ -125,9 +138,13 @@ export function initials(fullName: string): string {
 
 /** Guruh yosh oralig'i: oylardan yilga ("24–36" → "2–3"). Butun bo'lmasa
  *  bir xona qoldiriladi, chunki 30 oy = 2.5 yosh. */
-export function ageRangeLabel(minMonths: number | null, maxMonths: number | null): string {
+export function ageRangeLabel(
+  minMonths: number | null,
+  maxMonths: number | null,
+): string {
   if (minMonths == null || maxMonths == null) return "";
-  const years = (m: number) => (m % 12 === 0 ? String(m / 12) : (m / 12).toFixed(1));
+  const years = (m: number) =>
+    m % 12 === 0 ? String(m / 12) : (m / 12).toFixed(1);
   return `${years(minMonths)}–${years(maxMonths)}`;
 }
 

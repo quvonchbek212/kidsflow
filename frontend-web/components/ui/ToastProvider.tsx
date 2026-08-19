@@ -37,14 +37,23 @@ export function useToast(): ToastContextValue {
 
 let nextId = 1;
 
-export function ToastProvider({ children }: { children: ReactNode }): ReactNode {
+export function ToastProvider({
+  children,
+}: {
+  children: ReactNode;
+}): ReactNode {
   const [toasts, setToasts] = useState<ToastEntry[]>([]);
 
   const show = useCallback((message: string, options: ToastOptions = {}) => {
     const id = nextId++;
-    setToasts((prev) => [...prev, { id, message, type: options.type ?? "pos", leaving: false }]);
+    setToasts((prev) => [
+      ...prev,
+      { id, message, type: options.type ?? "pos", leaving: false },
+    ]);
     window.setTimeout(() => {
-      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+      setToasts((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)),
+      );
       window.setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 220);
@@ -56,8 +65,15 @@ export function ToastProvider({ children }: { children: ReactNode }): ReactNode 
       {children}
       <div id="toasts">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast${t.type === "neg" ? " toast--neg" : ""}${t.leaving ? " out" : ""}`}>
-            {t.type === "neg" ? <IconAlert size={17} /> : <IconCheck size={17} />}
+          <div
+            key={t.id}
+            className={`toast${t.type === "neg" ? " toast--neg" : ""}${t.leaving ? " out" : ""}`}
+          >
+            {t.type === "neg" ? (
+              <IconAlert size={17} />
+            ) : (
+              <IconCheck size={17} />
+            )}
             <span>{t.message}</span>
           </div>
         ))}

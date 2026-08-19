@@ -35,7 +35,9 @@ function AttendanceContent(): ReactNode {
   const [pending, setPending] = useState<Record<string, Status>>({});
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [trend, setTrend] = useState<{ label: string; present: number; total: number }[]>([]);
+  const [trend, setTrend] = useState<
+    { label: string; present: number; total: number }[]
+  >([]);
 
   // Guruhlar tanlangan filialga tegishli bo'lishi shart — aks holda boshqa
   // filial guruhiga davomat belgilash mumkin bo'lib qolardi.
@@ -99,28 +101,43 @@ function AttendanceContent(): ReactNode {
       await api.markAttendanceBulk({
         group_id: groupId,
         attendance_date: date,
-        entries: Object.entries(pending).map(([child_id, status]) => ({ child_id, status })),
+        entries: Object.entries(pending).map(([child_id, status]) => ({
+          child_id,
+          status,
+        })),
       });
       toast.show(t.attendance.saved);
       load();
     } catch (err) {
-      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, { type: "neg" });
+      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, {
+        type: "neg",
+      });
     } finally {
       setSaving(false);
     }
   }
 
-  const presentCount = Object.values(pending).filter((s) => s === "PRESENT" || s === "LATE").length;
+  const presentCount = Object.values(pending).filter(
+    (s) => s === "PRESENT" || s === "LATE",
+  ).length;
   const sickCount = Object.values(pending).filter((s) => s === "SICK").length;
   const absentCount = Object.values(pending).filter(
     (s) => s === "ABSENT" || s === "EXCUSED",
   ).length;
-  const rate = roster.length ? Math.round((presentCount / roster.length) * 100) : 0;
+  const rate = roster.length
+    ? Math.round((presentCount / roster.length) * 100)
+    : 0;
 
   return (
     <>
       {/* Sana tanlagich; guruh esa mockupdagidek chip qatorida. */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <input
           className="input"
           type="date"
@@ -149,7 +166,12 @@ function AttendanceContent(): ReactNode {
             <b>{rate}%</b>
           </div>
           <div style={{ marginLeft: "auto", alignSelf: "center" }}>
-            <button type="button" className="btn btn-sm" onClick={save} disabled={saving}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={save}
+              disabled={saving}
+            >
               {saving ? t.common.saving : t.attendance.saveAndSend}
             </button>
           </div>
@@ -196,7 +218,9 @@ function AttendanceContent(): ReactNode {
                         type="button"
                         className={`att__btn${current === s ? " on" : ""}`}
                         data-v={s}
-                        onClick={() => setPending((p) => ({ ...p, [row.child_id]: s }))}
+                        onClick={() =>
+                          setPending((p) => ({ ...p, [row.child_id]: s }))
+                        }
                       >
                         {statusLabel(s)}
                       </button>

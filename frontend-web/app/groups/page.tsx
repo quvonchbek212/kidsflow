@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { IconGrid } from "@/components/icons";
@@ -135,7 +141,12 @@ function GroupsContent(): ReactNode {
                 {t.groups.groupName}
                 <span className="req">*</span>
               </label>
-              <input className="input" defaultValue={name} required onChange={(e) => (name = e.target.value)} />
+              <input
+                className="input"
+                defaultValue={name}
+                required
+                onChange={(e) => (name = e.target.value)}
+              />
             </div>
             <div className="field">
               <label>{t.groups.ageRange} — min</label>
@@ -167,7 +178,11 @@ function GroupsContent(): ReactNode {
             </div>
             <div className="field">
               <label>{t.groups.roomNumber}</label>
-              <input className="input" defaultValue={roomNumber} onChange={(e) => (roomNumber = e.target.value)} />
+              <input
+                className="input"
+                defaultValue={roomNumber}
+                onChange={(e) => (roomNumber = e.target.value)}
+              />
             </div>
             <div className="field span-2">
               <label>{t.groups.monthlyFee}</label>
@@ -180,11 +195,23 @@ function GroupsContent(): ReactNode {
             </div>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
-            {saving ? t.common.saving : existing ? t.common.save : t.common.create}
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
+            {saving
+              ? t.common.saving
+              : existing
+                ? t.common.save
+                : t.common.create}
           </button>
         </form>,
-        { title: existing ? t.groups.editGroup : t.groups.addGroup, size: "default" },
+        {
+          title: existing ? t.groups.editGroup : t.groups.addGroup,
+          size: "default",
+        },
       );
     }
     render();
@@ -221,7 +248,11 @@ function GroupsContent(): ReactNode {
         >
           <div className="field">
             <label>{t.groups.mainTeacher}</label>
-            <select className="input" defaultValue={teacherUserId} onChange={(e) => (teacherUserId = e.target.value)}>
+            <select
+              className="input"
+              defaultValue={teacherUserId}
+              onChange={(e) => (teacherUserId = e.target.value)}
+            >
               {teachers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.full_name}
@@ -230,7 +261,12 @@ function GroupsContent(): ReactNode {
             </select>
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.common.save}
           </button>
         </form>,
@@ -247,7 +283,10 @@ function GroupsContent(): ReactNode {
           <div className="card" key={i}>
             <div className="card__body" style={{ paddingTop: "var(--s5)" }}>
               <div className="sk sk-line" style={{ width: "50%" }} />
-              <div className="sk sk-block" style={{ height: 60, marginTop: 12 }} />
+              <div
+                className="sk sk-block"
+                style={{ height: 60, marginTop: 12 }}
+              />
             </div>
           </div>
         ))}
@@ -258,8 +297,18 @@ function GroupsContent(): ReactNode {
   return (
     <>
       {/* Sarlavha topbarda turadi (mockupdagidek), bu yerda faqat amal. */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <button type="button" className="btn btn-sm" onClick={() => openGroupForm(null)}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => openGroupForm(null)}
+        >
           + {t.groups.addGroup}
         </button>
       </div>
@@ -279,20 +328,24 @@ function GroupsContent(): ReactNode {
             const kids = roster[g.id] ?? [];
             const count = kids.length;
             const pct = Math.min(100, Math.round((count / g.capacity) * 100));
-            const leadTeacherId = (g.teachers.find((x) => x.is_primary) ?? g.teachers[0])
-              ?.teacher_user_id;
+            const leadTeacherId = (
+              g.teachers.find((x) => x.is_primary) ?? g.teachers[0]
+            )?.teacher_user_id;
             const leadTeacher =
-              teachers.find((x) => x.id === leadTeacherId)?.full_name ?? t.groups.noTeacher;
+              teachers.find((x) => x.id === leadTeacherId)?.full_name ??
+              t.groups.noTeacher;
             const fee = Number(g.monthly_fee ?? 0);
             return (
               <div className="card" key={g.id}>
                 <div className="card__head">
                   <span className="avatar avatar--lg">{g.name.charAt(0)}</span>
                   <div style={{ minWidth: 0 }}>
-                    <h3 style={{ fontSize: 17, fontFamily: "var(--display)" }}>{g.name}</h3>
+                    <h3 style={{ fontSize: 17, fontFamily: "var(--display)" }}>
+                      {g.name}
+                    </h3>
                     <p className="tr">
-                      {ageRangeLabel(g.min_age_months, g.max_age_months)} {t.groups.ageYears} ·{" "}
-                      {leadTeacher}
+                      {ageRangeLabel(g.min_age_months, g.max_age_months)}{" "}
+                      {t.groups.ageYears} · {leadTeacher}
                     </p>
                   </div>
                   <button
@@ -313,7 +366,9 @@ function GroupsContent(): ReactNode {
                       marginBottom: 8,
                     }}
                   >
-                    <span style={{ fontSize: 13, color: "var(--ink-2)" }}>{t.groups.occupancy}</span>
+                    <span style={{ fontSize: 13, color: "var(--ink-2)" }}>
+                      {t.groups.occupancy}
+                    </span>
                     <span className="num" style={{ fontWeight: 600 }}>
                       {count} / {g.capacity}
                     </span>
@@ -327,16 +382,30 @@ function GroupsContent(): ReactNode {
                     />
                   </div>
                   {/* Avatar tizmasi — mockupdagidek dastlabki 7 ta bola */}
-                  <div style={{ display: "flex", gap: 4, marginBottom: 20, minHeight: 27 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 4,
+                      marginBottom: 20,
+                      minHeight: 27,
+                    }}
+                  >
                     {kids.slice(0, 7).map((name) => (
-                      <span className="avatar avatar--sm" key={name} title={name}>
+                      <span
+                        className="avatar avatar--sm"
+                        key={name}
+                        title={name}
+                      >
                         {initials(name)}
                       </span>
                     ))}
                     {count > 7 && (
                       <span
                         className="avatar avatar--sm"
-                        style={{ background: "var(--surface-2)", color: "var(--ink-3)" }}
+                        style={{
+                          background: "var(--surface-2)",
+                          color: "var(--ink-3)",
+                        }}
                       >
                         +{count - 7}
                       </span>
@@ -347,7 +416,10 @@ function GroupsContent(): ReactNode {
                       <small style={{ fontSize: 12, color: "var(--ink-3)" }}>
                         {t.groups.monthlyFee}
                       </small>
-                      <div className="num" style={{ fontWeight: 600, fontSize: 16 }}>
+                      <div
+                        className="num"
+                        style={{ fontWeight: 600, fontSize: 16 }}
+                      >
                         {fee ? money(fee) : "—"}
                       </div>
                     </div>
@@ -357,7 +429,11 @@ function GroupsContent(): ReactNode {
                       </small>
                       <div
                         className="num"
-                        style={{ fontWeight: 600, fontSize: 16, color: "var(--pos)" }}
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 16,
+                          color: "var(--pos)",
+                        }}
                       >
                         {fee ? money(fee * count) : "—"}
                       </div>
@@ -367,7 +443,10 @@ function GroupsContent(): ReactNode {
                         <small style={{ fontSize: 12, color: "var(--ink-3)" }}>
                           {t.groups.roomNumber}
                         </small>
-                        <div className="num" style={{ fontWeight: 600, fontSize: 16 }}>
+                        <div
+                          className="num"
+                          style={{ fontWeight: 600, fontSize: 16 }}
+                        >
                           {g.room_number}
                         </div>
                       </div>

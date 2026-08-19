@@ -5,7 +5,13 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 
-import { IconChevronLeft, IconChevronRight, IconEmpty, IconSearch, IconX } from "@/components/icons";
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconEmpty,
+  IconSearch,
+  IconX,
+} from "@/components/icons";
 
 /** Sahifa raqamlari; ko'p sahifa bo'lsa o'rtasi `null` (…) bilan qisqaradi. */
 function pageButtons(current: number, total: number): (number | null)[] {
@@ -76,7 +82,8 @@ export function DataTable<T>({
 
   const filtered = useMemo(() => {
     let result = rows;
-    if (filter !== "all" && filterFn) result = result.filter((r) => filterFn(r, filter));
+    if (filter !== "all" && filterFn)
+      result = result.filter((r) => filterFn(r, filter));
     if (query.trim() && searchText) {
       const q = query.trim().toLowerCase();
       result = result.filter((r) => searchText(r).toLowerCase().includes(q));
@@ -87,7 +94,8 @@ export function DataTable<T>({
         result = [...result].sort((a, b) => {
           const x = col.sortValue!(a);
           const y = col.sortValue!(b);
-          if (typeof x === "number" && typeof y === "number") return (x - y) * sortDir;
+          if (typeof x === "number" && typeof y === "number")
+            return (x - y) * sortDir;
           return String(x).localeCompare(String(y)) * sortDir;
         });
       }
@@ -155,7 +163,11 @@ export function DataTable<T>({
             {f.label}
           </button>
         ))}
-        {actions && <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>{actions}</div>}
+        {actions && (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            {actions}
+          </div>
+        )}
       </div>
 
       <div className="tbl-wrap">
@@ -163,19 +175,26 @@ export function DataTable<T>({
           <thead>
             <tr>
               {columns.map((c) => {
-                const align = c.align === "right" ? "r" : c.align === "center" ? "c" : "";
+                const align =
+                  c.align === "right" ? "r" : c.align === "center" ? "c" : "";
                 const sorted = sortKey === c.key;
                 return (
                   <th
                     key={c.key}
-                    className={`${align}${sorted ? " sorted" : ""}`.trim() || undefined}
+                    className={
+                      `${align}${sorted ? " sorted" : ""}`.trim() || undefined
+                    }
                     data-sort={c.sortValue ? "" : undefined}
                     onClick={c.sortValue ? () => toggleSort(c.key) : undefined}
                   >
                     {c.label}
                     {/* Strelka doim chiziladi (ko'rinishi CSS'da) — shunda
                         saralashda ustun eni sakramaydi. */}
-                    {c.sortValue && <span className="arrow">{sorted && sortDir === -1 ? "▼" : "▲"}</span>}
+                    {c.sortValue && (
+                      <span className="arrow">
+                        {sorted && sortDir === -1 ? "▼" : "▲"}
+                      </span>
+                    )}
                   </th>
                 );
               })}
@@ -192,7 +211,11 @@ export function DataTable<T>({
                     <h4>{emptyTitle}</h4>
                     <p>{emptySub}</p>
                     {(query || filter !== "all") && (
-                      <button type="button" className="btn-ghost btn" onClick={resetFilters}>
+                      <button
+                        type="button"
+                        className="btn-ghost btn"
+                        onClick={resetFilters}
+                      >
                         {clearFiltersLabel}
                       </button>
                     )}
@@ -209,7 +232,13 @@ export function DataTable<T>({
                   {columns.map((c) => (
                     <td
                       key={c.key}
-                      className={c.align === "right" ? "r" : c.align === "center" ? "c" : undefined}
+                      className={
+                        c.align === "right"
+                          ? "r"
+                          : c.align === "center"
+                            ? "c"
+                            : undefined
+                      }
                     >
                       {c.render(row)}
                     </td>
@@ -225,7 +254,8 @@ export function DataTable<T>({
         (totalPages > 1 ? (
           <div className="pager">
             <span className="pager__info">
-              {showingLabel} {from + 1}–{Math.min(from + pageSize, filtered.length)} {ofLabel}{" "}
+              {showingLabel} {from + 1}–
+              {Math.min(from + pageSize, filtered.length)} {ofLabel}{" "}
               {filtered.length}
             </span>
             <button
@@ -239,7 +269,10 @@ export function DataTable<T>({
             </button>
             {pageButtons(safePage, totalPages).map((p, i) =>
               p === null ? (
-                <span key={`gap-${i}`} style={{ color: "var(--ink-3)", padding: "0 2px" }}>
+                <span
+                  key={`gap-${i}`}
+                  style={{ color: "var(--ink-3)", padding: "0 2px" }}
+                >
                   …
                 </span>
               ) : (

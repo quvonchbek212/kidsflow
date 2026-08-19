@@ -1,15 +1,36 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 
 import { AppShell, useAppUI } from "@/components/AppShell";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
-import { ApiError, api, type Child, type FeePlan, type Invoice } from "@/lib/api";
-import { initials, invoiceStatus, invoiceTone, isoDate, mlnf, money, moneyPlain, monthRange } from "@/lib/format";
+import {
+  ApiError,
+  api,
+  type Child,
+  type FeePlan,
+  type Invoice,
+} from "@/lib/api";
+import {
+  initials,
+  invoiceStatus,
+  invoiceTone,
+  isoDate,
+  mlnf,
+  money,
+  moneyPlain,
+  monthRange,
+} from "@/lib/format";
 import { useAuth } from "@/lib/useAuth";
 
 export default function BillingPage(): ReactNode {
@@ -90,9 +111,18 @@ function BillingContent(): ReactNode {
     return children.find((c) => c.id === id)?.full_name ?? id;
   }
 
-  const totalBilled = invoices.reduce((s, i) => s + Number(i.adjusted_amount), 0);
-  const totalCollected = invoices.reduce((s, i) => s + Number(i.paid_amount), 0);
-  const totalOutstanding = invoices.reduce((s, i) => s + Number(i.outstanding_amount), 0);
+  const totalBilled = invoices.reduce(
+    (s, i) => s + Number(i.adjusted_amount),
+    0,
+  );
+  const totalCollected = invoices.reduce(
+    (s, i) => s + Number(i.paid_amount),
+    0,
+  );
+  const totalOutstanding = invoices.reduce(
+    (s, i) => s + Number(i.outstanding_amount),
+    0,
+  );
 
   function openGenerateInvoices(): void {
     let genMonth = billingMonth;
@@ -112,7 +142,12 @@ function BillingContent(): ReactNode {
             render();
             try {
               const dueDay = Number(dueDate.slice(8, 10));
-              const res = await api.generateInvoices(branchId, genMonth, feePlanId || undefined, dueDay);
+              const res = await api.generateInvoices(
+                branchId,
+                genMonth,
+                feePlanId || undefined,
+                dueDay,
+              );
               result = `${res.created} ${t.payments.invoicesCreated}, ${res.skipped} ${t.payments.invoicesSkipped}`;
               setBillingMonth(genMonth);
               render();
@@ -136,11 +171,20 @@ function BillingContent(): ReactNode {
             </div>
             <div className="field">
               <label>{t.payments.dueDate}</label>
-              <input className="input" type="date" defaultValue={dueDate} onChange={(e) => (dueDate = e.target.value)} />
+              <input
+                className="input"
+                type="date"
+                defaultValue={dueDate}
+                onChange={(e) => (dueDate = e.target.value)}
+              />
             </div>
             <div className="field span-2">
               <label>{t.groups.monthlyFee} (fallback)</label>
-              <select className="input" defaultValue={feePlanId} onChange={(e) => (feePlanId = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={feePlanId}
+                onChange={(e) => (feePlanId = e.target.value)}
+              >
                 {feePlans.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — {money(p.monthly_amount)}
@@ -149,9 +193,18 @@ function BillingContent(): ReactNode {
               </select>
             </div>
           </div>
-          {result && <p className="info-box" style={{ marginTop: 12 }}>{result}</p>}
+          {result && (
+            <p className="info-box" style={{ marginTop: 12 }}>
+              {result}
+            </p>
+          )}
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.payments.generateInvoices}
           </button>
         </form>,
@@ -199,7 +252,11 @@ function BillingContent(): ReactNode {
           <div className="form-grid">
             <div className="field span-2">
               <label>{t.payments.child}</label>
-              <select className="input" defaultValue={childId} onChange={(e) => (childId = e.target.value)}>
+              <select
+                className="input"
+                defaultValue={childId}
+                onChange={(e) => (childId = e.target.value)}
+              >
                 {children.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.full_name}
@@ -221,40 +278,56 @@ function BillingContent(): ReactNode {
             </div>
             <div className="field">
               <label>{t.common.date}</label>
-              <input className="input" type="date" defaultValue={paidAt} onChange={(e) => (paidAt = e.target.value)} />
+              <input
+                className="input"
+                type="date"
+                defaultValue={paidAt}
+                onChange={(e) => (paidAt = e.target.value)}
+              />
             </div>
           </div>
           <div className="segmented" style={{ marginBottom: 16 }}>
-            {(["CASH", "CARD", "TERMINAL", "BANK", "OTHER"] as const).map((m) => (
-              <button
-                type="button"
-                key={m}
-                className={method === m ? "on" : ""}
-                onClick={() => {
-                  method = m;
-                  render();
-                }}
-              >
-                {m === "CASH"
-                  ? t.payments.cash
-                  : m === "CARD"
-                    ? t.payments.card
-                    : m === "TERMINAL"
-                      ? t.payments.terminal
-                      : m === "BANK"
-                        ? t.payments.bank
-                        : t.payments.other}
-              </button>
-            ))}
+            {(["CASH", "CARD", "TERMINAL", "BANK", "OTHER"] as const).map(
+              (m) => (
+                <button
+                  type="button"
+                  key={m}
+                  className={method === m ? "on" : ""}
+                  onClick={() => {
+                    method = m;
+                    render();
+                  }}
+                >
+                  {m === "CASH"
+                    ? t.payments.cash
+                    : m === "CARD"
+                      ? t.payments.card
+                      : m === "TERMINAL"
+                        ? t.payments.terminal
+                        : m === "BANK"
+                          ? t.payments.bank
+                          : t.payments.other}
+                </button>
+              ),
+            )}
           </div>
           <div className="field">
             <label>
               {t.common.reason} ({t.common.optional})
             </label>
-            <input className="input" defaultValue={reference} onChange={(e) => (reference = e.target.value)} />
+            <input
+              className="input"
+              defaultValue={reference}
+              onChange={(e) => (reference = e.target.value)}
+            />
           </div>
           {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving} style={{ marginTop: 8 }}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+            style={{ marginTop: 8 }}
+          >
             {saving ? t.common.saving : t.payments.savePayment}
           </button>
         </form>,
@@ -278,7 +351,9 @@ function BillingContent(): ReactNode {
       toast.show(t.payments.cancelDone);
       load();
     } catch (err) {
-      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, { type: "neg" });
+      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, {
+        type: "neg",
+      });
     }
   }
 
@@ -299,19 +374,42 @@ function BillingContent(): ReactNode {
       label: t.children.group,
       sortValue: (i) => childGroup[i.child_id] ?? "",
       render: (i) => (
-        <span style={{ color: "var(--ink-2)" }}>{childGroup[i.child_id] ?? "—"}</span>
+        <span style={{ color: "var(--ink-2)" }}>
+          {childGroup[i.child_id] ?? "—"}
+        </span>
       ),
     },
-    { key: "billed", label: t.payments.billed, align: "right", sortValue: (i) => Number(i.adjusted_amount), render: (i) => moneyPlain(i.adjusted_amount) },
-    { key: "paid", label: t.payments.paid, align: "right", sortValue: (i) => Number(i.paid_amount), render: (i) => moneyPlain(i.paid_amount) },
+    {
+      key: "billed",
+      label: t.payments.billed,
+      align: "right",
+      sortValue: (i) => Number(i.adjusted_amount),
+      render: (i) => moneyPlain(i.adjusted_amount),
+    },
+    {
+      key: "paid",
+      label: t.payments.paid,
+      align: "right",
+      sortValue: (i) => Number(i.paid_amount),
+      render: (i) => moneyPlain(i.paid_amount),
+    },
     {
       key: "remaining",
       label: t.payments.outstanding,
       align: "right",
       sortValue: (i) => Number(i.outstanding_amount),
       render: (i) => (
-        <span className="num" style={Number(i.outstanding_amount) > 0 ? { color: "var(--neg)", fontWeight: 600 } : undefined}>
-          {Number(i.outstanding_amount) > 0 ? moneyPlain(i.outstanding_amount) : "—"}
+        <span
+          className="num"
+          style={
+            Number(i.outstanding_amount) > 0
+              ? { color: "var(--neg)", fontWeight: 600 }
+              : undefined
+          }
+        >
+          {Number(i.outstanding_amount) > 0
+            ? moneyPlain(i.outstanding_amount)
+            : "—"}
         </span>
       ),
     },
@@ -319,10 +417,25 @@ function BillingContent(): ReactNode {
       key: "progress",
       label: t.payments.progress,
       render: (i) => {
-        const pct = Number(i.adjusted_amount) > 0 ? Math.round((Number(i.paid_amount) / Number(i.adjusted_amount)) * 100) : 0;
+        const pct =
+          Number(i.adjusted_amount) > 0
+            ? Math.round(
+                (Number(i.paid_amount) / Number(i.adjusted_amount)) * 100,
+              )
+            : 0;
         return (
           <div className="bar" style={{ width: 100 }}>
-            <i style={{ width: `${pct}%`, background: pct >= 100 ? "var(--pos)" : pct > 0 ? "var(--warn)" : "var(--neg)" }} />
+            <i
+              style={{
+                width: `${pct}%`,
+                background:
+                  pct >= 100
+                    ? "var(--pos)"
+                    : pct > 0
+                      ? "var(--warn)"
+                      : "var(--neg)",
+              }}
+            />
           </div>
         );
       },
@@ -334,7 +447,9 @@ function BillingContent(): ReactNode {
       sortValue: (i) => i.status,
       render: (i) => (
         <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          <span className={`badge badge--${invoiceTone(i.status)}`}>{invoiceStatus(i.status)}</span>
+          <span className={`badge badge--${invoiceTone(i.status)}`}>
+            {invoiceStatus(i.status)}
+          </span>
           {i.status !== "CANCELLED" && i.status !== "PAID" && (
             <button
               type="button"
@@ -355,7 +470,14 @@ function BillingContent(): ReactNode {
   return (
     <>
       {/* Sarlavha topbarda turadi (mockupdagidek), bu yerda faqat amallar. */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          marginBottom: 16,
+        }}
+      >
         <input
           className="input"
           type="date"
@@ -443,7 +565,10 @@ function BillingContent(): ReactNode {
           ]}
           filterFn={(i, f) => {
             if (f === "paid") return Number(i.outstanding_amount) === 0;
-            if (f === "partial") return Number(i.outstanding_amount) > 0 && Number(i.paid_amount) > 0;
+            if (f === "partial")
+              return (
+                Number(i.outstanding_amount) > 0 && Number(i.paid_amount) > 0
+              );
             return Number(i.paid_amount) === 0;
           }}
           onRowClick={(i) => openPaymentForm(i)}
@@ -454,10 +579,18 @@ function BillingContent(): ReactNode {
           ofLabel={t.common.of}
           actions={
             <>
-              <button type="button" className="btn-ghost btn btn-sm" onClick={openGenerateInvoices}>
+              <button
+                type="button"
+                className="btn-ghost btn btn-sm"
+                onClick={openGenerateInvoices}
+              >
                 {t.payments.generateInvoices}
               </button>
-              <button type="button" className="btn btn-sm" onClick={() => openPaymentForm(null)}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => openPaymentForm(null)}
+              >
                 + {t.payments.newPayment}
               </button>
             </>
