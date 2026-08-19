@@ -27,6 +27,12 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// CSP nonce har bir so'rovda yangi bo'lishi kerak, statik prerender qilingan
+// HTML esa qotib qolgan nonce bilan keladi — shuning uchun sahifalar dinamik
+// render qilinadi. Bu ilovadagi barcha sahifalar login talab qiladi va
+// brauzerda chiziladi, ya'ni statik prerenderdan yutuq deyarli yo'q edi.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "KIDSFLOW",
   description: "Xususiy bog'chalar uchun boshqaruv platformasi",

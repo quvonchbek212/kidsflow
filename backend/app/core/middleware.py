@@ -14,11 +14,24 @@ from starlette.responses import Response
 logger = logging.getLogger("app.request")
 
 # Frontend/nginx bilan bir qatorda ikkilamchi himoya (defense in depth).
+#
+# CSP bu yerda qat'iy `'none'`: backend faqat JSON va fayl qaytaradi, hech
+# qachon HTML sahifa chizmaydi. Shu sababli unga hech qanday resurs yuklash
+# kerak emas. Bu, masalan, xato javobidagi matn brauzerda HTML sifatida
+# talqin qilinib qolsa ham skript ishga tushmasligini kafolatlaydi.
+#
+# Frontend sahifalarining CSP'si BOSHQA — u `frontend-web/middleware.ts` da
+# har so'rovga nonce bilan beriladi. Ikkalasini bir joydan berish mumkin emas:
+# nginx darajasida nonce'siz umumiy CSP qo'yilsa, u Next.js skriptlarini
+# bloklab, saytni butunlay ishdan chiqarardi.
 _SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-XSS-Protection": "0",
+    "Content-Security-Policy": (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    ),
 }
 
 

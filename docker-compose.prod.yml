@@ -37,6 +37,16 @@ services:
     environment:
       ENVIRONMENT: production
       DEBUG: "false"
+      # Rate limit sanog'i Redis'da — xotirada bo'lsa, ikkinchi backend nusxasi
+      # qo'shilganda har nusxa o'z sanog'ini yuritib, limit amalda ikki barobar
+      # bo'shashardi.
+      RATE_LIMIT_BACKEND: redis
+      # Productionda frontend va API bitta domenda (nginx orqali), shuning uchun
+      # CORS umuman ishlatilmaydi. Lekin ro'yxatda lokal manzil qolib ketsa,
+      # foydalanuvchining o'z mashinasidagi localhost:3000 sahifasi
+      # production API'ga cookie/token bilan so'rov yuborib, javobini o'qiy
+      # olardi. Shu sababli bu yerda o'z domeningiz turishi kerak.
+      CORS_ORIGINS: ${PUBLIC_ORIGIN:?PUBLIC_ORIGIN ni .env da ko'rsating, masalan https://bogcha.uz}
       # Backend porti yopiq (yuqoridagi `ports: !reset []`), unga faqat ichki
       # tarmoqdagi nginx yeta oladi — shuning uchun X-Forwarded-For ga ishonish
       # xavfsiz.
@@ -82,7 +92,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Production TLS konfiguratsiyasi — alohida fayl. Ilgari TLS bloki
+      # nginx.conf ichida izohga olingan holda turardi va uni chiqarish
+      # deploy paytidagi qo'lda qadam edi; amalda unutilib, production
+      # ochiq HTTP da ishlayverardi. Endi sertifikat bo'lmasa nginx ishga
+      # tushmaydi va nosozlik darhol ko'rinadi.
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
       # Let's Encrypt HTTP-01 tekshiruvi shu katalogga fayl qo'yadi. Sertifikat
       # yangilanishi uchun doimiy kerak, faqat birinchi olishda emas.
