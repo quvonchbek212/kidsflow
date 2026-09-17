@@ -9,7 +9,13 @@
 
 set -euo pipefail
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+# Production'da IKKALA fayl birga kerak: prod override postgres/backend portlarini
+# yopadi, TLS'li nginx konfiguratsiyasini va frontend uchun to'g'ri API manzilini
+# beradi. Ilgari faqat docker-compose.yml ishlatilardi — release serverga dev
+# sozlamasini chiqarardi (ochiq 5432/8000 portlar, frontend localhost:8000 ga
+# murojaat qilardi). `docker compose` bu o'zgaruvchini ro'yxat sifatida o'zi o'qiydi.
+export COMPOSE_PATH_SEPARATOR="${COMPOSE_PATH_SEPARATOR:-:}"
+export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml:docker-compose.prod.yml}"
 PG_SERVICE="${PG_SERVICE:-postgres}"
 POSTGRES_USER="${POSTGRES_USER:-kidsflow}"
 POSTGRES_DB="${POSTGRES_DB:-kidsflow}"
@@ -35,7 +41,7 @@ openssl enc -d -aes-256-cbc -pbkdf2 \
 tar xf "${work_dir}/backup.tar" -C "${work_dir}"
 
 echo "[2/4] Bazani tiklash (mavjud ma'lumot almashtiriladi)..."
-docker compose -f "${COMPOSE_FILE}" exec -T "${PG_SERVICE}" \
+docker compose exec -T "${PG_SERVICE}" \
   pg_restore -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" --clean --if-exists --no-owner \
   < "${work_dir}/db.dump"
 
@@ -48,6 +54,6 @@ else
 fi
 
 echo "[4/4] Migratsiyalarni tekshirish (alembic upgrade head)..."
-docker compose -f "${COMPOSE_FILE}" exec -T backend alembic upgrade head
+docker compose exec -T backend alembic upgrade head
 
 echo "Tiklash muvaffaqiyatli yakunlandi. Endi smoke testni ishga tushiring."

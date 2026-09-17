@@ -9,7 +9,13 @@
 
 set -euo pipefail
 
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+# Production'da IKKALA fayl birga kerak: prod override postgres/backend portlarini
+# yopadi, TLS'li nginx konfiguratsiyasini va frontend uchun to'g'ri API manzilini
+# beradi. Ilgari faqat docker-compose.yml ishlatilardi — release serverga dev
+# sozlamasini chiqarardi (ochiq 5432/8000 portlar, frontend localhost:8000 ga
+# murojaat qilardi). `docker compose` bu o'zgaruvchini ro'yxat sifatida o'zi o'qiydi.
+export COMPOSE_PATH_SEPARATOR="${COMPOSE_PATH_SEPARATOR:-:}"
+export COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml:docker-compose.prod.yml}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== KIDSFLOW release ==="
@@ -21,20 +27,20 @@ echo "[2/6] Yangi image build..."
 # Frontend va bot ham build qilinadi: ilgari faqat backend/worker build qilinib,
 # keyingi qadamda `up -d` bilan ko'tarilardi — frontend kodi o'zgargan release'da
 # eski image o'z holicha qolib ketardi.
-docker compose -f "${COMPOSE_FILE}" build backend worker frontend telegram-bot
+docker compose build backend worker frontend telegram-bot
 
 echo "[3/6] Database migratsiya (alembic upgrade head)..."
-docker compose -f "${COMPOSE_FILE}" run --rm backend alembic upgrade head
+docker compose run --rm backend alembic upgrade head
 
 echo "[4/6] Servislarni yangilash..."
-docker compose -f "${COMPOSE_FILE}" up -d backend worker telegram-bot frontend
+docker compose up -d backend worker telegram-bot frontend
 
 # Nginx upstream IP'larni konfiguratsiya yuklanganda bir marta aniqlaydi. Yuqorida
 # konteynerlar qayta yaratilgani uchun ularning IP'lari o'zgardi va nginx eski
 # manzilga urinib 502 qaytaradi. Qayta ishga tushirish shuni tuzatadi — busiz
 # sayt har bir release'dan keyin ishlamay qolardi.
 echo "      nginx qayta ishga tushirilmoqda (upstream IP'lar yangilanishi uchun)..."
-docker compose -f "${COMPOSE_FILE}" restart nginx
+docker compose restart nginx
 
 echo "[5/6] Healthcheck kutilmoqda..."
 # Production'da backend porti host'ga ochilmaydi, shuning uchun tekshiruv nginx
