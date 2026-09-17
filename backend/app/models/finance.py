@@ -35,7 +35,12 @@ _Money = Numeric(18, 2)
 
 
 class FeePlan(UUIDMixin, TimestampMixin, Base):
-    """Filial uchun oylik tarif rejasi."""
+    """ESKIRGAN: filial uchun oylik tarif rejasi.
+
+    Tarif guruhning oylik tarifida saqlanadi; tarif rejalarini yaratish va
+    ishlatish kodi olib tashlangan. Jadval faqat mavjud bazalar bilan moslik
+    uchun qoldirilgan (ma'lumotni o'chirmaslik uchun migratsiya yozilmagan).
+    """
 
     __tablename__ = "fee_plans"
 

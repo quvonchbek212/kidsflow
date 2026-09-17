@@ -134,3 +134,46 @@ async def test_run_daily_is_claimed_once_per_day(
         second = await notification_scheduler.run_daily(session)
         await session.commit()
     assert second == 0
+
+
+async def test_payment_reminder_fires_exactly_five_days_before_due(
+    client: AsyncClient, session_factory
+) -> None:
+    """Eslatma hisob-fakturaning o'z muddatiga bog'langan.
+
+    Ilgari u har oyning 1 va 10-sanasida yuborilardi, ya'ni `due_date`
+    umuman hisobga olinmasdi.
+    """
+    s = await _branch_and_child(client)
+    await _add_outstanding_invoice(
+        session_factory,
+        s["branch_id"],
+        s["child_id"],
+        date.today() + timedelta(days=5),
+    )
+
+    async with session_factory() as session:
+        await notification_scheduler.run_daily(session)
+        await session.commit()
+
+    assert "PAYMENT_REMINDER" in await _outbox_event_types(session_factory)
+
+
+@pytest.mark.parametrize("days_out", [4, 6, 30])
+async def test_payment_reminder_silent_on_other_days(
+    client: AsyncClient, session_factory, days_out: int
+) -> None:
+    """Muddatga 5 kun qolmagan bo'lsa eslatma yuborilmaydi."""
+    s = await _branch_and_child(client)
+    await _add_outstanding_invoice(
+        session_factory,
+        s["branch_id"],
+        s["child_id"],
+        date.today() + timedelta(days=days_out),
+    )
+
+    async with session_factory() as session:
+        await notification_scheduler.run_daily(session)
+        await session.commit()
+
+    assert "PAYMENT_REMINDER" not in await _outbox_event_types(session_factory)

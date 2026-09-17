@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Form, Query, UploadFile, status
 from fastapi import File as FastFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import FileRejectedError
 from app.core.permissions import CurrentUser
 from app.database import get_session
 from app.dependencies import get_current_user
@@ -25,7 +26,7 @@ from app.schemas.child import (
 )
 from app.schemas.user import ParentRow
 from app.services.child_service import ChildService
-from app.services.import_service import ImportService
+from app.services.import_service import MAX_IMPORT_BYTES, ImportService
 
 router = APIRouter(prefix="/children", tags=["children"])
 
@@ -131,7 +132,13 @@ async def import_children(
     current_user: CurrentUser = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ) -> ImportResultResponse:
-    content = await upload.read()
+    # Bir baytga ortiq o'qiladi — shunda limitdan oshganini bilamiz, lekin
+    # katta faylni to'liq xotiraga yuklamaymiz.
+    content = await upload.read(MAX_IMPORT_BYTES + 1)
+    if len(content) > MAX_IMPORT_BYTES:
+        raise FileRejectedError(
+            f"Import fayli {MAX_IMPORT_BYTES // (1024 * 1024)} MB dan oshmasligi kerak."
+        )
     return await ImportService(session).run(
         content,
         upload.filename or "import.csv",

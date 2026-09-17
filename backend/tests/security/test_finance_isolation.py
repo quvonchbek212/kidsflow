@@ -78,18 +78,6 @@ async def _two_branch_scenario(client: AsyncClient) -> dict:
     }
 
 
-async def test_manager_cannot_create_fee_plan_in_other_branch(
-    client: AsyncClient,
-) -> None:
-    s = await _two_branch_scenario(client)
-    resp = await client.post(
-        "/api/v1/fee-plans",
-        headers=auth_header(s["mgr_b"]),
-        json={"branch_id": s["branch_a"], "name": "X", "monthly_amount": 100000},
-    )
-    assert resp.status_code == 403
-
-
 async def test_manager_cannot_generate_invoices_in_other_branch(
     client: AsyncClient,
 ) -> None:

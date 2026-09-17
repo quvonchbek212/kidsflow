@@ -9,25 +9,21 @@ import {
   type ReactNode,
 } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { Donut } from "@/components/charts/Donut";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useConfirm } from "@/components/ui/useConfirm";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiError, api, type Expense, type ExpenseCategory } from "@/lib/api";
 import { isoDate, money, moneyPlain, monthRange } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function ExpensesPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
   return (
-    <AppShell user={user} active="expenses">
-      <Suspense fallback={null}>
-        <ExpensesContent />
-      </Suspense>
-    </AppShell>
+    <Suspense fallback={null}>
+      <ExpensesContent />
+    </Suspense>
   );
 }
 
@@ -122,8 +118,8 @@ function ExpensesContent(): ReactNode {
           }}
         >
           <div className="form-grid">
-            <div className="field">
-              <label>{t.expenses.category}</label>
+            <label className="field">
+              <span className="field__label">{t.expenses.category}</span>
               <select
                 className="input"
                 defaultValue={categoryId}
@@ -135,42 +131,42 @@ function ExpensesContent(): ReactNode {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="field">
-              <label>
+            </label>
+            <label className="field">
+              <span className="field__label">
                 {t.payments.amount} ({t.common.sum})
-              </label>
+              </span>
               <input
                 className="input"
                 inputMode="decimal"
                 required
                 onChange={(e) => (amount = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>{t.common.date}</label>
+            </label>
+            <label className="field">
+              <span className="field__label">{t.common.date}</span>
               <input
                 className="input"
                 type="date"
                 defaultValue={expenseDate}
                 onChange={(e) => (expenseDate = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>{t.expenses.vendor}</label>
+            </label>
+            <label className="field">
+              <span className="field__label">{t.expenses.vendor}</span>
               <input
                 className="input"
                 onChange={(e) => (vendor = e.target.value)}
               />
-            </div>
+            </label>
           </div>
-          <div className="field">
-            <label>{t.expenses.description}</label>
+          <label className="field">
+            <span className="field__label">{t.expenses.description}</span>
             <input
               className="input"
               onChange={(e) => (description = e.target.value)}
             />
-          </div>
+          </label>
           <label className="check" style={{ marginBottom: 16 }}>
             <input
               type="checkbox"
@@ -178,10 +174,12 @@ function ExpensesContent(): ReactNode {
             />
             <span>{t.expenses.recurring}</span>
           </label>
-          {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving}>
-            {saving ? t.common.saving : t.common.save}
-          </button>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="modal-actions">
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? t.common.saving : t.common.save}
+            </button>
+          </div>
         </form>,
         { title: t.expenses.addExpense, size: "default" },
       );
@@ -198,6 +196,11 @@ function ExpensesContent(): ReactNode {
     function render(): void {
       modal.open(
         <div>
+          {/* Izoh bir marta — ilgari har qatordagi tugmada to'liq jumla
+              takrorlanib, ro'yxat o'qib bo'lmas holga kelgan edi. */}
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t.expenses.variableHint}
+          </p>
           {categories.map((c) => (
             <div
               key={c.id}
@@ -213,6 +216,9 @@ function ExpensesContent(): ReactNode {
               <button
                 type="button"
                 className={`chip${c.is_variable ? " on" : ""}`}
+                aria-pressed={c.is_variable}
+                aria-label={`${c.name} — ${t.expenses.variableFlag}`}
+                title={t.expenses.variableFlag}
                 onClick={async () => {
                   await api.updateExpenseCategory(c.id, {
                     is_variable: !c.is_variable,
@@ -221,7 +227,9 @@ function ExpensesContent(): ReactNode {
                   render();
                 }}
               >
-                {t.expenses.variableFlag}
+                {c.is_variable
+                  ? t.expenses.variableShort
+                  : t.expenses.fixedShort}
               </button>
             </div>
           ))}
@@ -250,14 +258,14 @@ function ExpensesContent(): ReactNode {
               }
             }}
           >
-            <div className="field">
-              <label>{t.expenses.categoryName}</label>
+            <label className="field">
+              <span className="field__label">{t.expenses.categoryName}</span>
               <input
                 className="input"
                 required
                 onChange={(e) => (newName = e.target.value)}
               />
-            </div>
+            </label>
             <label className="check" style={{ marginBottom: 16 }}>
               <input
                 type="checkbox"
@@ -268,10 +276,12 @@ function ExpensesContent(): ReactNode {
             <p className="field__hint" style={{ marginBottom: 12 }}>
               {t.expenses.variableHint}
             </p>
-            {error && <p className="error">{error}</p>}
-            <button className="btn btn-sm" type="submit" disabled={saving}>
-              {saving ? t.common.saving : t.common.add}
-            </button>
+            {error && <p className="error" role="alert">{error}</p>}
+            <div className="modal-actions">
+              <button className="btn btn-sm" type="submit" disabled={saving}>
+                {saving ? t.common.saving : t.common.add}
+              </button>
+            </div>
           </form>
         </div>,
         { title: t.expenses.manageCategories, size: "default" },
@@ -300,11 +310,16 @@ function ExpensesContent(): ReactNode {
     }
   }
 
-  const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  // Bekor qilingan (REVERSED) xarajat pul sarfi emas — backend dashboard va
+  // foyda/zarar hisobotida ham faqat RECORDED sanaladi (AnalyticsRepository
+  // .expenses_by_branch). Jadval barcha yozuvlarni ko'rsatadi, lekin jami va
+  // kategoriya kesimi shu bilan mos bo'lishi kerak.
+  const counted = expenses.filter((e) => e.status !== "REVERSED");
+  const total = counted.reduce((s, e) => s + Number(e.amount), 0);
   const byCategory = categories
     .map((c) => ({
       label: c.name,
-      total: expenses
+      total: counted
         .filter((e) => e.category_id === c.id)
         .reduce((s, e) => s + Number(e.amount), 0),
     }))
@@ -405,6 +420,8 @@ function ExpensesContent(): ReactNode {
           <input
             className="input"
             type="date"
+            aria-label={t.common.from}
+            title={t.common.from}
             value={periodStart}
             onChange={(e) => setPeriodStart(e.target.value)}
             style={{ marginTop: 0 }}
@@ -412,6 +429,8 @@ function ExpensesContent(): ReactNode {
           <input
             className="input"
             type="date"
+            aria-label={t.common.to}
+            title={t.common.to}
             value={periodEnd}
             onChange={(e) => setPeriodEnd(e.target.value)}
             style={{ marginTop: 0 }}
@@ -473,7 +492,7 @@ function ExpensesContent(): ReactNode {
             {byCategory.length > 0 ? (
               <Donut rows={byCategory} totalLabel={t.expenses.total} />
             ) : (
-              <div className="panel-empty">{t.common.empty}</div>
+              <EmptyState title={t.common.empty} />
             )}
           </div>
         </div>

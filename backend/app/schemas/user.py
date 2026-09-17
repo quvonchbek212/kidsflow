@@ -47,10 +47,20 @@ class StaffCreateRequest(BaseModel):
         return normalize_email(value)
 
     @model_validator(mode="after")
-    def _check_contact_and_branch(self) -> StaffCreateRequest:
-        # Kamida bitta aloqa (telefon yoki email) bo'lishi kerak.
-        if not self.phone and not self.email:
-            raise ValueError("Telefon yoki email ko'rsatilishi shart.")
+    def _check_branch(self) -> StaffCreateRequest:
+        # Telefon va email ataylab majburiy emas.
+        #
+        # Ilgari "kamida bittasi bo'lsin" qoidasi bor edi — o'shanda kirish
+        # aynan telefon yoki email orqali bo'lardi, ya'ni aloqasiz hisob
+        # umuman kira olmasdi. Endi login `username` orqali, parolni esa
+        # boshqaruvchi o'rnatadi (`PATCH /users/{id}/password`), shuning uchun
+        # aloqa ma'lumoti kirish uchun kerak emas. Bog'chadagi tarbiyachilarning
+        # ko'pida email yo'q, telefonini esa kadrlar hujjatidan keyinroq
+        # kiritishadi — hisob ochishni shu sababli to'xtatib turish ortiqcha.
+        #
+        # Email berilsa, xodim `/forgot-password` orqali parolini o'zi ham
+        # tiklay oladi; berilmasa bu yo'l yopiq bo'ladi, xolos.
+
         # Filial talab qilinadigan rollar uchun branch_id majburiy (5.2-bo'lim).
         if self.role not in BRANCHLESS_ROLES and self.branch_id is None:
             raise ValueError(f"{self.role} roli uchun branch_id majburiy.")
@@ -88,6 +98,10 @@ class StaffUpdateRequest(BaseModel):
     """Xodim profilini tahrirlash (OWNER). Berilgan maydonlar yangilanadi."""
 
     full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    # Login almashtirilishi mumkin: xodim uni unutsa yoki noto'g'ri yozilgan
+    # bo'lsa, menejer/egasi tuzata olishi kerak. Yagonaligi servisda
+    # tekshiriladi.
+    username: str | None = Field(default=None, min_length=3, max_length=64)
     phone: str | None = Field(default=None, max_length=32)
     email: EmailStr | None = None
     position: StaffPosition | None = None
@@ -98,6 +112,11 @@ class StaffUpdateRequest(BaseModel):
     employment_type: EmploymentType | None = None
     is_active: bool | None = None
 
+    @field_validator("username")
+    @classmethod
+    def _norm_update_username(cls, value: str | None) -> str | None:
+        return normalize_username(value) if value is not None else None
+
     @field_validator("phone")
     @classmethod
     def _norm_phone(cls, value: str | None) -> str | None:
@@ -107,6 +126,17 @@ class StaffUpdateRequest(BaseModel):
     @classmethod
     def _norm_email(cls, value: str | None) -> str | None:
         return normalize_email(value)
+
+
+class StaffPasswordRequest(BaseModel):
+    """Xodimga yangi parol o'rnatish (OWNER; MANAGER o'z filialida).
+
+    Parol umumiy profil yangilanishidan (`StaffUpdateRequest`) ataylab
+    ajratilgan: alohida endpoint alohida audit yozuvi beradi va parol boshqa
+    maydonlar bilan bir so'rovda tasodifan yuborilmaydi.
+    """
+
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class PayrollStaffRow(BaseModel):

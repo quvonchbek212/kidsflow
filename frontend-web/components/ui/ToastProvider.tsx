@@ -63,20 +63,34 @@ export function ToastProvider({
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
+      {/* Ikkita jonli hudud: xatolar darhol ("assertive"), oddiy xabarlar
+          esa foydalanuvchi ishini bo'lmasdan ("polite") o'qiladi. Hududlar
+          bo'sh bo'lsa ham DOM'da turishi shart — aks holda ichiga qo'shilgan
+          matn e'lon qilinmaydi. */}
       <div id="toasts">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`toast${t.type === "neg" ? " toast--neg" : ""}${t.leaving ? " out" : ""}`}
-          >
-            {t.type === "neg" ? (
-              <IconAlert size={17} />
-            ) : (
-              <IconCheck size={17} />
-            )}
-            <span>{t.message}</span>
-          </div>
-        ))}
+        <div className="toasts__region" role="status" aria-live="polite">
+          {toasts
+            .filter((t) => t.type !== "neg")
+            .map((t) => (
+              <div key={t.id} className={`toast${t.leaving ? " out" : ""}`}>
+                <IconCheck size={17} />
+                <span>{t.message}</span>
+              </div>
+            ))}
+        </div>
+        <div className="toasts__region" role="alert" aria-live="assertive">
+          {toasts
+            .filter((t) => t.type === "neg")
+            .map((t) => (
+              <div
+                key={t.id}
+                className={`toast toast--neg${t.leaving ? " out" : ""}`}
+              >
+                <IconAlert size={17} />
+                <span>{t.message}</span>
+              </div>
+            ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );

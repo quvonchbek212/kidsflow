@@ -6,11 +6,13 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { useModal } from "@/components/ui/ModalProvider";
 import { LoadError } from "@/components/ui/LoadError";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useConfirm } from "@/components/ui/useConfirm";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { GroupPicker, groupPickerLabels } from "@/components/ui/GroupPicker";
 import {
   ApiError,
   api,
@@ -22,16 +24,9 @@ import {
   type Mood,
 } from "@/lib/api";
 import { initials, isoDate } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function DailyReportsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="dailyReports">
-      <DailyReportsContent />
-    </AppShell>
-  );
+  return <DailyReportsContent />;
 }
 
 function DailyReportsContent(): ReactNode {
@@ -67,22 +62,33 @@ function DailyReportsContent(): ReactNode {
       .catch(setLoadError);
   }, [branchId]);
 
-  const load = useCallback((): void => {
+  // Qaytgan funksiya — eskirgan javobni bekor qilish. Guruh tez almashtirilsa,
+  // oldingi guruhning kechikkan javobi yangisining ustiga yozilmasin.
+  const load = useCallback((): (() => void) | undefined => {
     if (!groupId || !date) {
       setRoster([]);
       setReady(true);
-      return;
+      return undefined;
     }
+    let cancelled = false;
     setReady(false);
     setLoadError(null);
     api
       .dailyReportRoster(groupId, date)
-      .then(setRoster)
+      .then((rows) => {
+        if (!cancelled) setRoster(rows);
+      })
       .catch((err) => {
+        if (cancelled) return;
         setRoster([]);
         setLoadError(err);
       })
-      .finally(() => setReady(true));
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [groupId, date]);
 
   useEffect(load, [load]);
@@ -157,14 +163,20 @@ function DailyReportsContent(): ReactNode {
         >
           {readOnly && <p className="hint">{t.dailyReports.publishedLocked}</p>}
 
-          <div className="field">
-            <label>{t.dailyReports.meal}</label>
+          {/* Chip qatori — bu yerda `<label>` ishlamaydi (u bitta boshqaruv
+              elementiga bog'lanadi), shuning uchun guruh sifatida e'lon
+              qilinadi va tugmalar bosilgan holatini bildiradi. */}
+          <div className="field" role="group" aria-labelledby="dr-meal-label">
+            <span className="field__label" id="dr-meal-label">
+              {t.dailyReports.meal}
+            </span>
             <div className="toolbar">
               {MEALS.map((m) => (
                 <button
                   key={m.value}
                   type="button"
                   disabled={readOnly}
+                  aria-pressed={meal === m.value}
                   className={`chip${meal === m.value ? " on" : ""}`}
                   onClick={() => {
                     meal = meal === m.value ? "" : m.value;
@@ -177,14 +189,17 @@ function DailyReportsContent(): ReactNode {
             </div>
           </div>
 
-          <div className="field">
-            <label>{t.dailyReports.mood}</label>
+          <div className="field" role="group" aria-labelledby="dr-mood-label">
+            <span className="field__label" id="dr-mood-label">
+              {t.dailyReports.mood}
+            </span>
             <div className="toolbar">
               {MOODS.map((m) => (
                 <button
                   key={m.value}
                   type="button"
                   disabled={readOnly}
+                  aria-pressed={mood === m.value}
                   className={`chip${mood === m.value ? " on" : ""}`}
                   onClick={() => {
                     mood = mood === m.value ? "" : m.value;
@@ -197,10 +212,10 @@ function DailyReportsContent(): ReactNode {
             </div>
           </div>
 
-          <div className="field">
-            <label>
+          <label className="field">
+            <span className="field__label">
               {t.dailyReports.nap} ({t.dailyReports.napMinutes})
-            </label>
+            </span>
             <input
               className="input"
               type="number"
@@ -210,10 +225,10 @@ function DailyReportsContent(): ReactNode {
               defaultValue={nap}
               onChange={(e) => (nap = e.target.value)}
             />
-          </div>
+          </label>
 
-          <div className="field">
-            <label>{t.dailyReports.activities}</label>
+          <label className="field">
+            <span className="field__label">{t.dailyReports.activities}</span>
             <textarea
               className="input"
               rows={3}
@@ -223,10 +238,10 @@ function DailyReportsContent(): ReactNode {
               onChange={(e) => (activities = e.target.value)}
             />
             <p className="hint">{t.dailyReports.activitiesHint}</p>
-          </div>
+          </label>
 
-          <div className="field">
-            <label>{t.dailyReports.teacherNote}</label>
+          <label className="field">
+            <span className="field__label">{t.dailyReports.teacherNote}</span>
             <textarea
               className="input"
               rows={2}
@@ -236,10 +251,10 @@ function DailyReportsContent(): ReactNode {
               onChange={(e) => (note = e.target.value)}
             />
             <p className="hint">{t.dailyReports.teacherNoteHint}</p>
-          </div>
+          </label>
 
-          <div className="field">
-            <label>{t.dailyReports.summary}</label>
+          <label className="field">
+            <span className="field__label">{t.dailyReports.summary}</span>
             <textarea
               className="input"
               rows={3}
@@ -249,13 +264,15 @@ function DailyReportsContent(): ReactNode {
               onChange={(e) => (summary = e.target.value)}
             />
             <p className="hint">{t.dailyReports.summaryHint}</p>
-          </div>
+          </label>
 
-          {error && <p className="error">{error}</p>}
+          {error && <p className="error" role="alert">{error}</p>}
           {!readOnly && (
-            <button className="btn btn--full" type="submit" disabled={saving}>
-              {saving ? t.common.saving : t.common.save}
-            </button>
+            <div className="modal-actions">
+              <button className="btn btn--full" type="submit" disabled={saving}>
+                {saving ? t.common.saving : t.common.save}
+              </button>
+            </div>
           )}
         </form>,
         {
@@ -304,25 +321,41 @@ function DailyReportsContent(): ReactNode {
   ).length;
   const missingCount = roster.filter((r) => !r.report).length;
 
+  function statusBadge(row: DailyReportRosterRow): ReactNode {
+    if (!row.report) {
+      return (
+        <span className="badge badge--mute">{t.dailyReports.notWritten}</span>
+      );
+    }
+    return row.report.is_published ? (
+      <span className="badge badge--pos">{t.dailyReports.published}</span>
+    ) : (
+      <span className="badge badge--warn">{t.dailyReports.draft}</span>
+    );
+  }
+
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 16,
-        }}
-      >
-        <input
-          className="input"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ marginTop: 0, width: "auto" }}
-        />
-      </div>
-
       <div className="card">
+        {/* Guruh va sana bitta qatorda: guruhlar ko'p bo'lsa ham qator
+            o'ralmaydi, gorizontal suriladi (GroupPicker). */}
+        <div className="toolbar toolbar--picker">
+          <GroupPicker
+            groups={groups}
+            value={groupId}
+            onChange={setGroupId}
+            labels={groupPickerLabels(t)}
+          />
+          <input
+            className="input toolbar__date"
+            type="date"
+            aria-label={t.common.date}
+            title={t.common.date}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
+
         <div className="att__sum">
           <div>
             {t.dailyReports.countDone}
@@ -338,32 +371,19 @@ function DailyReportsContent(): ReactNode {
           </div>
         </div>
 
-        <div className="toolbar">
-          {groups.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className={`chip${g.id === groupId ? " on" : ""}`}
-              onClick={() => setGroupId(g.id)}
-            >
-              {g.name}
-            </button>
-          ))}
-        </div>
-
         {loadError ? (
           <LoadError error={loadError} onRetry={load} />
         ) : !ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : roster.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">
               <thead>
                 <tr>
                   <th>{t.common.name}</th>
-                  <th>{t.common.status}</th>
+                  <th className="dr-col-status">{t.common.status}</th>
                   <th className="r" />
                 </tr>
               </thead>
@@ -375,24 +395,15 @@ function DailyReportsContent(): ReactNode {
                         <span className="avatar">
                           {initials(row.child_name)}
                         </span>
-                        <b className="tr">{row.child_name}</b>
+                        <div>
+                          <b className="tr">{row.child_name}</b>
+                          <div className="dr-status-inline">
+                            {statusBadge(row)}
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      {!row.report ? (
-                        <span className="badge badge--mute">
-                          {t.dailyReports.notWritten}
-                        </span>
-                      ) : row.report.is_published ? (
-                        <span className="badge badge--pos">
-                          {t.dailyReports.published}
-                        </span>
-                      ) : (
-                        <span className="badge badge--warn">
-                          {t.dailyReports.draft}
-                        </span>
-                      )}
-                    </td>
+                    <td className="dr-col-status">{statusBadge(row)}</td>
                     <td className="r">
                       <div className="row-actions">
                         <button

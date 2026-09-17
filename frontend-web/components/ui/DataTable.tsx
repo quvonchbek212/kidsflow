@@ -178,22 +178,46 @@ export function DataTable<T>({
                 const align =
                   c.align === "right" ? "r" : c.align === "center" ? "c" : "";
                 const sorted = sortKey === c.key;
+                // Strelka doim chiziladi (ko'rinishi CSS'da) — shunda
+                // saralashda ustun eni sakramaydi.
+                const arrow = c.sortValue && (
+                  <span className="arrow">
+                    {sorted && sortDir === -1 ? "▼" : "▲"}
+                  </span>
+                );
                 return (
                   <th
                     key={c.key}
+                    scope="col"
                     className={
                       `${align}${sorted ? " sorted" : ""}`.trim() || undefined
                     }
                     data-sort={c.sortValue ? "" : undefined}
-                    onClick={c.sortValue ? () => toggleSort(c.key) : undefined}
+                    aria-sort={
+                      c.sortValue
+                        ? sorted
+                          ? sortDir === 1
+                            ? "ascending"
+                            : "descending"
+                          : "none"
+                        : undefined
+                    }
                   >
-                    {c.label}
-                    {/* Strelka doim chiziladi (ko'rinishi CSS'da) — shunda
-                        saralashda ustun eni sakramaydi. */}
-                    {c.sortValue && (
-                      <span className="arrow">
-                        {sorted && sortDir === -1 ? "▼" : "▲"}
-                      </span>
+                    {/* Saralash <button> ichida: ilgari onClick to'g'ridan-to'g'ri
+                        <th> da edi va klaviatura bilan umuman saralab
+                        bo'lmasdi. Tugma ko'rinishi .th-sort da nolga
+                        tushiriladi, ya'ni tashqi ko'rinish o'zgarmaydi. */}
+                    {c.sortValue ? (
+                      <button
+                        type="button"
+                        className="th-sort"
+                        onClick={() => toggleSort(c.key)}
+                      >
+                        {c.label}
+                        {arrow}
+                      </button>
+                    ) : (
+                      c.label
                     )}
                   </th>
                 );
@@ -224,10 +248,28 @@ export function DataTable<T>({
               </tr>
             ) : (
               pageRows.map((row) => (
+                /* Bosiladigan qatorga ilgari faqat sichqoncha bilan yetish
+                   mumkin edi — `onClick` <tr> da turardi, u esa sukut bo'yicha
+                   fokus olmaydi. Klaviatura bilan ishlaydigan foydalanuvchi
+                   bolaning/xodimning kartochkasini umuman ocholmasdi.
+                   `role="button"` bermaymiz: u <tr> ning jadval semantikasini
+                   buzadi — o'rniga qatorni fokuslanadigan qilib, Enter va
+                   Bo'shliqni bosishga ulaymiz. */
                 <tr
                   key={rowKey(row)}
                   className={onRowClick ? "clickable" : undefined}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRowClick(row);
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   {columns.map((c) => (
                     <td

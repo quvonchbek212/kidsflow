@@ -80,3 +80,39 @@ class PayrollRun(UUIDMixin, TimestampMixin, Base):
     reversed_payroll_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("payroll_runs.id", ondelete="SET NULL"), nullable=True
     )
+
+
+class SalaryAdvance(UUIDMixin, TimestampMixin, Base):
+    """Oy o'rtasida xodimga berilgan avans.
+
+    Ilgari avans hech qayerda saqlanmasdi: oy oxirida "Hisoblash va to'lash"
+    oynasida qo'lda yoziladigan son edi, xolos — kim, qachon, qancha olgani
+    unutilib, ikki marta to'lab yuborish xavfi bor edi. Endi avans berilgan
+    paytda yoziladi (bog'langan "Ish haqi" xarajati bilan) va shu oyning
+    oylik hisobida avtomatik ushlanadi.
+
+    O'chirilmaydi — xato yozuv REVERSED qilinadi (11-bo'lim).
+    """
+
+    __tablename__ = "salary_advances"
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("branches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Avans qaysi oy oyligidan ushlanadi — oyning birinchi sanasi.
+    period: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    amount: Mapped[Decimal] = mapped_column(_Money, nullable=False)
+    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default=PayrollStatus.RECORDED.value, index=True
+    )
+    expense_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("expenses.id", ondelete="SET NULL"), nullable=True
+    )
+    paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )

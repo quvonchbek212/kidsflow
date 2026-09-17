@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import RefreshToken
@@ -37,7 +38,33 @@ class RefreshTokenRepository:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def delete_stale(self, now: datetime) -> int:
+        """Muddati o'tgan yoki bekor qilingan tokenlarni o'chiradi."""
+        stmt = delete(RefreshToken).where(
+            or_(RefreshToken.expires_at < now, RefreshToken.revoked_at.is_not(None))
+        )
+        result = await self._session.execute(stmt)
+        return int(getattr(result, "rowcount", 0) or 0)
+
     @staticmethod
     def revoke(token: RefreshToken) -> None:
         if token.revoked_at is None:
             token.revoked_at = datetime.now(UTC)
+
+    async def revoke_all_for_user(self, user_id: uuid.UUID) -> int:
+        """Foydalanuvchining barcha faol sessiyalarini yopadi.
+
+        Parol almashganda chaqiriladi. Access token qisqa umrli (15 daqiqa),
+        refresh esa 30 kun yashaydi — shuning uchun parolni almashtirish eski
+        refresh tokenni bekor qilmasa, o'g'irlangan sessiya bir oygacha ishlab
+        turaverardi.
+        """
+        stmt = (
+            update(RefreshToken)
+            .where(
+                RefreshToken.user_id == user_id,
+                RefreshToken.revoked_at.is_(None),
+            )
+            .values(revoked_at=datetime.now(UTC))
+        )
+        return (await self._session.execute(stmt)).rowcount or 0

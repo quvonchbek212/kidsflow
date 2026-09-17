@@ -74,3 +74,54 @@ async def test_manager_cannot_update_settings(client: AsyncClient) -> None:
         json={"address": "Boshqa"},
     )
     assert resp.status_code == 403
+
+
+async def test_settings_hides_admin_fields_from_teacher(client: AsyncClient) -> None:
+    """Tarbiyachiga sozlamalarning ma'muriy qismi ko'rinmaydi.
+
+    Endpoint hammaga ochiq — yon paneldagi bog'cha nomi va sana/pul formati
+    shundan olinadi. Lekin yuridik nom, manzil, telefon, hisob-faktura kuni va
+    bildirishnoma sozlamalari faqat OWNER/MANAGER uchun.
+    """
+    setup = await complete_setup(client)
+    owner = (await login(client, OWNER_PHONE, OWNER_PASSWORD))["access_token"]
+
+    await client.patch(
+        "/api/v1/settings",
+        headers=auth_header(owner),
+        json={
+            "legal_name": "Maxfiy MCHJ",
+            "address": "Maxfiy manzil",
+            "phone": "+998900000000",
+            "auto_invoice_day": 7,
+        },
+    )
+
+    await create_staff(
+        client,
+        owner,
+        role="TEACHER",
+        phone="+998900000077",
+        password="teacher-parol-123",
+        branch_id=setup["branch_id"],
+    )
+    teacher = (await login(client, "+998900000077", "teacher-parol-123"))[
+        "access_token"
+    ]
+
+    as_owner = (await client.get("/api/v1/settings", headers=auth_header(owner))).json()
+    assert as_owner["legal_name"] == "Maxfiy MCHJ"
+    assert as_owner["auto_invoice_day"] == 7
+
+    as_teacher_resp = await client.get("/api/v1/settings", headers=auth_header(teacher))
+    assert as_teacher_resp.status_code == 200
+    as_teacher = as_teacher_resp.json()
+    # Ko'rsatish uchun kerak bo'lganlari qoladi.
+    assert as_teacher["name"] == as_owner["name"]
+    assert as_teacher["currency"] == as_owner["currency"]
+    # Ma'muriy maydonlar berilmaydi.
+    assert as_teacher["legal_name"] is None
+    assert as_teacher["address"] is None
+    assert as_teacher["phone"] is None
+    assert as_teacher["auto_invoice_day"] is None
+    assert as_teacher["notification_toggles"] == {}

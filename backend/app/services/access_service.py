@@ -4,14 +4,16 @@ Ruxsatlar backend darajasida tekshiriladi (2.3-bo'lim). Bu yerda quyidagi
 qoidalar amalga oshiriladi (3-bo'lim rollari):
 
 - OWNER: hamma narsani ko'radi.
-- MANAGER: o'z filial(lar)idagi operatsiyalar (enrollment, davomat, guruh).
+- MANAGER: faqat o'z filial(lar)idagi bolalar va operatsiyalar.
 - TEACHER: faqat biriktirilgan guruhlaridagi bolalar.
 - PARENT: faqat vasiy sifatida biriktirilgan bolalar.
 
 Eslatma: `children` jadvali filialga bog'lanmagan (5.3-bo'lim) — bola filialga
-enrollment orqali bog'lanadi. Shu sabab OWNER/MANAGER bola profilini ko'ra oladi,
-ammo filialga bog'liq amallar (enrollment/davomat/guruh) qat'iy filial tekshiruvidan
-o'tadi.
+enrollment orqali bog'lanadi. Ilgari shu sabab har qanday MANAGER istalgan
+filialdagi bolani (tibbiy izohi bilan) ko'rar va tahrirlay olardi. Endi menejer
+faqat o'z filialida enrollmenti bor bolani boshqaradi. Hali hech qayerga
+yozilmagan (yangi yaratilgan) bola esa istalgan menejerga ochiq — aks holda
+"bola yaratish → guruhga yozish" oqimi ishlamay qolardi.
 """
 
 from __future__ import annotations
@@ -49,8 +51,13 @@ class AccessService:
         ishlaydi.
         """
         by_role: set[uuid.UUID] | None = None
-        if not self.is_manager_or_owner(user):
+        if not user.is_owner:
             by_role = set()
+            managed = user.branches_for(Role.MANAGER)
+            if managed:
+                by_role.update(
+                    await self._enrollments.child_ids_in_branches(list(managed))
+                )
             if user.has_any_role(Role.TEACHER):
                 group_ids = await self._groups.group_ids_for_teacher(user.id)
                 by_role.update(await self._enrollments.child_ids_in_groups(group_ids))
@@ -63,8 +70,22 @@ class AccessService:
         in_branch = set(await self._enrollments.child_ids_in_branches([branch_id]))
         return list(in_branch if by_role is None else in_branch & by_role)
 
+    async def can_manage_child(self, user: CurrentUser, child_id: uuid.UUID) -> bool:
+        """Bola profilini o'zgartirish huquqi: OWNER yoki bola filialining MANAGER'i."""
+        if user.is_owner:
+            return True
+        managed = user.branches_for(Role.MANAGER)
+        if not managed:
+            return False
+        in_managed = await self._enrollments.child_ids_in_branches(list(managed))
+        if child_id in set(in_managed):
+            return True
+        # Hali hech qayerga yozilmagan bola — yaratilgan zahoti guruhga yozish
+        # va vasiy qo'shish uchun.
+        return not await self._enrollments.has_any_for_child(child_id)
+
     async def can_view_child(self, user: CurrentUser, child_id: uuid.UUID) -> bool:
-        if self.is_manager_or_owner(user):
+        if await self.can_manage_child(user, child_id):
             return True
         visible = await self.visible_child_ids(user)
         return visible is not None and child_id in set(visible)

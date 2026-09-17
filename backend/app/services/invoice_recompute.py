@@ -23,6 +23,11 @@ async def recompute_invoice(
     *,
     cancelled: bool | None = None,
 ) -> None:
+    # Summalar SQL so'rov bilan yig'iladi, sessiya esa `autoflush=False`.
+    # Flush'siz chaqiruvchining xotiradagi o'zgarishlari ko'rinmasdi: to'lov
+    # REVERSED qilinsa ham u "to'langan" deb hisoblanar va bekor qilingan
+    # to'lovdan keyin qarz qaytmasdi.
+    await session.flush()
     repo = InvoiceRepository(session)
     adjustments = await repo.adjustments_for(invoice.id)
     paid = await repo.paid_for(invoice.id)

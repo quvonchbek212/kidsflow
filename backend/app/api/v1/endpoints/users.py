@@ -22,6 +22,7 @@ from app.schemas.user import (
     RoleGrantOut,
     SalaryUpdateRequest,
     StaffCreateRequest,
+    StaffPasswordRequest,
     StaffUpdateRequest,
     UserResponse,
 )
@@ -55,11 +56,11 @@ def _to_response(user: User) -> UserResponse:
     "",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Xodim yaratish (faqat OWNER)",
+    summary="Xodim yaratish (OWNER; MANAGER o'z filialiga)",
 )
 async def create_staff(
     payload: StaffCreateRequest,
-    current_user: CurrentUser = Depends(require_roles(Role.OWNER)),
+    current_user: CurrentUser = Depends(require_roles(Role.OWNER, Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> UserResponse:
     user = await UserService(session).create_staff(payload, current_user)
@@ -69,24 +70,26 @@ async def create_staff(
 @router.get(
     "",
     response_model=list[UserResponse],
-    summary="Xodimlar ro'yxati (faqat OWNER, ixtiyoriy lavozim filtri)",
+    summary="Xodimlar ro'yxati (OWNER; MANAGER o'z filiali, ixtiyoriy lavozim filtri)",
 )
 async def list_staff(
     position: str | None = Query(default=None),
     branch_id: uuid.UUID | None = Query(
         default=None, description="Filial kesimi; berilmasa — barcha xodimlar"
     ),
-    current_user: CurrentUser = Depends(require_roles(Role.OWNER)),
+    current_user: CurrentUser = Depends(require_roles(Role.OWNER, Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> list[UserResponse]:
-    users = await UserService(session).list_all(position=position, branch_id=branch_id)
+    users = await UserService(session).list_all(
+        current_user, position=position, branch_id=branch_id
+    )
     return [_to_response(u) for u in users]
 
 
 @router.patch(
     "/{user_id}",
     response_model=UserResponse,
-    summary="Xodim profilini tahrirlash (OWNER)",
+    summary="Xodim profilini tahrirlash (OWNER; MANAGER o'z filialida)",
 )
 async def update_staff(
     user_id: uuid.UUID,
@@ -113,19 +116,42 @@ async def update_salary(
     return _to_response(user)
 
 
+@router.patch(
+    "/{user_id}/password",
+    response_model=UserResponse,
+    summary="Xodimga yangi parol o'rnatish (OWNER; MANAGER o'z filialida)",
+)
+async def set_staff_password(
+    user_id: uuid.UUID,
+    payload: StaffPasswordRequest,
+    current_user: CurrentUser = Depends(require_roles(Role.OWNER, Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> UserResponse:
+    """Parolni unutgan xodimga boshqaruvchi yangi parol beradi.
+
+    Xodimning eski sessiyalari yopiladi va kirish qulfi tozalanadi.
+    """
+    user = await UserService(session).set_password(
+        user_id, payload.new_password, current_user
+    )
+    return _to_response(user)
+
+
 @router.get(
     "/payroll-summary",
     response_model=PayrollSummaryResponse,
-    summary="Ish haqi fondi (OWNER)",
+    summary="Ish haqi fondi (OWNER; MANAGER o'z filiali)",
 )
 async def payroll_summary(
     branch_id: uuid.UUID | None = Query(
         default=None, description="Filial kesimi; berilmasa — barcha xodimlar"
     ),
-    current_user: CurrentUser = Depends(require_roles(Role.OWNER)),
+    current_user: CurrentUser = Depends(require_roles(Role.OWNER, Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> PayrollSummaryResponse:
-    total, users = await UserService(session).payroll_summary(branch_id=branch_id)
+    total, users = await UserService(session).payroll_summary(
+        current_user, branch_id=branch_id
+    )
     return PayrollSummaryResponse(
         total_fund=total,
         staff=[

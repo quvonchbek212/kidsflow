@@ -36,7 +36,12 @@ async def session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    # `autoflush=False` — production sessiyasi bilan bir xil (app/database.py).
+    # Farq bo'lsa testlar ba'zi xatolarni yashirardi: takroriy davomat yozuvi
+    # testda o'tib, productionda 500 xato berardi.
+    factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
     yield factory
     await engine.dispose()
 

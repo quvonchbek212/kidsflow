@@ -1,9 +1,12 @@
-"""Tarif rejalari, invoice generatsiyasi va tuzatmalar (4.5, 5.5-bo'lim)."""
+"""Invoice generatsiyasi va tuzatmalar (4.5, 5.5-bo'lim).
+
+Oylik summa bolaning guruhidagi tarifdan olinadi.
+"""
 
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,68 +14,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
 from app.core.permissions import CurrentUser
 from app.models.enrollment import Enrollment
-from app.models.enums import AdjustmentType, InvoiceStatus, Role
-from app.models.finance import FeePlan, Invoice, InvoiceAdjustment
+from app.models.enums import AdjustmentType, InvoiceStatus
+from app.models.finance import Invoice, InvoiceAdjustment
 from app.repositories.branch_repository import BranchRepository
 from app.repositories.child_repository import EnrollmentRepository
-from app.repositories.finance_repository import (
-    FeePlanRepository,
-    InvoiceRepository,
-)
+from app.repositories.finance_repository import InvoiceRepository
+from app.repositories.messaging_repository import BranchNotificationSettingsRepository
 from app.schemas.finance import (
     AdjustmentCreateRequest,
-    FeePlanCreateRequest,
     InvoiceGenerateRequest,
 )
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
 from app.services.invoice_recompute import recompute_invoice
+from app.services.payment_allocation import apply_unallocated
 from app.utils.money import money
+
+# Filialda sozlama yozuvi bo'lmasa: har oyning 10-sanasi (avvalgi qo'lda
+# yaratish formasidagi standart qiymat).
+DEFAULT_INVOICE_DUE_DAY = 10
 
 
 class BillingService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-        self._fee_plans = FeePlanRepository(session)
         self._invoices = InvoiceRepository(session)
         self._enrollments = EnrollmentRepository(session)
         self._branches = BranchRepository(session)
         self._access = AccessService(session)
         self._audit = AuditService(session)
-
-    # --- Tarif rejalari ---
-
-    async def create_fee_plan(
-        self, data: FeePlanCreateRequest, current_user: CurrentUser
-    ) -> FeePlan:
-        if not self._access.can_manage_branch(current_user, data.branch_id):
-            raise PermissionDeniedError("Bu filialda tarif yaratish huquqi yo'q.")
-        if await self._branches.get_by_id(data.branch_id) is None:
-            raise NotFoundError("Filial topilmadi.")
-
-        plan = FeePlan(
-            branch_id=data.branch_id,
-            name=data.name,
-            monthly_amount=money(data.monthly_amount),
-            currency=data.currency,
-        )
-        self._fee_plans.add(plan)
-        await self._session.flush()
-        self._audit.record(
-            action="FEE_PLAN_CREATED",
-            entity_type="fee_plan",
-            entity_id=plan.id,
-            actor_user_id=current_user.id,
-            branch_id=data.branch_id,
-        )
-        return plan
-
-    async def list_fee_plans(self, current_user: CurrentUser) -> list[FeePlan]:
-        if current_user.is_owner:
-            branch_ids = [b.id for b in await self._branches.list_all()]
-        else:
-            branch_ids = list(current_user.branches_for(Role.MANAGER))
-        return await self._fee_plans.list_by_branches(branch_ids)
 
     # --- Invoice generatsiyasi ---
 
@@ -83,37 +53,96 @@ class BillingService:
             raise PermissionDeniedError("Bu filialda invoice yaratish huquqi yo'q.")
 
         billing_period = data.billing_period.replace(day=1)
-        due_date = billing_period.replace(day=data.due_day)
+        created, skipped = await self.generate_for_branch(
+            data.branch_id, billing_period, data.due_day
+        )
 
-        # Standart tarif (fallback) ni oldindan yuklaymiz.
-        default_plan = None
-        if data.fee_plan_id is not None:
-            default_plan = await self._fee_plans.get_by_id(data.fee_plan_id)
-            if default_plan is None:
-                raise NotFoundError("Standart tarif topilmadi.")
+        self._audit.record(
+            action="INVOICES_GENERATED",
+            entity_type="invoice_batch",
+            entity_id=str(data.branch_id),
+            actor_user_id=current_user.id,
+            branch_id=data.branch_id,
+            after_data={"created": created, "period": billing_period.isoformat()},
+        )
+        return created, skipped, billing_period
+
+    async def due_day_for(self, branch_id: uuid.UUID) -> int:
+        """Filialning oylik to'lov muddati (oyning sanasi)."""
+        configs = await BranchNotificationSettingsRepository(
+            self._session
+        ).list_by_branches([branch_id])
+        config = configs.get(branch_id)
+        return config.invoice_due_day if config else DEFAULT_INVOICE_DUE_DAY
+
+    async def generate_for_branch(
+        self,
+        branch_id: uuid.UUID,
+        billing_period: date,
+        due_day: int,
+        *,
+        child_id: uuid.UUID | None = None,
+        not_before: date | None = None,
+    ) -> tuple[int, int]:
+        """Filialdagi faol bolalarga bir oy uchun hisob-faktura yaratadi.
+
+        Huquq TEKSHIRILMAYDI — chaqiruvchi javobgar: HTTP endpoint (menejer),
+        kunlik worker (`auto_billing`) va bola ro'yxatga olinganda
+        (`EnrollmentService`).
+
+        Idempotent: bolaning shu oyga hisobi bo'lsa (bekor qilingan bo'lsa ham)
+        qayta yaratilmaydi — bekor qilish qarori saqlanadi.
+
+        `child_id` — faqat shu bola uchun. `not_before` — muddat bundan oldin
+        bo'lmaydi: oy o'rtasida qo'shilgan bolaning hisobi yaratilgan zahoti
+        "kechikkan" bo'lib chiqmasin.
+
+        Yangi hisobdan keyin bolaning oldindan to'lagan (hech bir hisobga
+        yozilmagan) puli unga avtomatik yoziladi.
+        """
+        billing_period = billing_period.replace(day=1)
+        due_date = billing_period.replace(day=due_day)
+        if not_before is not None and due_date < not_before:
+            due_date = not_before
+        next_period = (billing_period + timedelta(days=32)).replace(day=1)
 
         created = 0
         skipped = 0
         new_invoices: list[tuple[Invoice, Enrollment]] = []
-        enrollments = await self._enrollments.list_active_in_branch(data.branch_id)
-        for enrollment in enrollments:
-            plan = default_plan
-            if enrollment.fee_plan_id is not None:
-                plan = await self._fee_plans.get_by_id(enrollment.fee_plan_id)
-            if plan is None:
+        enrollments = await self._enrollments.list_active_in_branch(branch_id)
+        # Mavjud hisoblar sikldan oldin bitta so'rov bilan — ilgari har bir
+        # bola uchun alohida SELECT ketardi.
+        already_billed = await self._invoices.child_ids_billed_for(
+            [e.child_id for e, _ in enrollments], billing_period
+        )
+        for enrollment, group_monthly_fee in enrollments:
+            if child_id is not None and enrollment.child_id != child_id:
+                continue
+            # Keyingi oydan boshlaydigan bola bu oy uchun to'lamaydi.
+            if enrollment.start_date >= next_period:
                 skipped += 1
                 continue
 
-            existing = await self._invoices.get_for_child_period(
-                enrollment.child_id, billing_period
+            # Tarif — bolaning guruhidagi oylik tarif ("Guruhlar" formasida
+            # kiritiladi). Tarif belgilanmagan guruh uchun hisob yaratilmaydi.
+            monthly_amount = (
+                Decimal(str(group_monthly_fee))
+                if group_monthly_fee is not None
+                else None
             )
-            if existing is not None:
+
+            if monthly_amount is None or monthly_amount <= 0:
                 skipped += 1
                 continue
 
-            amount = money(Decimal(str(plan.monthly_amount)))
+            if enrollment.child_id in already_billed:
+                skipped += 1
+                continue
+            already_billed.add(enrollment.child_id)
+
+            amount = money(monthly_amount)
             invoice = Invoice(
-                branch_id=data.branch_id,
+                branch_id=branch_id,
                 child_id=enrollment.child_id,
                 enrollment_id=enrollment.id,
                 billing_period=billing_period,
@@ -154,15 +183,11 @@ class BillingService:
             if enrollment.discount_percent and enrollment.discount_percent > 0:
                 await recompute_invoice(self._session, invoice)
 
-        self._audit.record(
-            action="INVOICES_GENERATED",
-            entity_type="invoice_batch",
-            entity_id=str(data.branch_id),
-            actor_user_id=current_user.id,
-            branch_id=data.branch_id,
-            after_data={"created": created, "period": billing_period.isoformat()},
-        )
-        return created, skipped, billing_period
+        # Oldindan to'langan pul yangi hisoblarga yoziladi.
+        for billed_child_id in {invoice.child_id for invoice, _ in new_invoices}:
+            await apply_unallocated(self._session, billed_child_id)
+
+        return created, skipped
 
     async def list_invoices_for_child(
         self, child_id: uuid.UUID, current_user: CurrentUser

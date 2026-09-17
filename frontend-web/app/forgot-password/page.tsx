@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import type { Lang } from "@/lib/landing-content";
-
-const LANGS: Lang[] = ["uz", "ru", "en"];
+import { AuthTopbar } from "@/components/ui/AuthTopbar";
+import { IconKids } from "@/components/icons";
+import type { Lang } from "@/lib/lang";
 
 const T: Record<
   Lang,
@@ -14,6 +14,8 @@ const T: Record<
     title: string;
     subtitle: string;
     back: string;
+    theme: string;
+    language: string;
     email: string;
     submit: string;
     submitting: string;
@@ -21,6 +23,8 @@ const T: Record<
   }
 > = {
   uz: {
+    theme: "Mavzuni almashtirish",
+    language: "Til",
     title: "Parolni tiklash",
     subtitle: "Ro'yxatdan o'tgan emailingizni kiriting",
     back: "Kirishga qaytish",
@@ -30,6 +34,8 @@ const T: Record<
     sent: "Agar bu email tizimda mavjud bo'lsa, tiklash havolasi yuborildi. Pochtangizni tekshiring.",
   },
   ru: {
+    theme: "Сменить тему",
+    language: "Язык",
     title: "Восстановление пароля",
     subtitle: "Введите зарегистрированный email",
     back: "Назад ко входу",
@@ -39,6 +45,8 @@ const T: Record<
     sent: "Если такой email зарегистрирован, ссылка для восстановления отправлена. Проверьте почту.",
   },
   en: {
+    theme: "Toggle theme",
+    language: "Language",
     title: "Reset password",
     subtitle: "Enter your registered email",
     back: "Back to sign in",
@@ -74,37 +82,20 @@ export default function ForgotPasswordPage(): ReactNode {
 
   return (
     <div className="auth-page">
-      <div className="auth-brandside">
+      <AuthTopbar
+        lang={lang}
+        setLang={setLang}
+        themeLabel={t.theme}
+        languageLabel={t.language}
+      />
+      <div className="auth-card">
         <div className="auth-mark">
-          <span className="auth-dot">B</span> KIDSFLOW
+          <span className="auth-dot">
+            <IconKids size={32} />
+          </span>
+          <span className="auth-wordmark">KIDSFLOW</span>
         </div>
-        <p className="auth-pitch">{t.subtitle}</p>
-      </div>
-      <div className="auth-formside">
         <div className="auth-form">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-          >
-            <Link href="/login" className="btn-ghost btn btn-sm">
-              ← {t.back}
-            </Link>
-            <div className="segmented" style={{ width: "auto" }}>
-              {LANGS.map((l) => (
-                <button
-                  type="button"
-                  key={l}
-                  className={l === lang ? "on" : ""}
-                  onClick={() => setLang(l)}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
           <h2>{t.title}</h2>
           <p>{t.subtitle}</p>
 
@@ -112,8 +103,8 @@ export default function ForgotPasswordPage(): ReactNode {
             <div className="info-box">{t.sent}</div>
           ) : (
             <form onSubmit={onSubmit}>
-              <div className="field">
-                <label>{t.email}</label>
+              <label className="field">
+                <span className="field__label">{t.email}</span>
                 <input
                   className="input"
                   type="email"
@@ -123,8 +114,8 @@ export default function ForgotPasswordPage(): ReactNode {
                   autoComplete="email"
                   required
                 />
-              </div>
-              {error && <p className="error">{error}</p>}
+              </label>
+              {error && <p className="error" role="alert">{error}</p>}
               <button
                 className="btn btn--full"
                 type="submit"
@@ -136,6 +127,11 @@ export default function ForgotPasswordPage(): ReactNode {
             </form>
           )}
         </div>
+      </div>
+      <div className="auth-foot">
+        <Link href="/login" className="btn-ghost btn btn-sm">
+          ← {t.back}
+        </Link>
       </div>
     </div>
   );

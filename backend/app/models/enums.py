@@ -114,6 +114,15 @@ class NotificationType(StrEnum):
     DEBT_WARNING = "DEBT_WARNING"
     BIRTHDAY_GREETING = "BIRTHDAY_GREETING"
     BROADCAST = "BROADCAST"
+    # Xodimning ota-ona savoliga bergan javobi.
+    STAFF_REPLY = "STAFF_REPLY"
+
+
+class MessageDirection(StrEnum):
+    """`parent_messages` yo'nalishi: kim kimga yozgani."""
+
+    IN = "IN"  # ota-onadan xodimga
+    OUT = "OUT"  # xodimdan ota-onaga
 
 
 class InvoiceStatus(StrEnum):

@@ -88,7 +88,13 @@ export function BarChart({
                 }
                 onMouseLeave={hide}
               />
+              {/* `bar-in` klassi CSS'da `pointer-events: none` olish uchun
+                  ham kerak: ustunlar yuqoridagi ko'rinmas "hit" maydonining
+                  USTIGA chiziladi va busiz sichqoncha hodisasini yutib
+                  qolardi — ustunning aynan o'ziga olib borilganda tooltip
+                  chiqmasdi. (`bar-out` da klass allaqachon bor edi.) */}
               <rect
+                className="bar-in"
                 x={x + 8}
                 y={y(incomeM)}
                 width={bw}
@@ -120,7 +126,11 @@ export function BarChart({
             const lw = label.length * 6.1 + 18;
             const ly = y(mlnf(breakeven));
             return (
-              <g>
+              // Zararsizlik chizig'i va uning kapsulasi diagramma maydonining
+              // ustidan chiziladi — `be` klassi ularni sichqoncha uchun
+              // "ko'rinmas" qiladi, aks holda o'sha yo'lakchada tooltip
+              // chiqmay qolardi.
+              <g className="be">
                 <line
                   className="be-line"
                   x1={padL}

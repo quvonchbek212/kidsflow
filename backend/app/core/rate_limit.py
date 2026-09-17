@@ -29,14 +29,30 @@ class RateLimiter(Protocol):
 class InMemoryRateLimiter:
     """Process-lokal fixed-window limiter (dev/test)."""
 
+    # Shuncha chaqiruvdan keyin bo'shab qolgan kalitlar tozalanadi — aks holda
+    # har bir yangi IP lug'atda abadiy qolib, xotira sekin o'sardi.
+    _SWEEP_EVERY = 1000
+
     def __init__(self) -> None:
         self._hits: dict[str, list[float]] = {}
+        self._calls = 0
 
     def reset(self) -> None:
         self._hits.clear()
+        self._calls = 0
+
+    def _sweep(self, now: float, window_seconds: int) -> None:
+        self._hits = {
+            key: kept
+            for key, stamps in self._hits.items()
+            if (kept := [t for t in stamps if now - t < window_seconds])
+        }
 
     async def allow(self, key: str, max_hits: int, window_seconds: int) -> bool:
         now = time.monotonic()
+        self._calls += 1
+        if self._calls % self._SWEEP_EVERY == 0:
+            self._sweep(now, window_seconds)
         bucket = [t for t in self._hits.get(key, []) if now - t < window_seconds]
         if len(bucket) >= max_hits:
             self._hits[key] = bucket
@@ -63,9 +79,13 @@ class RedisRateLimiter:
     async def allow(self, key: str, max_hits: int, window_seconds: int) -> bool:
         client = await self._get_client()
         redis_key = f"ratelimit:{key}"
-        count = await client.incr(redis_key)
-        if count == 1:
-            await client.expire(redis_key, window_seconds)
+        # INCR va EXPIRE bitta tranzaksiyada. Ilgari ular alohida edi: jarayon
+        # orasida uzilsa kalit muddatsiz qolib, IP butunlay bloklanardi.
+        # `nx=True` — mavjud muddat har urinishda uzaytirilmaydi (fixed window).
+        async with client.pipeline(transaction=True) as pipe:
+            pipe.incr(redis_key)
+            pipe.expire(redis_key, window_seconds, nx=True)
+            count, _ = await pipe.execute()
         return int(count) <= max_hits
 
 
@@ -113,6 +133,12 @@ login_rate_limit = rate_limit_dependency(
     "login",
     lambda s: s.login_rate_limit_max,
     lambda s: s.login_rate_limit_window_seconds,
+)
+
+refresh_rate_limit = rate_limit_dependency(
+    "refresh",
+    lambda s: s.refresh_rate_limit_max,
+    lambda s: s.refresh_rate_limit_window_seconds,
 )
 
 setup_rate_limit = rate_limit_dependency(

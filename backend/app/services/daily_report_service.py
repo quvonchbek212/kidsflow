@@ -55,7 +55,7 @@ class DailyReportService:
         if await self._reports.get_for_child_date(data.child_id, data.report_date):
             raise ConflictError("Bu bola uchun bu sanada hisobot allaqachon mavjud.")
 
-        await self._validate_files(data.file_ids)
+        await self._validate_files(data.file_ids, current_user)
 
         report = DailyReport(
             branch_id=branch_id,
@@ -108,7 +108,11 @@ class DailyReportService:
             setattr(report, field, value)
 
         if file_ids is not None:
-            await self._validate_files(file_ids)
+            await self._validate_files(
+                file_ids,
+                current_user,
+                already_attached=await self._reports.file_ids_for_report(report_id),
+            )
             await self._reports.clear_file_links(report_id)
             await self._session.flush()
             await self._attach_files(report_id, file_ids)
@@ -289,12 +293,30 @@ class DailyReportService:
 
         return self._access.is_manager_or_owner(user) or user.has_any_role(Role.TEACHER)
 
-    async def _validate_files(self, file_ids: list[uuid.UUID]) -> None:
+    async def _validate_files(
+        self,
+        file_ids: list[uuid.UUID],
+        current_user: CurrentUser,
+        already_attached: set[uuid.UUID] | None = None,
+    ) -> None:
+        """Faqat o'zi yuklagan (yoki shu hisobotda allaqachon turgan) fayl.
+
+        Ilgari fayl faqat mavjudligi bo'yicha tekshirilardi: istalgan fayl ID'sini
+        o'z hisobotiga biriktirib, keyin uni hisobot orqali yuklab olish mumkin
+        edi (masalan, boshqa xodim yuklagan to'lov cheki).
+        """
         if not file_ids:
             return
+        if len(set(file_ids)) != len(file_ids):
+            raise ConflictError("Bitta fayl ikki marta biriktirilgan.")
         found = await self._files.list_by_ids(file_ids)
-        if len(found) != len(set(file_ids)):
+        if len(found) != len(file_ids):
             raise NotFoundError("Ba'zi fayllar topilmadi.")
+        allowed = already_attached or set()
+        if any(f.uploaded_by != current_user.id and f.id not in allowed for f in found):
+            raise PermissionDeniedError(
+                "Faqat o'zingiz yuklagan faylni biriktirish mumkin."
+            )
 
     async def _attach_files(
         self, report_id: uuid.UUID, file_ids: list[uuid.UUID]

@@ -6,7 +6,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { BarChart, type BarChartMonth } from "@/components/charts/BarChart";
 import { Donut } from "@/components/charts/Donut";
 import { Sparkline } from "@/components/charts/Sparkline";
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
+import { CountUp } from "@/components/ui/CountUp";
 import {
   IconCalendar,
   IconTrendingDown,
@@ -26,16 +27,10 @@ import {
   monthLabel,
 } from "@/lib/format";
 import { LoadError, recoverWith } from "@/components/ui/LoadError";
-import { useAuth } from "@/lib/useAuth";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function DashboardPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="dashboard">
-      <DashboardContent />
-    </AppShell>
-  );
+  return <DashboardContent />;
 }
 
 interface TodayAttendance {
@@ -272,9 +267,13 @@ function DashboardContent(): ReactNode {
           </span>
         </div>
         <div>
-          <div className="kpi__value" style={{ fontSize: 52 }}>
-            {mlnf(netProfit)}
-            <span className="kpi__unit" style={{ fontSize: 16 }}>
+          {/* O'lchamlar CSS'da (`--hero`): ilgari ular inline `style` bilan
+              berilardi, inline uslubni esa media query bosa olmaydi — telefonda
+              raqam 52px bo'lib qolar va 320px ekranda haddan tashqari yirik
+              ko'rinardi. */}
+          <div className="kpi__value kpi__value--hero">
+            <CountUp value={netProfit} format={mlnf} />
+            <span className="kpi__unit kpi__unit--hero">
               {t.common.mln} {t.common.sum}
             </span>
           </div>
@@ -336,7 +335,10 @@ function DashboardContent(): ReactNode {
               {changeBadge("income")}
             </div>
             <div className="mini__big">
-              {mlnf(finance?.accrual_revenue ?? 0)}
+              <CountUp
+                value={Number(finance?.accrual_revenue ?? 0)}
+                format={mlnf}
+              />
               <span className="kpi__unit">{t.common.mln}</span>
             </div>
           </div>
@@ -355,7 +357,7 @@ function DashboardContent(): ReactNode {
               {changeBadge("outcome")}
             </div>
             <div className="mini__big">
-              {mlnf(finance?.expenses ?? 0)}
+              <CountUp value={Number(finance?.expenses ?? 0)} format={mlnf} />
               <span className="kpi__unit">{t.common.mln}</span>
             </div>
           </div>
@@ -379,8 +381,21 @@ function DashboardContent(): ReactNode {
                 </span>
               )}
             </div>
-            <div className="mini__big" style={{ color: "var(--neg)" }}>
-              {mlnf(finance?.outstanding ?? 0)}
+            {/* Qarz nolga teng bo'lsa qizil rang noto'g'ri signal beradi —
+                bu yaxshi holat, ogohlantirish emas. */}
+            <div
+              className="mini__big"
+              style={{
+                color:
+                  Number(finance?.outstanding ?? 0) > 0
+                    ? "var(--neg)"
+                    : undefined,
+              }}
+            >
+              <CountUp
+                value={Number(finance?.outstanding ?? 0)}
+                format={mlnf}
+              />
               <span className="kpi__unit">{t.common.mln}</span>
             </div>
           </div>
@@ -416,9 +431,14 @@ function DashboardContent(): ReactNode {
             </div>
           </div>
           <div className="mini__sub">
-            <b style={{ color: "var(--warn)" }}>{today.sick}</b>{" "}
+            {/* Nol — ogohlantiradigan qiymat emas, shuning uchun rangsiz. */}
+            <b style={{ color: today.sick > 0 ? "var(--warn)" : undefined }}>
+              {today.sick}
+            </b>{" "}
             {t.dashboard.sick} ·{" "}
-            <b style={{ color: "var(--neg)" }}>{today.absent}</b>{" "}
+            <b style={{ color: today.absent > 0 ? "var(--neg)" : undefined }}>
+              {today.absent}
+            </b>{" "}
             {t.dashboard.absent}
           </div>
         </div>
@@ -497,7 +517,7 @@ function DashboardContent(): ReactNode {
               totalLabel={t.common.all}
             />
           ) : (
-            <div className="panel-empty">{t.common.empty}</div>
+            <EmptyState title={t.common.empty} />
           )}
         </div>
       </div>
@@ -677,7 +697,7 @@ function DashboardContent(): ReactNode {
           </button>
         </div>
         {recentPaid.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

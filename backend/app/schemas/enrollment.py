@@ -23,6 +23,9 @@ class EnrollmentCreateRequest(BaseModel):
 
 class EnrollmentUpdateRequest(BaseModel):
     status: EnrollmentStatus | None = None
+    # Faqat navbatdagi (PLANNED) enrollment uchun: qabul qilinganda asl
+    # "kutilayotgan sana" haqiqiy qabul sanasiga almashtiriladi.
+    start_date: date | None = None
     end_date: date | None = None
     group_id: uuid.UUID | None = None
     notes: str | None = Field(default=None, max_length=1000)

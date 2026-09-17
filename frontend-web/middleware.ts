@@ -30,9 +30,28 @@ export function middleware(request: NextRequest): NextResponse {
     apiOrigin = "";
   }
 
+  // `next dev` modullarni `eval()` orqali yuklaydi (webpack `eval-source-map`),
+  // shuning uchun faqat development'da `'unsafe-eval'` kerak bo'ladi. Usiz
+  // butun client JS bloklanadi va sahifa jonlanmaydi (hydration bo'lmaydi).
+  // Production build'da `eval` ishlatilmaydi — u yerda bu yumshatish yo'q.
+  const devEval =
+    process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
+
+  // `upgrade-insecure-requests` brauzerga barcha `http://` so'rovlarni
+  // `https://` ga o'tkazishni buyuradi. Productionda bu to'g'ri — u yerda sayt
+  // TLS orqali beriladi. Developmentda esa hech qanday foyda bermaydi va
+  // `localhost` dan tashqari har qanday manzilni butunlay ishdan chiqaradi:
+  // brauzerlar `localhost` ni "ishonchli manba" deb bu qoidadan ozod qiladi,
+  // LAN manzilini (masalan telefondan `http://192.168.x.x:3000`) esa yo'q —
+  // natijada CSS va JS `https://192.168.x.x:3000` ga ketib
+  // `ERR_SSL_PROTOCOL_ERROR` bilan yiqiladi va sahifa umuman jonlanmaydi.
+  // Shuning uchun u faqat productionda qo'shiladi.
+  const upgradeInsecure =
+    process.env.NODE_ENV === "development" ? [] : ["upgrade-insecure-requests"];
+
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${devEval}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -43,7 +62,7 @@ export function middleware(request: NextRequest): NextResponse {
     "form-action 'self'",
     // X-Frame-Options ning zamonaviy muqobili — clickjackingga qarshi.
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    ...upgradeInsecure,
   ].join("; ");
 
   // Next.js nonce'ni SO'ROV sarlavhasidagi CSP dan o'qiydi va o'z script

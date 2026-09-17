@@ -25,14 +25,14 @@ from app.models.enums import (
     OutboxStatus,
 )
 from app.models.messaging import Notification, OutboxEvent
-from app.repositories.child_repository import ChildRepository
+from app.repositories.child_repository import ChildRepository, EnrollmentRepository
 from app.repositories.daily_report_repository import DailyReportRepository
 from app.repositories.finance_repository import InvoiceRepository
 from app.repositories.messaging_repository import (
+    BranchNotificationSettingsRepository,
     NotificationRepository,
     OutboxRepository,
 )
-from app.repositories.settings_repository import SettingsRepository
 from app.services.attendance_service import CHILD_CHECKED_IN, CHILD_SICK
 from app.services.daily_report_service import DAILY_REPORT_PUBLISHED
 from app.services.notification_scheduler import (
@@ -46,10 +46,16 @@ from app.utils.money import money
 
 logger = logging.getLogger(__name__)
 
-# 7-bosqich B: shu turlar `notification_toggles` orqali yoqilgan/o'chirilgan
-# bo'lishi mumkin (standart — yoqilgan, kalit topilmasa ham).
+# Shu turlarni HAR FILIAL o'z sozlamalarida yoqishi/o'chirishi mumkin
+# (`branch_notification_settings.toggles`). Kalit topilmasa — yoqilgan.
 _TOGGLEABLE_TYPES = frozenset(
-    {CHILD_CHECKED_IN, CHILD_SICK, PAYMENT_REMINDER, DEBT_WARNING, BIRTHDAY_GREETING}
+    {
+        CHILD_CHECKED_IN,
+        CHILD_SICK,
+        PAYMENT_REMINDER,
+        DEBT_WARNING,
+        BIRTHDAY_GREETING,
+    }
 )
 
 
@@ -62,16 +68,48 @@ class OutboxProcessor:
         self._children = ChildRepository(session)
         self._reports = DailyReportRepository(session)
         self._invoices = InvoiceRepository(session)
-        self._settings = SettingsRepository(session)
-        self._toggles: dict[str, bool] | None = None
+        self._enrollments = EnrollmentRepository(session)
+        self._branch_settings = BranchNotificationSettingsRepository(session)
+        # Bitta sikl ichida qayta so'ralmasligi uchun keshlar.
+        self._toggles_by_branch: dict[uuid.UUID, dict[str, bool]] = {}
+        # Bola -> filial. `CHILD_CHECKED_IN` kabi hodisalar payload'ida
+        # `branch_id` yo'q va u har safar bazadan qidiriladi; kunlik davomatda
+        # bu har bola uchun bittadan ortiqcha so'rov degani.
+        self._branch_by_child: dict[uuid.UUID, uuid.UUID | None] = {}
 
-    async def _is_enabled(self, event_type: str) -> bool:
+    async def _branch_for_event(self, event: OutboxEvent) -> uuid.UUID | None:
+        """Hodisa qaysi filialga tegishli.
+
+        Ba'zi hodisalar payload'ida `branch_id` olib yuradi (to'lov eslatmasi,
+        qarz), qolganlarida esa faqat `child_id` bor — u holda filial
+        bolaning ro'yxatga olinishidan aniqlanadi. Shu tufayli hodisa
+        yaratuvchi xizmatlarni o'zgartirish shart bo'lmadi.
+        """
+        raw_branch = event.payload.get("branch_id")
+        if raw_branch:
+            return uuid.UUID(str(raw_branch))
+        raw_child = event.payload.get("child_id")
+        if not raw_child:
+            return None
+        child_id = uuid.UUID(str(raw_child))
+        if child_id not in self._branch_by_child:
+            self._branch_by_child[child_id] = await self._enrollments.branch_for_child(
+                child_id
+            )
+        return self._branch_by_child[child_id]
+
+    async def _is_enabled(self, event_type: str, branch_id: uuid.UUID | None) -> bool:
         if event_type not in _TOGGLEABLE_TYPES:
             return True
-        if self._toggles is None:
-            settings = await self._settings.get()
-            self._toggles = (settings.notification_toggles or {}) if settings else {}
-        return self._toggles.get(event_type, True)
+        if branch_id is None:
+            # Filialni aniqlab bo'lmadi — xabarni to'sib qo'ymaymiz.
+            return True
+        if branch_id not in self._toggles_by_branch:
+            config = await self._branch_settings.get(branch_id)
+            self._toggles_by_branch[branch_id] = (
+                (config.toggles or {}) if config else {}
+            )
+        return self._toggles_by_branch[branch_id].get(event_type, True)
 
     async def process_outbox(self, limit: int = 50) -> int:
         """PENDING outbox hodisalaridan bildirishnoma yaratadi."""
@@ -90,19 +128,26 @@ class OutboxProcessor:
         return len(events)
 
     async def dispatch_notifications(self, limit: int = 50) -> int:
-        """PENDING bildirishnomalarni yuboradi va holatini yangilaydi."""
-        pending = await self._notifications.fetch_pending(limit)
+        """PENDING bildirishnomalarni yuboradi va holatini yangilaydi.
+
+        Urinishlar soni tugagan (yoki umuman manzili yo'q) bildirishnoma
+        `FAILED` bo'ladi — navbat boshini abadiy egallab turmasligi uchun.
+        """
+        max_retries = get_settings().outbox_max_retries
+        pending = await self._notifications.fetch_pending(limit, max_retries)
         for notification in pending:
-            text = str(notification.payload.get("text", ""))
             chat_id = notification.target_chat_id
-            sent = False
-            if chat_id is not None:
-                sent = await self._sender.send(chat_id, text)
-            if sent:
+            if chat_id is None:
+                notification.status = NotificationStatus.FAILED.value
+                continue
+            text = str(notification.payload.get("text", ""))
+            if await self._sender.send(chat_id, text):
                 notification.status = NotificationStatus.SENT.value
                 notification.sent_at = datetime.now(UTC)
             else:
                 notification.retry_count += 1
+                if notification.retry_count >= max_retries:
+                    notification.status = NotificationStatus.FAILED.value
         await self._session.flush()
         return len(pending)
 
@@ -114,10 +159,11 @@ class OutboxProcessor:
     # --- hodisa turlari ---
 
     async def _handle_event(self, event: OutboxEvent) -> None:
-        if event.event_type in _TOGGLEABLE_TYPES and not await self._is_enabled(
-            event.event_type
-        ):
-            return  # Bu tur o'chirilgan — jim o'tkazib yuboriladi (PROCESSED bo'ladi).
+        if event.event_type in _TOGGLEABLE_TYPES:
+            branch_id = await self._branch_for_event(event)
+            if not await self._is_enabled(event.event_type, branch_id):
+                # Bu filialda tur o'chirilgan — jim o'tkaziladi (PROCESSED bo'ladi).
+                return
 
         if event.event_type == DAILY_REPORT_PUBLISHED:
             await self._handle_daily_report_published(event)

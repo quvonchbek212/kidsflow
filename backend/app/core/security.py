@@ -37,8 +37,18 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def password_needs_rehash(password_hash: str) -> bool:
-    """Hash parametrlari eskirganini tekshiradi (kelajakda rehash uchun)."""
+    """Hash parametrlari eskirganini tekshiradi (muvaffaqiyatli loginda qayta hash)."""
     return _password_hasher.check_needs_rehash(password_hash)
+
+
+# Foydalanuvchi topilmaganda ham Argon2 hisoblanishi uchun. Aks holda javob
+# vaqti (≈1 ms va ≈50 ms) orqali qaysi login mavjudligini bilib olish mumkin edi.
+_DUMMY_PASSWORD_HASH = _password_hasher.hash("kidsflow-timing-equalizer")
+
+
+def burn_password_check(password: str) -> None:
+    """Mavjud bo'lmagan hisob uchun parol tekshiruvi vaqtini sarflaydi."""
+    verify_password(password, _DUMMY_PASSWORD_HASH)
 
 
 # --- Access token (JWT) ---
@@ -97,11 +107,6 @@ def generate_opaque_token() -> str:
 def hash_opaque_token(token: str) -> str:
     """Opaque tokenni bazada saqlash uchun SHA-256 hash qiladi."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
-
-
-# Orqaga moslik uchun eski nomlar (refresh token ishlatadigan joylar).
-generate_refresh_token = generate_opaque_token
-hash_refresh_token = hash_opaque_token
 
 
 def refresh_token_expiry() -> datetime:

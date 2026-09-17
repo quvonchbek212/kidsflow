@@ -9,23 +9,18 @@ import {
   type ReactNode,
 } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
+import { NotificationSettingsCard } from "@/components/NotificationSettingsCard";
 import type { AppStrings } from "@/lib/app-i18n";
 import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiError, api, type Branch, type Group } from "@/lib/api";
 import { money } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function SettingsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="settings">
-      <SettingsContent />
-    </AppShell>
-  );
+  return <SettingsContent />;
 }
 
 /** Filial yaratish/tahrirlash oynasi. Modal ichida o'z holatini boshqaradi
@@ -77,11 +72,11 @@ function BranchForm({
 
   return (
     <form onSubmit={submit}>
-      <div className="field">
-        <label>
+      <label className="field">
+        <span className="field__label">
           {t.settings.branchName}
           <span className="req">*</span>
-        </label>
+        </span>
         <input
           className="input"
           required
@@ -89,27 +84,27 @@ function BranchForm({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-      </div>
-      <div className="field">
-        <label>{t.settings.address}</label>
+      </label>
+      <label className="field">
+        <span className="field__label">{t.settings.address}</span>
         <input
           className="input"
           maxLength={500}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
-      </div>
-      <div className="field">
-        <label>{t.common.phone}</label>
+      </label>
+      <label className="field">
+        <span className="field__label">{t.common.phone}</span>
         <input
           className="input"
           placeholder="+998 90 123 45 67"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
-      </div>
-      <div className="field">
-        <label>{t.settings.branchCapacity}</label>
+      </label>
+      <label className="field">
+        <span className="field__label">{t.settings.branchCapacity}</span>
         <input
           className="input"
           type="number"
@@ -117,7 +112,7 @@ function BranchForm({
           value={capacity}
           onChange={(e) => setCapacity(e.target.value)}
         />
-      </div>
+      </label>
 
       {/* Filial o'chirilmaydi — faolsizlantiriladi. Undagi guruhlar, bolalar va
           moliyaviy tarix saqlanib qoladi (11-bo'lim: yozuvlar o'chirilmaydi). */}
@@ -132,10 +127,12 @@ function BranchForm({
         </label>
       )}
 
-      {error && <p className="error">{error}</p>}
-      <button className="btn btn--full" type="submit" disabled={saving}>
-        {saving ? t.common.saving : t.common.save}
-      </button>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="modal-actions">
+        <button className="btn btn--full" type="submit" disabled={saving}>
+          {saving ? t.common.saving : t.common.save}
+        </button>
+      </div>
     </form>
   );
 }
@@ -161,7 +158,6 @@ function SettingsContent(): ReactNode {
   const [phone, setPhone] = useState("");
   const [loadError, setLoadError] = useState<unknown>(null);
   const [hoursText, setHoursText] = useState("");
-  const [autoInvoiceDay, setAutoInvoiceDay] = useState("");
 
   const loadSettings = useCallback((): void => {
     setLoadError(null);
@@ -173,7 +169,6 @@ function SettingsContent(): ReactNode {
         setAddress(s.address ?? "");
         setPhone(s.phone ?? "");
         setHoursText(s.hours_text ?? "");
-        setAutoInvoiceDay(s.auto_invoice_day ? String(s.auto_invoice_day) : "");
       })
       .catch(setLoadError)
       .finally(() => setReady(true));
@@ -228,7 +223,6 @@ function SettingsContent(): ReactNode {
         address: address || undefined,
         phone: phone || undefined,
         hours_text: hoursText || undefined,
-        auto_invoice_day: autoInvoiceDay ? Number(autoInvoiceDay) : undefined,
       });
       toast.show(t.settings.saved);
     } catch (err) {
@@ -266,65 +260,53 @@ function SettingsContent(): ReactNode {
           <div className="card__body">
             <form onSubmit={onSubmit}>
               <div className="form-grid">
-                <div className="field span-2">
-                  <label>
+                <label className="field span-2">
+                  <span className="field__label">
                     {t.settings.name}
                     <span className="req">*</span>
-                  </label>
+                  </span>
                   <input
                     className="input"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
-                </div>
-                <div className="field span-2">
-                  <label>{t.settings.legalName}</label>
+                </label>
+                <label className="field span-2">
+                  <span className="field__label">{t.settings.legalName}</span>
                   <input
                     className="input"
                     value={legalName}
                     onChange={(e) => setLegalName(e.target.value)}
                   />
-                </div>
-                <div className="field span-2">
-                  <label>{t.settings.address}</label>
+                </label>
+                <label className="field span-2">
+                  <span className="field__label">{t.settings.address}</span>
                   <input
                     className="input"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                   />
-                </div>
-                <div className="field">
-                  <label>{t.common.phone}</label>
+                </label>
+                <label className="field">
+                  <span className="field__label">{t.common.phone}</span>
                   <input
                     className="input"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
-                </div>
-                <div className="field">
-                  <label>{t.settings.hoursText}</label>
+                </label>
+                <label className="field">
+                  <span className="field__label">{t.settings.hoursText}</span>
                   <input
                     className="input"
                     placeholder="07:30 — 18:30"
                     value={hoursText}
                     onChange={(e) => setHoursText(e.target.value)}
                   />
-                </div>
-                <div className="field span-2">
-                  <label>{t.settings.autoInvoiceDay}</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min={1}
-                    max={28}
-                    value={autoInvoiceDay}
-                    onChange={(e) => setAutoInvoiceDay(e.target.value)}
-                  />
-                  <p className="field__hint">{t.settings.autoInvoiceDayHint}</p>
-                </div>
+                </label>
               </div>
-              {error && <p className="error">{error}</p>}
+              {error && <p className="error" role="alert">{error}</p>}
               <button className="btn" type="submit" disabled={saving}>
                 {saving ? t.common.saving : t.settings.saveChanges}
               </button>
@@ -343,7 +325,7 @@ function SettingsContent(): ReactNode {
             </Link>
           </div>
           {groups.length === 0 ? (
-            <div className="panel-empty">{t.common.empty}</div>
+            <EmptyState title={t.common.empty} />
           ) : (
             <div className="tbl-wrap">
               <table className="tbl">
@@ -371,6 +353,8 @@ function SettingsContent(): ReactNode {
         </div>
       </div>
 
+      <NotificationSettingsCard branchId={branchId} t={t} />
+
       {/* Filiallar — har biri o'z guruhlari, xodimlari va hisobotiga ega.
           Yon paneldagi filial tanlagichi shu ro'yxatdan to'ldiriladi. */}
       <div className="card" style={{ marginTop: 16 }}>
@@ -388,7 +372,7 @@ function SettingsContent(): ReactNode {
           </button>
         </div>
         {branches.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

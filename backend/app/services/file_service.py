@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from dataclasses import dataclass
 
@@ -56,7 +57,9 @@ class FileService:
                 "Fayl xavfsizlik tekshiruvidan o'tmadi va qabul qilinmadi."
             )
 
-        stored = file_storage.save_file(content, content_type)
+        # Disk IO event loop'ni to'xtatmasligi uchun alohida oqimda: 10 MB
+        # faylni yozish paytida boshqa so'rovlar kutib turardi.
+        stored = await asyncio.to_thread(file_storage.save_file, content, content_type)
         record = File(
             storage_key=stored.storage_key,
             original_name=original_name[:255],
@@ -98,7 +101,9 @@ class FileService:
             )
 
         try:
-            content = file_storage.read_file(record.storage_key)
+            content = await asyncio.to_thread(
+                file_storage.read_file, record.storage_key
+            )
         except FileNotFoundError as exc:
             raise NotFoundError("Fayl mazmuni topilmadi.") from exc
 

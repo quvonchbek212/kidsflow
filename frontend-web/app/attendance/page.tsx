@@ -2,23 +2,19 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { useToast } from "@/components/ui/ToastProvider";
+import { ListSkeleton } from "@/components/ui/ListSkeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { GroupPicker, groupPickerLabels } from "@/components/ui/GroupPicker";
 import { ApiError, api, type AttendanceRosterRow, type Group } from "@/lib/api";
 import { initials, isoDate } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 type Status = "PRESENT" | "LATE" | "SICK" | "ABSENT" | "EXCUSED";
 
 export default function AttendancePage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="attendance">
-      <AttendanceContent />
-    </AppShell>
-  );
+  return <AttendanceContent />;
 }
 
 function AttendanceContent(): ReactNode {
@@ -43,18 +39,37 @@ function AttendanceContent(): ReactNode {
   // filial guruhiga davomat belgilash mumkin bo'lib qolardi.
   useEffect(() => {
     if (!branchId) return;
-    api.listGroups(branchId).then((list) => {
-      setGroups(list);
-      setGroupId(list.length > 0 ? list[0].id : "");
-    });
+    api
+      .listGroups(branchId)
+      .then((list) => {
+        setGroups(list);
+        setGroupId(list.length > 0 ? list[0].id : "");
+      })
+      .catch(() => {
+        setGroups([]);
+        setGroupId("");
+      })
+      // Guruh topilmasa `load()` erta qaytadi va `ready` hech qachon `true`
+      // bo'lmasdi — sahifa abadiy "Yuklanmoqda..." holatida qolardi.
+      .finally(() => setReady(true));
   }, [branchId]);
 
-  function load(): void {
-    if (!groupId || !date) return;
+  // Qaytgan funksiya eskirgan javobni bekor qiladi: guruh yoki sana tez
+  // almashtirilsa, oldingisining kechikkan javobi yangi ro'yxat va
+  // belgilanmagan holatlar ustiga yozilmasin (saqlashda noto'g'ri bolalar
+  // ketib qolardi).
+  function load(): (() => void) | undefined {
+    if (!groupId || !date) {
+      setRoster([]);
+      setPending({});
+      return undefined;
+    }
+    let cancelled = false;
     setReady(false);
     api
       .attendanceRoster(groupId, date)
       .then((rows) => {
+        if (cancelled) return;
         setRoster(rows);
         const initial: Record<string, Status> = {};
         rows.forEach((r) => {
@@ -62,21 +77,31 @@ function AttendanceContent(): ReactNode {
         });
         setPending(initial);
       })
-      .catch(() => setRoster([]))
-      .finally(() => setReady(true));
+      .catch(() => {
+        if (!cancelled) setRoster([]);
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
 
     api
       .attendanceTrend(groupId, 11)
-      .then((res) =>
+      .then((res) => {
+        if (cancelled) return;
         setTrend(
           res.points.map((p) => ({
             label: p.attendance_date.slice(5),
             present: p.present_count,
             total: p.total_count,
           })),
-        ),
-      )
-      .catch(() => setTrend([]));
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setTrend([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }
 
   useEffect(load, [groupId, date]);
@@ -128,25 +153,26 @@ function AttendanceContent(): ReactNode {
     ? Math.round((presentCount / roster.length) * 100)
     : 0;
 
+  // Telefonda tugma ikki joyda chiqadi: yuqorida (kompyuter) va ro'yxat
+  // ostida ekranga yopishgan panelda — ko'rinishini CSS boshqaradi.
+  function renderSave(extraClass = ""): ReactNode {
+    return (
+      <button
+        type="button"
+        className={`btn btn-sm${extraClass}`}
+        onClick={save}
+        /* Guruh tanlanmagan bo'lsa `group_id` bo'sh ketib backend 422
+           qaytarardi; belgilanmagan ro'yxatni saqlashning ma'nosi ham
+           yo'q. */
+        disabled={saving || !groupId || roster.length === 0}
+      >
+        {saving ? t.common.saving : t.attendance.saveAndSend}
+      </button>
+    );
+  }
+
   return (
     <>
-      {/* Sana tanlagich; guruh esa mockupdagidek chip qatorida. */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 16,
-        }}
-      >
-        <input
-          className="input"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          style={{ marginTop: 0, width: "auto" }}
-        />
-      </div>
-
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="att__sum">
           <div>
@@ -165,42 +191,44 @@ function AttendanceContent(): ReactNode {
             {t.attendance.rate}
             <b>{rate}%</b>
           </div>
-          <div style={{ marginLeft: "auto", alignSelf: "center" }}>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={save}
-              disabled={saving}
-            >
-              {saving ? t.common.saving : t.attendance.saveAndSend}
-            </button>
-          </div>
+          <div className="att__save-top">{renderSave()}</div>
         </div>
-        {/* Guruh tanlash — mockupdagi chip qatori */}
-        <div className="toolbar">
-          {groups.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className={`chip${g.id === groupId ? " on" : ""}`}
-              onClick={() => setGroupId(g.id)}
-            >
-              {g.name}
-            </button>
-          ))}
+        {/* Guruh, sana va "hammasi keldi" bitta qatorda: guruhlar ko'p bo'lsa
+            ham qator o'ralmaydi, gorizontal suriladi (GroupPicker). */}
+        <div className="toolbar toolbar--picker">
+          <GroupPicker
+            groups={groups}
+            value={groupId}
+            onChange={setGroupId}
+            labels={groupPickerLabels(t)}
+          />
+          {/* Ko'rinadigan yorlig'i yo'q — nomi yordamchi texnologiyalar va
+              sichqoncha uchun shu yerda beriladi. */}
+          <input
+            className="input toolbar__date"
+            type="date"
+            aria-label={t.common.date}
+            title={t.common.date}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
           <button
             type="button"
-            className="btn-ghost btn btn-sm"
-            style={{ marginLeft: "auto" }}
+            className="btn-ghost btn btn-sm att__markall"
             onClick={markAll}
+            disabled={roster.length === 0}
           >
             {t.attendance.markAll}
           </button>
         </div>
         {!ready ? (
-          <div className="panel-empty">{t.common.loading}</div>
+          /* Bitta qatorli "Yuklanmoqda" o'rniga ro'yxat qolipi: ma'lumot
+             kelganda blok birdan o'sib, sahifani pastga surib yubormaydi. */
+          <ListSkeleton rows={8} />
+        ) : groups.length === 0 ? (
+          <div className="panel-empty">{t.attendance.noGroups}</div>
         ) : roster.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div>
             {roster.map((row) => {
@@ -230,6 +258,9 @@ function AttendanceContent(): ReactNode {
               );
             })}
           </div>
+        )}
+        {ready && roster.length > 0 && (
+          <div className="att__savebar">{renderSave(" btn--full")}</div>
         )}
       </div>
 

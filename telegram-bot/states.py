@@ -11,3 +11,13 @@ class LinkStates(StatesGroup):
 
 class AskStates(StatesGroup):
     waiting_question = State()
+
+
+class StaffMessageStates(StatesGroup):
+    """Ota-onaning xodimga yozadigan savoli.
+
+    `AskStates` dan farqi: u AI yordamchiga boradi va darhol javob qaytaradi,
+    bu esa veb-saytdagi Xabarlar bo'limiga tushadi va tirik xodim javob beradi.
+    """
+
+    waiting_message = State()

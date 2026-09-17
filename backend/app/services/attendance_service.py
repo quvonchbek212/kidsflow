@@ -201,14 +201,16 @@ class AttendanceService:
             await self._enrollments.child_ids_in_groups([data.group_id])
         )
 
+        if any(entry.child_id not in group_child_ids for entry in data.entries):
+            raise ConflictError("Bola shu guruhga tegishli emas.")
+        # Bitta so'rov: ilgari har bir bola uchun alohida SELECT ketardi.
+        existing_by_child = await self._attendance.map_for_children_date(
+            [entry.child_id for entry in data.entries], data.attendance_date
+        )
+
         records: list[Attendance] = []
         for entry in data.entries:
-            if entry.child_id not in group_child_ids:
-                raise ConflictError("Bola shu guruhga tegishli emas.")
-
-            existing = await self._attendance.get_for_child_date(
-                entry.child_id, data.attendance_date
-            )
+            existing = existing_by_child.get(entry.child_id)
             previous_status = existing.status if existing is not None else None
             if existing is not None:
                 existing.status = entry.status.value

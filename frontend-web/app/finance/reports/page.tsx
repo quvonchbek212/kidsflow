@@ -2,21 +2,15 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { IconDownload } from "@/components/icons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { api, type FinanceDashboard, type Group } from "@/lib/api";
 import { downloadCsv } from "@/lib/csv";
 import { mlnf, money } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function FinanceReportsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="reports">
-      <ReportsContent />
-    </AppShell>
-  );
+  return <ReportsContent />;
 }
 
 /** P&L jadvalining bitta qatori. `kind` ko'rinishni belgilaydi. */
@@ -24,6 +18,9 @@ interface PlRow {
   label: string;
   amount: number;
   kind?: "section" | "sum" | "total";
+  /** React kaliti. Nomlar takrorlanishi mumkin (bir xil nomli ikki guruh),
+   *  shuning uchun mavjud bo'lganda barqaror ID ishlatiladi. */
+  key?: string;
 }
 
 function ReportsContent(): ReactNode {
@@ -78,6 +75,7 @@ function ReportsContent(): ReactNode {
   // Daromad bo'limi guruh kesimidan tuziladi — backend boshqa kesim bermaydi,
   // shuning uchun mockupdagi "tarif turlari" o'rniga guruhlar turadi.
   const revenueRows: PlRow[] = finance.revenue_by_group.map((r) => ({
+    key: r.group_id,
     label: groupName(r.group_id),
     amount: Number(r.total),
   }));
@@ -236,10 +234,10 @@ function ReportsContent(): ReactNode {
             </div>
             <div className="card__body">
               {revenueRows.length === 0 ? (
-                <div className="panel-empty">{t.common.empty}</div>
+                <EmptyState title={t.common.empty} />
               ) : (
                 revenueRows.map((row) => (
-                  <div key={row.label} style={{ marginBottom: 16 }}>
+                  <div key={row.key ?? row.label} style={{ marginBottom: 16 }}>
                     <div
                       style={{
                         display: "flex",

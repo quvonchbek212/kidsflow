@@ -42,8 +42,8 @@ class Group(UUIDMixin, TimestampMixin, Base):
     max_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    # Guruhga bog'langan oylik tarif (mockup: guruh = tarif). Ixtiyoriy — mavjud
-    # branch-darajasidagi FeePlan mexanizmi bilan bir vaqtda ishlatilishi mumkin.
+    # Guruhga bog'langan oylik tarif (mockup: guruh = tarif). Hisob-faktura
+    # summasining yagona manbai; belgilanmagan guruhga hisob yaratilmaydi.
     monthly_fee: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
     room_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
 

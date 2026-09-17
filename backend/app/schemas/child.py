@@ -44,6 +44,20 @@ class GuardianSummary(BaseModel):
     receives_notifications: bool
 
 
+class ChildEnrollmentSummary(BaseModel):
+    """Bolaning eng dolzarb enrollmenti (faol, bo'lmasa eng yangisi).
+
+    Ro'yxatda guruh ustunini to'ldirish va navbatdagi bolani qabul qilish
+    (PLANNED → ACTIVE) uchun kerak — aks holda frontend enrollment ID'sini
+    bilmaydi.
+    """
+
+    id: uuid.UUID
+    group_id: uuid.UUID
+    start_date: date
+    status: str
+
+
 class ChildResponse(BaseModel):
     id: uuid.UUID
     full_name: str
@@ -55,6 +69,7 @@ class ChildResponse(BaseModel):
     # Enrollment holatidan hisoblanadi (ustun emas): PLANNED→waiting,
     # ACTIVE→active, boshqa barcha holat (yoki enrollment yo'q)→left.
     status: str
+    enrollment: ChildEnrollmentSummary | None = None
     guardians: list[GuardianSummary]
 
 

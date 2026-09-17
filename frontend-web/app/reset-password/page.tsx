@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent, type ReactNode } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import type { Lang } from "@/lib/landing-content";
-
-const LANGS: Lang[] = ["uz", "ru", "en"];
+import { AuthTopbar } from "@/components/ui/AuthTopbar";
+import { IconKids } from "@/components/icons";
+import type { Lang } from "@/lib/lang";
 
 const T: Record<
   Lang,
@@ -15,6 +15,8 @@ const T: Record<
     title: string;
     subtitle: string;
     back: string;
+    theme: string;
+    language: string;
     password: string;
     confirm: string;
     submit: string;
@@ -25,6 +27,8 @@ const T: Record<
   }
 > = {
   uz: {
+    theme: "Mavzuni almashtirish",
+    language: "Til",
     title: "Yangi parol",
     subtitle: "Hisobingiz uchun yangi parol o'rnating",
     back: "Kirishga qaytish",
@@ -38,6 +42,8 @@ const T: Record<
     missingToken: "Havola yaroqsiz — token topilmadi.",
   },
   ru: {
+    theme: "Сменить тему",
+    language: "Язык",
     title: "Новый пароль",
     subtitle: "Установите новый пароль для аккаунта",
     back: "Назад ко входу",
@@ -50,6 +56,8 @@ const T: Record<
     missingToken: "Ссылка недействительна — токен не найден.",
   },
   en: {
+    theme: "Toggle theme",
+    language: "Language",
     title: "New password",
     subtitle: "Set a new password for your account",
     back: "Back to sign in",
@@ -106,48 +114,31 @@ function ResetPasswordForm(): ReactNode {
 
   return (
     <div className="auth-page">
-      <div className="auth-brandside">
+      <AuthTopbar
+        lang={lang}
+        setLang={setLang}
+        themeLabel={t.theme}
+        languageLabel={t.language}
+      />
+      <div className="auth-card">
         <div className="auth-mark">
-          <span className="auth-dot">B</span> KIDSFLOW
+          <span className="auth-dot">
+            <IconKids size={32} />
+          </span>
+          <span className="auth-wordmark">KIDSFLOW</span>
         </div>
-        <p className="auth-pitch">{t.subtitle}</p>
-      </div>
-      <div className="auth-formside">
         <div className="auth-form">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: 16,
-            }}
-          >
-            <Link href="/login" className="btn-ghost btn btn-sm">
-              ← {t.back}
-            </Link>
-            <div className="segmented" style={{ width: "auto" }}>
-              {LANGS.map((l) => (
-                <button
-                  type="button"
-                  key={l}
-                  className={l === lang ? "on" : ""}
-                  onClick={() => setLang(l)}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
           <h2>{t.title}</h2>
           <p>{t.subtitle}</p>
 
           {!token ? (
-            <p className="error">{t.missingToken}</p>
+            <p className="error" role="alert">{t.missingToken}</p>
           ) : success ? (
             <div className="info-box">{t.success}</div>
           ) : (
             <form onSubmit={onSubmit}>
-              <div className="field">
-                <label>{t.password}</label>
+              <label className="field">
+                <span className="field__label">{t.password}</span>
                 <input
                   className="input"
                   type="password"
@@ -157,9 +148,9 @@ function ResetPasswordForm(): ReactNode {
                   minLength={8}
                   required
                 />
-              </div>
-              <div className="field">
-                <label>{t.confirm}</label>
+              </label>
+              <label className="field">
+                <span className="field__label">{t.confirm}</span>
                 <input
                   className="input"
                   type="password"
@@ -169,8 +160,8 @@ function ResetPasswordForm(): ReactNode {
                   minLength={8}
                   required
                 />
-              </div>
-              {error && <p className="error">{error}</p>}
+              </label>
+              {error && <p className="error" role="alert">{error}</p>}
               <button
                 className="btn btn--full"
                 type="submit"
@@ -182,6 +173,11 @@ function ResetPasswordForm(): ReactNode {
             </form>
           )}
         </div>
+      </div>
+      <div className="auth-foot">
+        <Link href="/login" className="btn-ghost btn btn-sm">
+          ← {t.back}
+        </Link>
       </div>
     </div>
   );

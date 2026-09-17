@@ -136,24 +136,80 @@ async def test_update_salary_and_payroll_summary(client: AsyncClient) -> None:
     assert body["staff"][0]["position"] == "MANAGER"
 
 
-async def test_payroll_summary_requires_owner(client: AsyncClient) -> None:
+async def test_payroll_summary_scoped_to_manager_branch(client: AsyncClient) -> None:
+    """Menejer ish haqi fondini ko'radi — lekin faqat o'z filiali bo'yicha.
+
+    Ish haqini hisoblash (`/payroll/runs`) menejerga ochiq, shuning uchun fond
+    raqami ham unga ko'rinishi kerak; aks holda u nima to'layotganini bilmay
+    turib to'lardi. Chegara — boshqa filialning xodimlari va bog'cha egasi
+    (u yollanma xodim emas) bu raqamga kirmaydi.
+    """
+    owner, branch_a = await _owner(client)
+    branch_b = (
+        await client.post(
+            "/api/v1/branches",
+            headers=auth_header(owner),
+            json={"name": "Ikkinchi filial", "capacity": 20},
+        )
+    ).json()["id"]
+
+    for phone, username, name, branch, salary in (
+        ("+998900000015", "u998900000015", "Menejer B", branch_a, "3000000.00"),
+        ("+998900000016", "u998900000016", "Begona xodim", branch_b, "9000000.00"),
+    ):
+        created = await client.post(
+            "/api/v1/users",
+            headers=auth_header(owner),
+            json={
+                "full_name": name,
+                "username": username,
+                "phone": phone,
+                "password": "parol12345",
+                "role": "MANAGER" if branch == branch_a else "TEACHER",
+                "branch_id": branch,
+                "monthly_salary": salary,
+            },
+        )
+        assert created.status_code == 201, created.text
+
+    manager = (await login(client, "+998900000015", "parol12345"))["access_token"]
+
+    resp = await client.get(
+        "/api/v1/users/payroll-summary", headers=auth_header(manager)
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    # Faqat o'z filialidagi menejerning o'zi — begona filial xodimi yo'q.
+    assert [row["full_name"] for row in body["staff"]] == ["Menejer B"]
+    assert Decimal(body["total_fund"]) == Decimal("3000000.00")
+
+    # Begona filialni ochiq so'rasa ham rad etiladi.
+    foreign = await client.get(
+        f"/api/v1/users/payroll-summary?branch_id={branch_b}",
+        headers=auth_header(manager),
+    )
+    assert foreign.status_code == 403
+
+
+async def test_payroll_summary_denied_for_teacher(client: AsyncClient) -> None:
+    """Tarbiyachi ish haqi fondiga umuman kira olmaydi."""
     owner, branch_id = await _owner(client)
     await client.post(
         "/api/v1/users",
         headers=auth_header(owner),
         json={
-            "full_name": "Menejer B",
-            "username": "u998900000015",
-            "phone": "+998900000015",
+            "full_name": "Tarbiyachi",
+            "username": "u998900000017",
+            "phone": "+998900000017",
             "password": "parol12345",
-            "role": "MANAGER",
+            "role": "TEACHER",
             "branch_id": branch_id,
         },
     )
-    manager = (await login(client, "+998900000015", "parol12345"))["access_token"]
+    teacher = (await login(client, "+998900000017", "parol12345"))["access_token"]
 
     resp = await client.get(
-        "/api/v1/users/payroll-summary", headers=auth_header(manager)
+        "/api/v1/users/payroll-summary", headers=auth_header(teacher)
     )
     assert resp.status_code == 403
 

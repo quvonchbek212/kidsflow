@@ -22,6 +22,7 @@ from app.models.enums import (
     InvoiceStatus,
     KnowledgeCategory,
     MealStatus,
+    MessageDirection,
     Mood,
     NotificationChannel,
     NotificationStatus,
@@ -54,9 +55,15 @@ from app.models.food import (
 )
 from app.models.group import Group, GroupTeacher
 from app.models.invitation import TelegramInvitation
-from app.models.messaging import DailyJobRun, Notification, OutboxEvent
+from app.models.messaging import (
+    BranchNotificationSettings,
+    DailyJobRun,
+    Notification,
+    OutboxEvent,
+    ParentMessage,
+)
 from app.models.organization import Branch, KindergartenSettings
-from app.models.payroll import PayrollRun
+from app.models.payroll import PayrollRun, SalaryAdvance
 from app.models.user import (
     PasswordResetToken,
     RefreshToken,
@@ -72,6 +79,7 @@ __all__ = [
     "AttendanceStatus",
     "AuditLog",
     "Branch",
+    "BranchNotificationSettings",
     "Child",
     "ChildGuardian",
     "DailyJobRun",
@@ -98,6 +106,7 @@ __all__ = [
     "KnowledgeCategory",
     "KnowledgeDocument",
     "MealStatus",
+    "MessageDirection",
     "Meal",
     "MealIngredient",
     "MealLog",
@@ -108,12 +117,14 @@ __all__ = [
     "NotificationType",
     "OutboxEvent",
     "OutboxStatus",
+    "ParentMessage",
     "PasswordResetToken",
     "PaymentAllocation",
     "PaymentMethod",
     "PaymentStatus",
     "PaymentTransaction",
     "PayrollRun",
+    "SalaryAdvance",
     "PayrollStatus",
     "RefreshToken",
     "Role",

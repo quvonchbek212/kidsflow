@@ -2,10 +2,11 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { IconPlus, IconTrash } from "@/components/icons";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ApiError,
   api,
@@ -14,16 +15,9 @@ import {
   type MealIngredient,
 } from "@/lib/api";
 import { isoDate } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function FoodMealsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user}>
-      <MealsContent />
-    </AppShell>
-  );
+  return <MealsContent />;
 }
 
 function MealsContent(): ReactNode {
@@ -64,7 +58,12 @@ function MealsContent(): ReactNode {
   function openMealForm(): void {
     let name = "";
     let description = "";
-    let rows: MealIngredient[] = [];
+    // Har qatorga barqaror `uid` beriladi. Indeksni React kaliti qilib
+    // ishlatib bo'lmaydi: maydonlar boshqarilmaydigan (`defaultValue`), va
+    // o'rtadagi qator o'chirilganda React DOM'ni qayta ishlatib, qolgan
+    // qatorlarda eski qiymatlar ko'rinib qolardi.
+    let rows: (MealIngredient & { uid: number })[] = [];
+    let nextUid = 1;
     let saving = false;
     let error = "";
 
@@ -86,7 +85,11 @@ function MealsContent(): ReactNode {
                 branch_id: branchId,
                 name,
                 description: description || undefined,
-                ingredients: rows,
+                // `uid` faqat React kaliti uchun — backendga ketmaydi.
+                ingredients: rows.map((r) => ({
+                  product_id: r.product_id,
+                  quantity_per_serving: r.quantity_per_serving,
+                })),
               });
               modal.close();
               toast.show(t.common.saved);
@@ -99,29 +102,32 @@ function MealsContent(): ReactNode {
           }}
         >
           <div className="form-grid">
-            <div className="field">
-              <label>
+            <label className="field">
+              <span className="field__label">
                 {t.common.name}
                 <span className="req">*</span>
-              </label>
+              </span>
               <input
                 className="input"
                 required
                 onChange={(e) => (name = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>{t.expenses.description}</label>
+            </label>
+            <label className="field">
+              <span className="field__label">{t.expenses.description}</span>
               <input
                 className="input"
                 onChange={(e) => (description = e.target.value)}
               />
-            </div>
+            </label>
           </div>
 
           <div className="form-sec">{t.food.ingredients}</div>
           {rows.map((row, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <div
+              key={row.uid}
+              style={{ display: "flex", gap: 8, marginBottom: 8 }}
+            >
               <select
                 className="input"
                 defaultValue={row.product_id}
@@ -151,7 +157,8 @@ function MealsContent(): ReactNode {
               <button
                 type="button"
                 className="btn--icon"
-                aria-label={t.common.cancel}
+                aria-label={t.common.removeRow}
+                title={t.common.removeRow}
                 onClick={() => {
                   rows = rows.filter((_, idx) => idx !== i);
                   render();
@@ -168,7 +175,11 @@ function MealsContent(): ReactNode {
             onClick={() => {
               rows = [
                 ...rows,
-                { product_id: products[0].id, quantity_per_serving: "1" },
+                {
+                  uid: nextUid++,
+                  product_id: products[0].id,
+                  quantity_per_serving: "1",
+                },
               ];
               render();
             }}
@@ -176,14 +187,19 @@ function MealsContent(): ReactNode {
             <IconPlus size={14} /> {t.food.addIngredient}
           </button>
 
-          {error && <p className="error">{error}</p>}
-          <div style={{ marginTop: 16 }}>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="modal-actions">
             <button className="btn" type="submit" disabled={saving}>
               {saving ? t.common.saving : t.common.save}
             </button>
           </div>
         </form>,
-        { title: t.food.addMeal, size: "wide" },
+        // Ikkita maydon uchun 780px juda keng edi — o'ng yarmi bo'sh qolardi.
+        { title: t.food.addMeal, size: "default" },
       );
     }
     render();
@@ -220,20 +236,20 @@ function MealsContent(): ReactNode {
           }}
         >
           <div className="form-grid">
-            <div className="field">
-              <label>{t.common.date}</label>
+            <label className="field">
+              <span className="field__label">{t.common.date}</span>
               <input
                 className="input"
                 type="date"
                 defaultValue={servingDate}
                 onChange={(e) => (servingDate = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>
+            </label>
+            <label className="field">
+              <span className="field__label">
                 {t.food.servings}
                 <span className="req">*</span>
-              </label>
+              </span>
               <input
                 className="input"
                 inputMode="numeric"
@@ -241,7 +257,7 @@ function MealsContent(): ReactNode {
                 required
                 onChange={(e) => (count = e.target.value)}
               />
-            </div>
+            </label>
           </div>
           <p className="field__hint">
             {meal.ingredients
@@ -251,15 +267,16 @@ function MealsContent(): ReactNode {
               )
               .join(" · ")}
           </p>
-          {error && <p className="error">{error}</p>}
-          <button
-            className="btn"
-            type="submit"
-            disabled={saving}
-            style={{ marginTop: 8 }}
-          >
-            {saving ? t.common.saving : t.common.save}
-          </button>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="modal-actions">
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? t.common.saving : t.common.save}
+            </button>
+          </div>
         </form>,
         { title: t.food.serveTitle, subtitle: meal.name, size: "default" },
       );
@@ -281,7 +298,7 @@ function MealsContent(): ReactNode {
         {!ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : meals.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

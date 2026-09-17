@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.permissions import CurrentUser
-from app.core.rate_limit import login_rate_limit
+from app.core.rate_limit import login_rate_limit, refresh_rate_limit
 from app.database import get_session
 from app.dependencies import client_ip, get_current_user
 from app.models.user import User
@@ -53,7 +53,7 @@ async def login(
     "/refresh",
     response_model=TokenResponse,
     summary="Tokenni yangilash",
-    dependencies=[Depends(login_rate_limit)],
+    dependencies=[Depends(refresh_rate_limit)],
 )
 async def refresh(
     payload: RefreshRequest,

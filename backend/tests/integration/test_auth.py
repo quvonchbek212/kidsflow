@@ -284,3 +284,43 @@ async def test_profile_cannot_change_role_or_salary(client: AsyncClient) -> None
     # Hisob hali faol: login ishlayapti.
     again = await login(client, OWNER_USERNAME, OWNER_PASSWORD)
     assert again["access_token"]
+
+
+async def test_validation_error_does_not_echo_password(client: AsyncClient) -> None:
+    """422 javobida foydalanuvchi yuborgan parol qaytarilmasligi kerak.
+
+    FastAPI'ning standart validatsiya handleri har bir xatoga `input` maydonini
+    qo'shadi va u yerda so'rov tanasidagi qiymat aynan turadi. Auth
+    endpointlarida bu parolning ochiq matnda javobga (demak proksi log'lari va
+    brauzer HAR eksportiga) tushishini anglatadi.
+    """
+    await complete_setup(client)
+    secret = "juda-maxfiy-parol-" + "x" * 200  # max_length=128 dan uzun
+
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"login": OWNER_PHONE, "password": secret},
+    )
+
+    assert response.status_code == 422
+    body = response.text
+    assert secret not in body
+    assert "input" not in response.json()["detail"][0]
+    # Xatoni tushunish uchun kerakli ma'lumot esa qolishi kerak.
+    assert response.json()["detail"][0]["loc"] == ["body", "password"]
+
+
+async def test_validation_error_does_not_echo_new_password(
+    client: AsyncClient,
+) -> None:
+    """Xuddi shu himoya parolni tiklash oqimida ham amal qiladi."""
+    await complete_setup(client)
+    secret = "qisqa"  # min_length=8 dan kalta
+
+    response = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "hech-qanday", "new_password": secret},
+    )
+
+    assert response.status_code == 422
+    assert secret not in response.text

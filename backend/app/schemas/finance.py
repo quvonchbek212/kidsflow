@@ -13,22 +13,6 @@ from app.models.enums import AdjustmentType, PaymentMethod
 # --- Fee plan ---
 
 
-class FeePlanCreateRequest(BaseModel):
-    branch_id: uuid.UUID
-    name: str = Field(min_length=1, max_length=255)
-    monthly_amount: Decimal = Field(gt=0)
-    currency: str = "UZS"
-
-
-class FeePlanResponse(BaseModel):
-    id: uuid.UUID
-    branch_id: uuid.UUID
-    name: str
-    monthly_amount: Decimal
-    currency: str
-    is_active: bool
-
-
 # --- Invoice ---
 
 
@@ -36,8 +20,6 @@ class InvoiceGenerateRequest(BaseModel):
     branch_id: uuid.UUID
     billing_period: date  # oyning istalgan sanasi — birinchi kunga normallashtiriladi
     due_day: int = Field(default=10, ge=1, le=28)
-    # Enrollment'da fee_plan bo'lmasa ishlatiladigan standart tarif.
-    fee_plan_id: uuid.UUID | None = None
 
 
 class InvoiceGenerateResponse(BaseModel):

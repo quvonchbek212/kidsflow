@@ -41,7 +41,15 @@ async function requestNewTokens(): Promise<boolean> {
     body: JSON.stringify({ refresh_token: refreshToken }),
     cache: "no-store",
   });
-  if (!response.ok) return false;
+  if (!response.ok) {
+    // Bir nechta tab bitta refresh tokenni ishlatadi. Ikkinchi tab eski token
+    // bilan urinib rad javob olsa, bu sessiya tugagani emas: birinchi tab
+    // tokenni shu orada almashtirgan. Ilgari bu yerda `false` qaytib, keyin
+    // `clearTokens()` birinchi tab olgan YANGI tokenni ham o'chirar va barcha
+    // tablardan chiqarib yuborardi.
+    const current = getRefreshToken();
+    return current !== null && current !== refreshToken;
+  }
 
   const tokens = (await response.json()) as TokenResponse;
   setTokens({
@@ -64,7 +72,7 @@ function ensureRefreshed(): Promise<boolean> {
   return refreshPromise;
 }
 
-async function request<T>(
+async function rawRequest<T>(
   path: string,
   options: RequestOptions = {},
   allowRetry = true,
@@ -93,7 +101,7 @@ async function request<T>(
       throw new ApiError(401, await extractDetail(response));
     }
     if (allowRetry && (await ensureRefreshed())) {
-      return request<T>(path, options, false);
+      return rawRequest<T>(path, options, false);
     }
     clearTokens();
     throw new ApiError(401, "Avtorizatsiya talab qilinadi.");
@@ -103,6 +111,37 @@ async function request<T>(
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+// --- Bir vaqtda ketayotgan bir xil GET so'rovlarini birlashtirish ---
+//
+// Qobiq (AppShell) yon paneldagi sanoqlar va bildirishnomalar uchun
+// `/children`, `/users`, `/groups` va `/analytics/dashboard` ni tortadi, ochilgan
+// sahifa esa ko'pincha o'sha ro'yxatlarni yana so'raydi. Ikkalasi bir vaqtda
+// ishga tushgani uchun backend har bir sahifa yuklanishida bir xil so'rovni ikki
+// marta bajarardi (o'lchov: Xodimlar sahifasida `/users` 2 marta, Davomat va
+// Hisobotlarda `/groups` 2 marta). Dev rejimida React StrictMode effektlarni
+// ikki marta chaqirgani uchun bu yana ikkiga ko'payardi.
+//
+// Bu yerda faqat ayni damda UCHIB TURGAN so'rov birlashtiriladi — javob
+// keshlanmaydi. Shuning uchun eskirgan ma'lumot ko'rsatilishi mumkin emas:
+// so'rov tugashi bilan kalit o'chadi va keyingi chaqiruv yangi so'rov yuboradi.
+// Faqat GET uchun; POST/PATCH/DELETE hech qachon birlashtirilmaydi.
+const inFlightGets = new Map<string, Promise<unknown>>();
+
+function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if ((options.method ?? "GET") !== "GET") return rawRequest<T>(path, options);
+
+  // Tokenli va tokensiz so'rovlar turli javob berishi mumkin — kalit ajratiladi.
+  const key = `${options.auth === false ? "anon" : "auth"} ${path}`;
+  const running = inFlightGets.get(key);
+  if (running) return running as Promise<T>;
+
+  const pending = rawRequest<T>(path, options).finally(() => {
+    inFlightGets.delete(key);
+  });
+  inFlightGets.set(key, pending);
+  return pending;
 }
 
 async function requestForm<T>(
@@ -143,6 +182,16 @@ async function extractDetail(response: Response): Promise<string> {
   try {
     const body = await response.json();
     if (typeof body?.detail === "string") return body.detail;
+    // 422: `detail` — maydonlar bo'yicha xatolar ro'yxati. Ilgari u
+    // e'tiborsiz qolib, foydalanuvchi sababsiz umumiy xabarni ko'rardi.
+    if (Array.isArray(body?.detail)) {
+      const messages = body.detail
+        .map((item: { msg?: unknown }) =>
+          typeof item?.msg === "string" ? item.msg : "",
+        )
+        .filter(Boolean);
+      if (messages.length > 0) return messages.join("; ");
+    }
   } catch {
     // ignore
   }
@@ -211,6 +260,13 @@ export interface Child {
   medical_notes: string | null;
   is_active: boolean;
   status: ChildStatus;
+  /** Eng dolzarb guruhga yozilish: faol, bo'lmasa eng yangisi (navbat ham). */
+  enrollment: {
+    id: string;
+    group_id: string;
+    start_date: string;
+    status: string;
+  } | null;
   guardians: {
     guardian_user_id: string;
     full_name: string;
@@ -357,15 +413,6 @@ export interface Invoice {
   paid_amount: string;
   outstanding_amount: string;
   status: string;
-}
-
-export interface FeePlan {
-  id: string;
-  branch_id: string;
-  name: string;
-  monthly_amount: string;
-  currency: string;
-  is_active: boolean;
 }
 
 export interface ExpenseCategory {
@@ -562,6 +609,19 @@ export interface PayrollRun {
   paid_at: string;
 }
 
+/** Oy o'rtasida berilgan avans — shu oyning oylik hisobida o'zi ushlanadi. */
+export interface SalaryAdvance {
+  id: string;
+  branch_id: string;
+  user_id: string;
+  period: string;
+  amount: string;
+  note: string | null;
+  status: string;
+  expense_id: string | null;
+  paid_at: string;
+}
+
 // --- Turlar: sozlamalar ---
 
 export interface KindergartenSettings {
@@ -585,6 +645,35 @@ export type BroadcastAudience = "all" | "group" | "debtors";
 export interface MessagingStats {
   connected_families: number;
   sent_this_month: number;
+}
+
+/** Bildirishnoma sozlamalari — har filial uchun alohida. */
+export interface BranchNotificationSettings {
+  branch_id: string;
+  toggles: Record<string, boolean>;
+  payment_reminder_days_before: number;
+  debt_warning_days_late: number;
+  /** Oylik hisob-faktura muddati — har oyning shu sanasi (1–28). */
+  invoice_due_day: number;
+}
+
+export interface MessageThread {
+  guardian_user_id: string;
+  guardian_name: string;
+  guardian_phone: string | null;
+  children: string[];
+  last_message_at: string;
+  last_message_text: string;
+  unread_count: number;
+}
+
+export interface ParentMessage {
+  id: string;
+  direction: "IN" | "OUT";
+  text: string;
+  created_at: string;
+  read_at: string | null;
+  staff_name: string | null;
 }
 
 // --- Turlar: Excel/CSV import ---
@@ -686,10 +775,6 @@ export const api = {
     return request<Child[]>(`/children${branchQuery(branchId)}`);
   },
 
-  getChild(childId: string): Promise<Child> {
-    return request<Child>(`/children/${childId}`);
-  },
-
   createChild(body: {
     full_name: string;
     birth_date: string;
@@ -753,6 +838,8 @@ export const api = {
     enrollmentId: string,
     body: Partial<{
       status: string;
+      /** Faqat navbatdagi bolani qabul qilishda. */
+      start_date: string;
       end_date: string;
       group_id: string;
       notes: string;
@@ -887,14 +974,6 @@ export const api = {
     );
   },
 
-  markAttendance(body: {
-    child_id: string;
-    attendance_date: string;
-    status: string;
-  }): Promise<unknown> {
-    return request("/attendance", { method: "POST", body });
-  },
-
   markAttendanceBulk(body: {
     group_id: string;
     attendance_date: string;
@@ -976,6 +1055,7 @@ export const api = {
     userId: string,
     body: Partial<{
       full_name: string;
+      username: string;
       phone: string;
       email: string;
       position: string;
@@ -990,10 +1070,11 @@ export const api = {
     return request<StaffUser>(`/users/${userId}`, { method: "PATCH", body });
   },
 
-  updateSalary(userId: string, monthlySalary: string): Promise<StaffUser> {
-    return request<StaffUser>(`/users/${userId}/salary`, {
+  /** Xodimga yangi parol o'rnatish. Eski sessiyalari yopiladi. */
+  setStaffPassword(userId: string, newPassword: string): Promise<StaffUser> {
+    return request<StaffUser>(`/users/${userId}/password`, {
       method: "PATCH",
-      body: { monthly_salary: monthlySalary },
+      body: { new_password: newPassword },
     });
   },
 
@@ -1016,43 +1097,6 @@ export const api = {
     return request<Invoice[]>(`/invoices?${params.toString()}`);
   },
 
-  generateInvoices(
-    branchId: string,
-    billingPeriod: string,
-    feePlanId?: string,
-    dueDay?: number,
-  ): Promise<{ created: number; skipped: number; billing_period: string }> {
-    return request("/invoices/generate", {
-      method: "POST",
-      body: {
-        branch_id: branchId,
-        billing_period: billingPeriod,
-        fee_plan_id: feePlanId,
-        due_day: dueDay,
-      },
-    });
-  },
-
-  addInvoiceAdjustment(
-    invoiceId: string,
-    body: {
-      adjustment_type: "DISCOUNT" | "SURCHARGE" | "WRITE_OFF";
-      amount: string;
-      reason?: string;
-    },
-  ): Promise<Invoice> {
-    return request<Invoice>(`/invoices/${invoiceId}/adjustments`, {
-      method: "POST",
-      body,
-    });
-  },
-
-  cancelInvoice(invoiceId: string): Promise<Invoice> {
-    return request<Invoice>(`/invoices/${invoiceId}/cancel`, {
-      method: "POST",
-    });
-  },
-
   recordPayment(body: {
     child_id: string;
     amount: string;
@@ -1064,22 +1108,15 @@ export const api = {
     return request<Payment>("/payments", { method: "POST", body });
   },
 
+  childPayments(childId: string): Promise<Payment[]> {
+    const params = new URLSearchParams({ child_id: childId });
+    return request<Payment[]>(`/payments?${params.toString()}`);
+  },
+
   reversePayment(paymentId: string): Promise<Payment> {
     return request<Payment>(`/payments/${paymentId}/reverse`, {
       method: "POST",
     });
-  },
-
-  listFeePlans(): Promise<FeePlan[]> {
-    return request<FeePlan[]>("/fee-plans");
-  },
-
-  createFeePlan(body: {
-    branch_id: string;
-    name: string;
-    monthly_amount: string;
-  }): Promise<FeePlan> {
-    return request<FeePlan>("/fee-plans", { method: "POST", body });
   },
 
   listExpenseCategories(): Promise<ExpenseCategory[]> {
@@ -1243,6 +1280,40 @@ export const api = {
     });
   },
 
+  giveSalaryAdvance(body: {
+    branch_id: string;
+    user_id: string;
+    amount: string;
+    paid_at: string;
+    note?: string;
+  }): Promise<SalaryAdvance> {
+    return request<SalaryAdvance>("/payroll/advances", {
+      method: "POST",
+      body,
+    });
+  },
+
+  listSalaryAdvances(params: {
+    user_id?: string;
+    branch_id?: string;
+    period?: string;
+  }): Promise<SalaryAdvance[]> {
+    const qs = new URLSearchParams();
+    if (params.user_id) qs.set("user_id", params.user_id);
+    if (params.branch_id) qs.set("branch_id", params.branch_id);
+    if (params.period) qs.set("period", params.period);
+    const query = qs.toString();
+    return request<SalaryAdvance[]>(
+      `/payroll/advances${query ? `?${query}` : ""}`,
+    );
+  },
+
+  reverseSalaryAdvance(advanceId: string): Promise<SalaryAdvance> {
+    return request<SalaryAdvance>(`/payroll/advances/${advanceId}/reverse`, {
+      method: "POST",
+    });
+  },
+
   // --- sozlamalar ---
   getSettings(): Promise<KindergartenSettings> {
     return request<KindergartenSettings>("/settings");
@@ -1278,6 +1349,65 @@ export const api = {
   messagingStats(branchId: string): Promise<MessagingStats> {
     const params = new URLSearchParams({ branch_id: branchId });
     return request<MessagingStats>(`/messages/stats?${params.toString()}`);
+  },
+
+  // --- bildirishnoma sozlamalari (filial kesimida) ---
+  notificationSettings(branchId: string): Promise<BranchNotificationSettings> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<BranchNotificationSettings>(
+      `/messages/settings?${params.toString()}`,
+    );
+  },
+
+  updateNotificationSettings(
+    branchId: string,
+    body: {
+      toggles?: Record<string, boolean>;
+      payment_reminder_days_before?: number;
+      debt_warning_days_late?: number;
+      invoice_due_day?: number;
+    },
+  ): Promise<BranchNotificationSettings> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<BranchNotificationSettings>(
+      `/messages/settings?${params.toString()}`,
+      { method: "PATCH", body },
+    );
+  },
+
+  // --- ota-onalar bilan yozishmalar ---
+  listMessageThreads(branchId: string): Promise<MessageThread[]> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<MessageThread[]>(`/messages/threads?${params.toString()}`);
+  },
+
+  getMessageThread(
+    branchId: string,
+    guardianUserId: string,
+  ): Promise<ParentMessage[]> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<ParentMessage[]>(
+      `/messages/threads/${guardianUserId}?${params.toString()}`,
+    );
+  },
+
+  replyToParent(
+    branchId: string,
+    guardianUserId: string,
+    text: string,
+  ): Promise<ParentMessage> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<ParentMessage>(
+      `/messages/threads/${guardianUserId}/reply?${params.toString()}`,
+      { method: "POST", body: { text } },
+    );
+  },
+
+  unreadMessageCount(branchId: string): Promise<{ unread_count: number }> {
+    const params = new URLSearchParams({ branch_id: branchId });
+    return request<{ unread_count: number }>(
+      `/messages/unread-count?${params.toString()}`,
+    );
   },
 
   // --- Excel/CSV import ---

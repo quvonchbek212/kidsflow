@@ -20,7 +20,6 @@ from app.models.enums import (
 from app.models.finance import (
     Expense,
     ExpenseCategory,
-    FeePlan,
     Invoice,
     InvoiceAdjustment,
     PaymentAllocation,
@@ -44,27 +43,6 @@ def _to_money(value: object) -> Decimal:
     return money(Decimal(str(value)))
 
 
-class FeePlanRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    def add(self, plan: FeePlan) -> None:
-        self._session.add(plan)
-
-    async def get_by_id(self, plan_id: uuid.UUID) -> FeePlan | None:
-        return await self._session.get(FeePlan, plan_id)
-
-    async def list_by_branches(self, branch_ids: Sequence[uuid.UUID]) -> list[FeePlan]:
-        if not branch_ids:
-            return []
-        stmt = (
-            select(FeePlan)
-            .where(FeePlan.branch_id.in_(branch_ids))
-            .order_by(FeePlan.name)
-        )
-        return list((await self._session.execute(stmt)).scalars().all())
-
-
 class InvoiceRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -74,6 +52,18 @@ class InvoiceRepository:
 
     async def get_by_id(self, invoice_id: uuid.UUID) -> Invoice | None:
         return await self._session.get(Invoice, invoice_id)
+
+    async def child_ids_billed_for(
+        self, child_ids: Sequence[uuid.UUID], billing_period: date
+    ) -> set[uuid.UUID]:
+        """Shu oy uchun (har qanday holatda) hisobi bor bolalar."""
+        if not child_ids:
+            return set()
+        stmt = select(Invoice.child_id).where(
+            Invoice.child_id.in_(child_ids),
+            Invoice.billing_period == billing_period,
+        )
+        return set((await self._session.execute(stmt)).scalars().all())
 
     async def get_for_child_period(
         self, child_id: uuid.UUID, billing_period: date
@@ -185,11 +175,52 @@ class PaymentRepository:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def list_for_child(
+        self, child_id: uuid.UUID, limit: int = 20
+    ) -> list[PaymentTransaction]:
+        stmt = (
+            select(PaymentTransaction)
+            .where(PaymentTransaction.child_id == child_id)
+            .order_by(PaymentTransaction.paid_at.desc())
+            .limit(limit)
+        )
+        return list((await self._session.execute(stmt)).scalars().all())
+
     async def allocations_for(self, payment_id: uuid.UUID) -> list[PaymentAllocation]:
         stmt = select(PaymentAllocation).where(
             PaymentAllocation.payment_transaction_id == payment_id
         )
         return list((await self._session.execute(stmt)).scalars().all())
+
+    async def unallocated_for_child(
+        self, child_id: uuid.UUID
+    ) -> list[tuple[PaymentTransaction, Decimal]]:
+        """Bolaning hali hech bir hisobga to'liq yozilmagan to'lovlari.
+
+        Masalan, ota-ona oy uchun hisob yaratilishidan oldin pul olib kelgan.
+        Har bir to'lov va uning bo'sh qoldig'i, eng eskisi birinchi. Bitta
+        so'rovda — har to'lov uchun taqsimotni alohida so'ramaslik uchun.
+        """
+        allocated = func.coalesce(func.sum(PaymentAllocation.amount), 0)
+        stmt = (
+            select(PaymentTransaction, allocated)
+            .outerjoin(
+                PaymentAllocation,
+                PaymentAllocation.payment_transaction_id == PaymentTransaction.id,
+            )
+            .where(
+                PaymentTransaction.child_id == child_id,
+                PaymentTransaction.status.in_(CASH_STATUSES),
+            )
+            .group_by(PaymentTransaction.id)
+            .order_by(PaymentTransaction.paid_at, PaymentTransaction.created_at)
+        )
+        result: list[tuple[PaymentTransaction, Decimal]] = []
+        for payment, allocated_sum in (await self._session.execute(stmt)).all():
+            free = _to_money(payment.amount) - _to_money(allocated_sum)
+            if free > ZERO:
+                result.append((payment, free))
+        return result
 
 
 class ExpenseRepository:

@@ -39,3 +39,5 @@ Thumbs.db
 # Loglar va backup
 *.log
 backups/
+.backup/
+.screenshots/

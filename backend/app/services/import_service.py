@@ -17,7 +17,7 @@ from datetime import date, datetime
 import openpyxl
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import PermissionDeniedError
+from app.core.exceptions import FileRejectedError, PermissionDeniedError
 from app.core.permissions import CurrentUser
 from app.models.enums import EnrollmentStatus, GuardianRelationship
 from app.schemas.child import (
@@ -34,6 +34,11 @@ from app.utils.phone import InvalidPhoneError, normalize_phone
 from app.utils.timezone import today_local
 
 _DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
+
+# Bog'cha ro'yxati bir necha yuz qatordan oshmaydi. Cheklovsiz holda katta fayl
+# (yoki xlsx "zip bomba") butun serverni xotirasiz qoldirishi mumkin edi.
+MAX_IMPORT_BYTES = 2 * 1024 * 1024
+MAX_IMPORT_ROWS = 2000
 
 _BIRTH_DATE_KEYWORDS = ("tugilgan", "birth", "рожд", "dob")
 _PHONE_KEYWORDS = ("phone", "tel", "тел")
@@ -76,12 +81,34 @@ def _parse_date(value: object) -> date | None:
 
 def _read_rows(content: bytes, filename: str) -> tuple[list[str], list[list[object]]]:
     if filename.lower().endswith((".xlsx", ".xlsm")):
-        workbook = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
-        sheet = workbook.active
-        raw_rows = list(sheet.iter_rows(values_only=True)) if sheet else []
+        try:
+            workbook = openpyxl.load_workbook(
+                io.BytesIO(content), data_only=True, read_only=True
+            )
+        except Exception as exc:  # noqa: BLE001 — buzuq fayl 500 emas, tushunarli xato
+            raise FileRejectedError("Excel faylini o'qib bo'lmadi.") from exc
+        try:
+            sheet = workbook.active
+            raw_rows = []
+            for row in sheet.iter_rows(values_only=True) if sheet else []:
+                raw_rows.append(row)
+                if len(raw_rows) > MAX_IMPORT_ROWS + 1:
+                    break
+        finally:
+            workbook.close()
     else:
-        text = content.decode("utf-8-sig")
+        # Excel'da "CSV" sifatida saqlangan fayl ko'pincha Windows-1251 bo'ladi —
+        # ilgari bu UnicodeDecodeError va 500 xato berardi.
+        try:
+            text = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = content.decode("cp1251", errors="replace")
         raw_rows = list(csv.reader(io.StringIO(text)))
+
+    if len(raw_rows) > MAX_IMPORT_ROWS + 1:
+        raise FileRejectedError(
+            f"Bir faylda {MAX_IMPORT_ROWS} tadan ko'p qator bo'lmasligi kerak."
+        )
 
     if not raw_rows:
         return [], []

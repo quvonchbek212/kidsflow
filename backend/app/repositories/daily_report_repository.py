@@ -79,6 +79,12 @@ class DailyReportRepository:
         )
         return list((await self._session.execute(stmt)).scalars().all())
 
+    async def file_ids_for_report(self, report_id: uuid.UUID) -> set[uuid.UUID]:
+        stmt = select(DailyReportFile.file_id).where(
+            DailyReportFile.daily_report_id == report_id
+        )
+        return set((await self._session.execute(stmt)).scalars().all())
+
     async def clear_file_links(self, report_id: uuid.UUID) -> None:
         await self._session.execute(
             delete(DailyReportFile).where(DailyReportFile.daily_report_id == report_id)

@@ -6,6 +6,7 @@ tasdiqlamaguncha bu qiymatlar moliyaviy yozuvga aylanmaydi.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -51,7 +52,9 @@ class DocumentOCRService:
             raise ConflictError("OCR faqat rasm (jpeg/png) uchun ishlaydi.")
 
         try:
-            content = file_storage.read_file(record.storage_key)
+            content = await asyncio.to_thread(
+                file_storage.read_file, record.storage_key
+            )
         except FileNotFoundError as exc:
             raise NotFoundError("Fayl mazmuni topilmadi.") from exc
 

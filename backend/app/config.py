@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     login_rate_limit_window_seconds: int = 60
     setup_rate_limit_max: int = 5
     setup_rate_limit_window_seconds: int = 300
+    # Token yangilash alohida hisoblanadi: bog'chada hamma bitta NAT orqali
+    # chiqadi va har bir ochiq sahifa 15 daqiqada refresh qiladi. Login bilan
+    # umumiy limitda bu xodimlarni sessiyadan chiqarib yuborardi.
+    refresh_rate_limit_max: int = 120
+    refresh_rate_limit_window_seconds: int = 60
 
     # Hisob darajasidagi qulf. IP bo'yicha limit bir nechta IP dan taqsimlangan
     # hujumni to'xtata olmaydi, shuning uchun ketma-ket muvaffaqiyatsiz
@@ -90,6 +95,11 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     worker_poll_interval_seconds: int = 5
     outbox_max_retries: int = 5
+    # Saqlash muddati (kun). Yuborilgan/yiqilgan bildirishnomalar va qayta
+    # ishlangan outbox hodisalari shundan keyin o'chiriladi; kutayotganlariga
+    # tegilmaydi. Audit jurnali uzoqroq saqlanadi. 0 — o'chirmaslik.
+    notification_retention_days: int = 90
+    audit_retention_days: int = 365
 
     # --- Email (parolni tiklash uchun SMTP) ---
     # Bo'sh bo'lsa (smtp_host=""), tiklash havolasi haqiqatda yuborilmaydi —

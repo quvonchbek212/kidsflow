@@ -130,6 +130,19 @@ class BackendClient:
             headers=self._auth_headers(token),
         )
 
+    async def send_staff_message(self, token: str, text: str) -> dict:
+        """Ota-onaning xodimga savolini yuboradi.
+
+        Backend filialni ota-onaning farzandidan o'zi aniqlaydi — bot filial
+        haqida hech narsa bilmaydi.
+        """
+        return await self._request(
+            "POST",
+            "/messages/from-parent",
+            headers=self._auth_headers(token),
+            json={"text": text},
+        )
+
     async def ask_assistant(self, token: str, question: str) -> dict:
         return await self._request(
             "POST",

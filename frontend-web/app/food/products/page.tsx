@@ -2,22 +2,16 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
 import { IconPlus } from "@/components/icons";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiError, api, type FoodProduct } from "@/lib/api";
 import { money } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function FoodProductsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user}>
-      <ProductsContent />
-    </AppShell>
-  );
+  return <ProductsContent />;
 }
 
 function ProductsContent(): ReactNode {
@@ -84,44 +78,46 @@ function ProductsContent(): ReactNode {
           }}
         >
           <div className="form-grid">
-            <div className="field span-2">
-              <label>
+            <label className="field span-2">
+              <span className="field__label">
                 {t.common.name}
                 <span className="req">*</span>
-              </label>
+              </span>
               <input
                 className="input"
                 required
                 onChange={(e) => (name = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>
+            </label>
+            <label className="field">
+              <span className="field__label">
                 {t.food.unit}
                 <span className="req">*</span>
-              </label>
+              </span>
               <input
                 className="input"
                 defaultValue={unit}
                 required
                 onChange={(e) => (unit = e.target.value)}
               />
-            </div>
-            <div className="field">
-              <label>
+            </label>
+            <label className="field">
+              <span className="field__label">
                 {t.food.unitCost} ({t.common.sum})
-              </label>
+              </span>
               <input
                 className="input"
                 inputMode="decimal"
                 onChange={(e) => (unitCost = e.target.value)}
               />
-            </div>
+            </label>
           </div>
-          {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving}>
-            {saving ? t.common.saving : t.common.save}
-          </button>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="modal-actions">
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? t.common.saving : t.common.save}
+            </button>
+          </div>
         </form>,
         { title: t.food.addProduct, size: "default" },
       );
@@ -162,8 +158,8 @@ function ProductsContent(): ReactNode {
           }}
         >
           <div className="form-grid">
-            <div className="field">
-              <label>{t.food.stockMovement}</label>
+            <label className="field">
+              <span className="field__label">{t.food.stockMovement}</span>
               <select
                 className="input"
                 defaultValue={movementType}
@@ -174,20 +170,20 @@ function ProductsContent(): ReactNode {
                 <option value="IN">{t.food.movementIn}</option>
                 <option value="OUT">{t.food.movementOut}</option>
               </select>
-            </div>
-            <div className="field">
-              <label>
+            </label>
+            <label className="field">
+              <span className="field__label">
                 {t.food.quantity} ({product.unit})<span className="req">*</span>
-              </label>
+              </span>
               <input
                 className="input"
                 inputMode="decimal"
                 required
                 onChange={(e) => (quantity = e.target.value)}
               />
-            </div>
-            <div className="field span-2">
-              <label>{t.food.reason}</label>
+            </label>
+            <label className="field span-2">
+              <span className="field__label">{t.food.reason}</span>
               <select
                 className="input"
                 defaultValue={reason}
@@ -199,12 +195,14 @@ function ProductsContent(): ReactNode {
                   </option>
                 ))}
               </select>
-            </div>
+            </label>
           </div>
-          {error && <p className="error">{error}</p>}
-          <button className="btn" type="submit" disabled={saving}>
-            {saving ? t.common.saving : t.common.save}
-          </button>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="modal-actions">
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? t.common.saving : t.common.save}
+            </button>
+          </div>
         </form>,
         {
           title: t.food.stockMovement,
@@ -234,7 +232,7 @@ function ProductsContent(): ReactNode {
         {!ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : products.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

@@ -4,8 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 from datetime import UTC, datetime
+
+# Telegram Bot API manzili tokenni o'z ichiga oladi:
+# `https://api.telegram.org/bot<id>:<maxfiy>/sendMessage`. U so'rov logi yoki
+# xato matni (httpx istisnosi manzilni ko'rsatadi) orqali logga tushardi — log
+# ko'rgan har kim bot nomidan ota-onalarga yoza olardi.
+_BOT_TOKEN_RE = re.compile(r"bot\d+:[A-Za-z0-9_-]+")
+
+
+def redact_secrets(text: str) -> str:
+    """Log matnidan maxfiy qiymatlarni (bot tokeni) olib tashlaydi."""
+    return _BOT_TOKEN_RE.sub("bot<yashirilgan>", text)
 
 
 class JsonFormatter(logging.Formatter):
@@ -26,7 +38,9 @@ class JsonFormatter(logging.Formatter):
             if key not in _RESERVED_LOG_KEYS and not key.startswith("_"):
                 payload[key] = value
 
-        return json.dumps(payload, ensure_ascii=False, default=str)
+        # Oxirgi satrga qo'llanadi — xabar, istisno va extra maydonlar birdan
+        # tozalanadi.
+        return redact_secrets(json.dumps(payload, ensure_ascii=False, default=str))
 
 
 _RESERVED_LOG_KEYS = set(
@@ -49,3 +63,8 @@ def configure_logging(debug: bool = False) -> None:
     # Kutubxonalarning ortiqcha loglarini kamaytirish.
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+    # httpx har so'rovni to'liq manzili bilan (INFO), httpcore esa har TCP/TLS
+    # qadamini (DEBUG) yozadi — worker Telegram'ga yuborganda log shu shovqin
+    # bilan to'lib ketardi.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)

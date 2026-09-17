@@ -11,14 +11,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.exceptions import AuthenticationError, ConflictError, NotFoundError
 from app.core.security import (
+    burn_password_check,
     create_access_token,
     generate_opaque_token,
     hash_opaque_token,
     hash_password,
+    password_needs_rehash,
     password_reset_token_expiry,
     refresh_token_expiry,
     verify_password,
 )
+from app.models.enums import Role
 from app.models.user import PasswordResetToken, RefreshToken, User
 from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
@@ -71,6 +74,8 @@ class AuthService:
                 f"{get_settings().login_lockout_minutes} daqiqadan so'ng urinib ko'ring."
             )
 
+        if user is None or user.password_hash is None:
+            burn_password_check(password)
         if (
             user is None
             or user.password_hash is None
@@ -103,6 +108,10 @@ class AuthService:
         if not user.is_active:
             raise AuthenticationError("Hisob faol emas.")
 
+        # Argon2 parametrlari kuchaytirilgan bo'lsa eski hash shu yerda
+        # yangilanadi (ilgari `password_needs_rehash` hech qayerda chaqirilmasdi).
+        if password_needs_rehash(user.password_hash):
+            user.password_hash = hash_password(password)
         user.last_login_at = datetime.now(UTC)
         # Muvaffaqiyatli kirish sanoqni tozalaydi: qulf faqat ketma-ket
         # muvaffaqiyatsiz urinishlar uchun.
@@ -153,7 +162,19 @@ class AuthService:
         user = await self._users.get_by_telegram_id(telegram_user_id)
         if user is None or not user.is_active:
             raise AuthenticationError("Telegram hisobi bog'lanmagan yoki faol emas.")
-        return self._issue_tokens(user)
+        # Bot orqali faqat ota-ona kiradi. Xodim hisobiga (masalan, avval
+        # bog'lab qo'yilgan) token berilsa, u barcha rollari bilan chiqardi.
+        if await self._users.roles_for(user.id) != {Role.PARENT.value}:
+            raise AuthenticationError("Telegram orqali faqat ota-ona kira oladi.")
+        # Faqat qisqa muddatli access token. Bot har bosishda sessiya so'raydi
+        # va refresh tokenni ishlatmaydi — ilgari har bosish bazaga 30 kunlik
+        # yangi refresh token yozar, jadval cheksiz o'sar va ishlatilmaydigan
+        # minglab amaldagi token to'planardi.
+        return TokenResponse(
+            access_token=create_access_token(user.id),
+            refresh_token="",
+            expires_in=get_settings().access_token_ttl_minutes * 60,
+        )
 
     async def logout(self, raw_token: str) -> None:
         """Refresh tokenni bekor qiladi."""
@@ -253,6 +274,10 @@ class AuthService:
 
         user.password_hash = hash_password(new_password)
         self._password_resets.mark_used(stored)
+        # Eski sessiyalar ham yopiladi: parolni tiklashning sababi ko'pincha
+        # hisob begona qo'lga o'tgani bo'ladi, refresh token esa 30 kun
+        # yashaydi. Ilgari izohda shunday deyilgan, lekin amalda bajarilmasdi.
+        await self._refresh_tokens.revoke_all_for_user(user.id)
 
         self._audit.record(
             action="PASSWORD_RESET",

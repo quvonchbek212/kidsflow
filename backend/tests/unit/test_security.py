@@ -29,7 +29,7 @@ def test_decode_invalid_token_raises() -> None:
 
 
 def test_refresh_token_hash_is_deterministic() -> None:
-    raw = security.generate_refresh_token()
+    raw = security.generate_opaque_token()
 
-    assert security.hash_refresh_token(raw) == security.hash_refresh_token(raw)
-    assert security.hash_refresh_token(raw) != raw
+    assert security.hash_opaque_token(raw) == security.hash_opaque_token(raw)
+    assert security.hash_opaque_token(raw) != raw

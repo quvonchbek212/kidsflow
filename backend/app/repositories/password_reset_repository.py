@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import PasswordResetToken
@@ -30,6 +30,17 @@ class PasswordResetRepository:
             .limit(1)
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def delete_stale(self, now: datetime) -> int:
+        """Ishlatilgan yoki muddati o'tgan tiklash tokenlarini o'chiradi."""
+        stmt = delete(PasswordResetToken).where(
+            or_(
+                PasswordResetToken.expires_at < now,
+                PasswordResetToken.used_at.is_not(None),
+            )
+        )
+        result = await self._session.execute(stmt)
+        return int(getattr(result, "rowcount", 0) or 0)
 
     @staticmethod
     def mark_used(token: PasswordResetToken) -> None:

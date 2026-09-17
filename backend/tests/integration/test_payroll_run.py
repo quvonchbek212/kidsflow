@@ -145,3 +145,120 @@ async def test_list_runs_for_user(client: AsyncClient) -> None:
     )
     assert resp.status_code == 200
     assert len(resp.json()) == 1
+
+
+async def _advance(client: AsyncClient, s: dict, amount: str, paid_at: str):
+    return await client.post(
+        "/api/v1/payroll/advances",
+        headers=auth_header(s["owner"]),
+        json={
+            "branch_id": s["branch_id"],
+            "user_id": s["staff_id"],
+            "amount": amount,
+            "paid_at": paid_at,
+        },
+    )
+
+
+async def test_advance_is_recorded_and_deducted_automatically(
+    client: AsyncClient,
+) -> None:
+    """Oy o'rtasidagi avans yoziladi va oylik hisobida o'zi ushlanadi."""
+    s = await _scenario(client)
+    first = await _advance(client, s, "1000000", "2026-09-15T09:00:00Z")
+    assert first.status_code == 201, first.text
+    assert first.json()["period"] == "2026-09-01"
+    second = await _advance(client, s, "500000", "2026-09-20T09:00:00Z")
+    assert second.status_code == 201, second.text
+
+    listed = await client.get(
+        "/api/v1/payroll/advances",
+        headers=auth_header(s["owner"]),
+        params={"branch_id": s["branch_id"], "period": "2026-09-01"},
+    )
+    assert listed.status_code == 200
+    assert len(listed.json()) == 2
+
+    # Avans xarajat sifatida darhol ko'rinadi.
+    expenses = (
+        await client.get(
+            "/api/v1/expenses",
+            headers=auth_header(s["owner"]),
+            params={"branch_id": s["branch_id"]},
+        )
+    ).json()
+    assert first.json()["expense_id"] in {e["id"] for e in expenses}
+
+    # Qo'lda "0" yuborilsa ham yozilgan avanslar ushlanadi.
+    run = await client.post(
+        "/api/v1/payroll/runs",
+        headers=auth_header(s["owner"]),
+        json={
+            "branch_id": s["branch_id"],
+            "user_id": s["staff_id"],
+            "period": "2026-09-01",
+            "advance_deducted": "0",
+            "paid_at": "2026-09-30T10:00:00Z",
+        },
+    )
+    assert run.status_code == 201, run.text
+    assert _dec(run.json()["advance_deducted"]) == _dec("1500000")
+    assert _dec(run.json()["net_pay"]) == _dec("2500000")  # 4 000 000 − 1 500 000
+
+    # Oylik hisoblangan oyga yangi avans berilmaydi, eskisi bekor qilinmaydi.
+    late = await _advance(client, s, "100000", "2026-09-30T12:00:00Z")
+    assert late.status_code == 409, late.text
+    blocked = await client.post(
+        f"/api/v1/payroll/advances/{first.json()['id']}/reverse",
+        headers=auth_header(s["owner"]),
+    )
+    assert blocked.status_code == 409, blocked.text
+
+    # Oylik bekor qilingach avansni ham bekor qilish mumkin.
+    await client.post(
+        f"/api/v1/payroll/runs/{run.json()['id']}/reverse",
+        headers=auth_header(s["owner"]),
+    )
+    reversed_ = await client.post(
+        f"/api/v1/payroll/advances/{first.json()['id']}/reverse",
+        headers=auth_header(s["owner"]),
+    )
+    assert reversed_.status_code == 200, reversed_.text
+    assert reversed_.json()["status"] == "REVERSED"
+
+    redo = await client.post(
+        "/api/v1/payroll/runs",
+        headers=auth_header(s["owner"]),
+        json={
+            "branch_id": s["branch_id"],
+            "user_id": s["staff_id"],
+            "period": "2026-09-01",
+            "paid_at": "2026-09-30T10:00:00Z",
+        },
+    )
+    assert redo.status_code == 201, redo.text
+    assert _dec(redo.json()["advance_deducted"]) == _dec("500000")
+
+
+async def test_advances_cannot_exceed_salary(client: AsyncClient) -> None:
+    s = await _scenario(client)
+    ok = await _advance(client, s, "3000000", "2026-09-10T09:00:00Z")
+    assert ok.status_code == 201, ok.text
+    too_much = await _advance(client, s, "1500000", "2026-09-15T09:00:00Z")
+    assert too_much.status_code == 409, too_much.text
+
+
+async def test_teacher_cannot_give_advance(client: AsyncClient) -> None:
+    s = await _scenario(client)
+    teacher = (await login(client, "+998900000050", "teacher-parol-1"))["access_token"]
+    resp = await client.post(
+        "/api/v1/payroll/advances",
+        headers=auth_header(teacher),
+        json={
+            "branch_id": s["branch_id"],
+            "user_id": s["staff_id"],
+            "amount": "100000",
+            "paid_at": "2026-09-10T09:00:00Z",
+        },
+    )
+    assert resp.status_code == 403, resp.text

@@ -148,6 +148,51 @@ export function ageRangeLabel(
   return `${years(minMonths)}–${years(maxMonths)}`;
 }
 
+/**
+ * Tug'ilgan sanadan to'liq yosh. Guruh tarkibida har bir bolaning yoshini
+ * ko'rsatish uchun — `ageRangeLabel` guruhning oralig'ini beradi, bu esa
+ * aniq bolanikini.
+ */
+export function ageInYears(birthDate: string, today = new Date()): number {
+  const born = new Date(birthDate);
+  if (Number.isNaN(born.getTime())) return 0;
+  let years = today.getFullYear() - born.getFullYear();
+  const monthDiff = today.getMonth() - born.getMonth();
+  // Tug'ilgan kun hali kelmagan bo'lsa, bir yil ayiriladi.
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < born.getDate())) {
+    years -= 1;
+  }
+  return Math.max(0, years);
+}
+
+/**
+ * Vasiyning bolaga aloqasi ("Onasi", "Otasi", ...).
+ *
+ * Ilgari interfeysda `MOTHER` kabi xom qiymat chiqardi yoki umuman
+ * ko'rsatilmasdi — ikkala holda ham ismning yonidagi odam kimligi
+ * noaniq qolardi.
+ */
+export function relationLabel(
+  type: string,
+  labels: {
+    rMother: string;
+    rFather: string;
+    rRelative: string;
+    rOther: string;
+  },
+): string {
+  switch (type) {
+    case "MOTHER":
+      return labels.rMother;
+    case "FATHER":
+      return labels.rFather;
+    case "RELATIVE":
+      return labels.rRelative;
+    default:
+      return labels.rOther;
+  }
+}
+
 const INVOICE_STATUS_UZ: Record<string, string> = {
   OPEN: "To'lanmagan",
   PARTIALLY_PAID: "Qisman to'langan",

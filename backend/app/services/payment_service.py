@@ -149,6 +149,22 @@ class PaymentService:
         )
         return payment
 
+    async def list_for_child(
+        self, child_id: uuid.UUID, current_user: CurrentUser
+    ) -> list[PaymentTransaction]:
+        """Bolaning oxirgi to'lovlari — faqat foydalanuvchi boshqaradigan filiallardan.
+
+        Xato kiritilgan to'lovni topib bekor qilish uchun kerak: ilgari
+        `reverse` endpointi bor edi, lekin qaysi to'lovni bekor qilishni tanlash
+        uchun ro'yxat yo'q edi.
+        """
+        payments = await self._payments.list_for_child(child_id)
+        return [
+            p
+            for p in payments
+            if self._access.can_manage_branch(current_user, p.branch_id)
+        ]
+
     async def allocations_with_unallocated(
         self, payment: PaymentTransaction
     ) -> tuple[list[PaymentAllocation], Decimal]:

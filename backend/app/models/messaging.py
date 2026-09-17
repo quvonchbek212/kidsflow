@@ -16,15 +16,18 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-from app.models.base import UUIDMixin
+from app.models.base import TimestampMixin, UUIDMixin
 from app.models.enums import NotificationStatus, OutboxStatus
 
 
@@ -50,6 +53,79 @@ class OutboxEvent(UUIDMixin, Base):
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class BranchNotificationSettings(UUIDMixin, TimestampMixin, Base):
+    """Bildirishnoma sozlamalari — HAR FILIAL uchun alohida.
+
+    Ilgari bu sozlamalar yagona global `kindergarten_settings.notification_toggles`
+    da turardi, ya'ni bir filialda o'chirilgan tur hamma filialda o'chib qolardi.
+    Filiallar mustaqil ishlagani uchun (o'z guruhlari, xodimlari, hisobotlari)
+    bildirishnoma qoidalari ham filialga bog'lanadi.
+    """
+
+    __tablename__ = "branch_notification_settings"
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("branches.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    # Tur nomi -> yoqilganmi. Kalit topilmasa yoqilgan hisoblanadi.
+    toggles: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # To'lov muddati yaqinlashganda necha kun oldin eslatiladi.
+    payment_reminder_days_before: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5
+    )
+    # Muddatdan necha kun o'tgach qarz ogohlantirishi yuboriladi.
+    debt_warning_days_late: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=15
+    )
+    # Oylik hisob-faktura to'lov muddati — har oyning shu sanasi (1–28).
+    # Hisob-fakturalar avtomatik yaratiladi (`auto_billing`), shuning uchun
+    # muddat ham qo'lda kiritilmaydi, filial sozlamasidan olinadi.
+    invoice_due_day: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+
+
+class ParentMessage(UUIDMixin, Base):
+    """Ota-ona bilan xodim o'rtasidagi yozishma.
+
+    `Notification` faqat CHIQUVCHI xabar uchun (foydalanuvchi + chat id), ya'ni
+    ota-onadan kelgan savolni saqlaydigan joy yo'q edi. Bu jadval ikkala
+    yo'nalishni ham bitta suhbat sifatida saqlaydi.
+    """
+
+    __tablename__ = "parent_messages"
+    __table_args__ = (
+        Index(
+            "ix_parent_messages_thread",
+            "branch_id",
+            "guardian_user_id",
+            "created_at",
+        ),
+    )
+
+    branch_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("branches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    guardian_user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    # Xodim o'qigan vaqt — faqat `IN` xabarlar uchun ma'noga ega.
+    read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Javobni kim yozgani — faqat `OUT` uchun. Xodim o'chirilsa NULL bo'ladi,
+    # yozishma esa saqlanib qoladi.
+    staff_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
 
@@ -79,6 +155,16 @@ class Notification(UUIDMixin, Base):
     """Foydalanuvchiga yuboriladigan (yoki yuborilgan) bildirishnoma."""
 
     __tablename__ = "notifications"
+    __table_args__ = (
+        # Worker har 5 soniyada navbatni so'raydi; jadval esa doim o'sadi.
+        # Qisman indeks faqat kutayotgan yozuvlarni qamraydi — kichik qoladi.
+        Index(
+            "ix_notifications_pending",
+            "created_at",
+            postgresql_where=text("status = 'PENDING'"),
+            sqlite_where=text("status = 'PENDING'"),
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True

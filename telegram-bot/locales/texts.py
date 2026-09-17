@@ -38,6 +38,21 @@ _TEXTS: dict[str, dict[str, str]] = {
     "btn_reports": {"uz": "📝 Kunlik hisobot", "ru": "📝 Отчёты"},
     "btn_invoices": {"uz": "💰 To'lovlar", "ru": "💰 Оплаты"},
     "btn_back": {"uz": "⬅️ Orqaga", "ru": "⬅️ Назад"},
+    "btn_staff": {"uz": "✍️ Xodimga yozish", "ru": "✍️ Написать сотруднику"},
+    "staff_prompt": {
+        "uz": (
+            "Savolingizni yozing — bog'cha xodimi ko'radi va javob beradi.\n"
+            "Javob shu yerga keladi."
+        ),
+        "ru": (
+            "Напишите свой вопрос — сотрудник детского сада увидит его и ответит.\n"
+            "Ответ придёт сюда."
+        ),
+    },
+    "staff_sent": {
+        "uz": "✅ Xabaringiz yuborildi. Xodim javob berganda shu yerda ko'rasiz.",
+        "ru": "✅ Ваше сообщение отправлено. Ответ сотрудника придёт сюда.",
+    },
     "no_children": {
         "uz": "Sizga biriktirilgan farzand topilmadi.",
         "ru": "Привязанных детей не найдено.",

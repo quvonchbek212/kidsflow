@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { APP_I18N } from "./app-i18n";
-import type { Lang } from "./landing-content";
+import type { Lang } from "./lang";
 
 const LANGS: Lang[] = ["uz", "ru", "en"];
 

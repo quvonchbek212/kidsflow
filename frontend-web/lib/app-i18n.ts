@@ -1,6 +1,6 @@
 // Ilova ichki interfeysi uchun tarjimalar (sidebar + barcha sahifalar), uz/ru/en.
 
-import type { Lang } from "./landing-content";
+import type { Lang } from "./lang";
 
 export interface AppStrings {
   search: string;
@@ -29,6 +29,7 @@ export interface AppStrings {
     payments: string;
     expenses: string;
     parents: string;
+    inbox: string;
     settings: string;
   };
   common: {
@@ -52,6 +53,7 @@ export interface AppStrings {
     edit: string;
     create: string;
     cancel: string;
+    removeRow: string;
     close: string;
     saving: string;
     date: string;
@@ -80,7 +82,9 @@ export interface AppStrings {
     no: string;
     confirm: string;
     deactivate: string;
+    activate: string;
     deactivateTitle: string;
+    activateTitle: string;
     reverse: string;
     reverseTitle: string;
     reverseDone: string;
@@ -168,6 +172,7 @@ export interface AppStrings {
     medicalHint: string;
     group: string;
     parent: string;
+    guardianBothRequired: string;
     guardianSection: string;
     relation: string;
     rMother: string;
@@ -191,6 +196,26 @@ export interface AppStrings {
     left: string;
     filterActive: string;
     filterWaiting: string;
+    enrollMode: string;
+    enrollNow: string;
+    enrollWaitlist: string;
+    waitlistHint: string;
+    desiredDate: string;
+    groupFull: string;
+    groupFullHint: string;
+    waitingCount: string;
+    admit: string;
+    admitTitle: string;
+    admitHint: string;
+    admitDate: string;
+    admitted: string;
+    unwaitlist: string;
+    unwaitlistBody: string;
+    unwaitlisted: string;
+    reenroll: string;
+    reenrollHint: string;
+    reenrolled: string;
+    reenrollWaitlisted: string;
     filterLeft: string;
     filterDebt: string;
     transferGroup: string;
@@ -240,11 +265,19 @@ export interface AppStrings {
     deactivateBody: string;
     savedGroup: string;
     teacherAssigned: string;
+    roster: string;
+    viewRoster: string;
+    searchChild: string;
+    noChildren: string;
+    parentLabel: string;
+    unmarked: string;
+    medicalNote: string;
   };
   attendance: {
     title: string;
     subtitle: string;
     chooseGroup: string;
+    noGroups: string;
     markAll: string;
     saveAndSend: string;
     saved: string;
@@ -316,12 +349,7 @@ export interface AppStrings {
     toPay: string;
     savePayment: string;
     paymentDone: string;
-    generateInvoices: string;
-    dueDate: string;
-    invoicesCreated: string;
-    invoicesSkipped: string;
-    cancelInvoice: string;
-    cancelDone: string;
+    autoInvoiceHint: string;
     paid: string;
     partial: string;
     unpaid: string;
@@ -329,6 +357,15 @@ export interface AppStrings {
     filterPartial: string;
     filterUnpaid: string;
     child: string;
+    searchHint: string;
+    changeChild: string;
+    debtNow: string;
+    noDebt: string;
+    payFullDebt: string;
+    recentPayments: string;
+    noPayments: string;
+    paymentReversed: string;
+    reverseConfirm: string;
   };
   expenses: {
     title: string;
@@ -342,6 +379,8 @@ export interface AppStrings {
     newCategory: string;
     categoryName: string;
     variableFlag: string;
+    variableShort: string;
+    fixedShort: string;
     variableHint: string;
     total: string;
     byCategory: string;
@@ -367,8 +406,20 @@ export interface AppStrings {
     accessInfo: string;
     login: string;
     password: string;
+    /** Mavjud xodimga yangi parol o'rnatish bo'limi. */
+    newPassword: string;
+    setPassword: string;
+    passwordSet: string;
+    passwordHint: string;
+    passwordTooShort: string;
+    emailHint: string;
+    loginHint: string;
+    passwordCreateHint: string;
+    showPassword: string;
+    hidePassword: string;
     savedStaff: string;
     deactivateBody: string;
+    activateBody: string;
     filterAll: string;
     payrollRunTitle: string;
     payrollRunAction: string;
@@ -376,6 +427,17 @@ export interface AppStrings {
     bonus: string;
     deduction: string;
     advanceDeducted: string;
+    payrollDone: string;
+    payrollDoneBanner: string;
+    advanceSection: string;
+    advanceAmount: string;
+    advanceDate: string;
+    advanceGive: string;
+    advanceGiven: string;
+    advanceThisMonth: string;
+    advanceAutoHint: string;
+    advanceHistory: string;
+    advanceReverseConfirm: string;
     netPay: string;
     payrollHistory: string;
     payrollPeriod: string;
@@ -413,6 +475,8 @@ export interface AppStrings {
     chooseChild: string;
     chooseBranch: string;
     chooseGroup: string;
+    groupsSearch: string;
+    groupsNotFound: string;
   };
   messaging: {
     title: string;
@@ -452,6 +516,22 @@ export interface AppStrings {
     inviteExpires: string;
     inviteCopy: string;
     inviteCopied: string;
+    threadsTitle: string;
+    threadsSubtitle: string;
+    threadsEmpty: string;
+    threadsEmptySub: string;
+    chooseThread: string;
+    replyPlaceholder: string;
+    replySend: string;
+    unreadBadge: string;
+    fromParent: string;
+    fromStaff: string;
+    newQuestions: string;
+    reminderDaysTitle: string;
+    reminderDaysSub: string;
+    reminderBefore: string;
+    reminderLate: string;
+    invoiceDueDay: string;
     inviteAlreadyLinked: string;
   };
   food: {
@@ -497,8 +577,6 @@ export interface AppStrings {
     legalName: string;
     address: string;
     hoursText: string;
-    autoInvoiceDay: string;
-    autoInvoiceDayHint: string;
     saved: string;
     saveChanges: string;
     tariffs: string;
@@ -593,6 +671,7 @@ const T: Table = {
   edit: ["Tahrirlash", "Редактировать", "Edit"],
   create: ["Yaratish", "Создать", "Create"],
   cancel: ["Bekor qilish", "Отмена", "Cancel"],
+  removeRow: ["Qatorni o'chirish", "Удалить строку", "Remove row"],
   close: ["Yopish", "Закрыть", "Close"],
   saving: ["Saqlanmoqda...", "Сохранение...", "Saving..."],
   date: ["Sana", "Дата", "Date"],
@@ -645,10 +724,16 @@ const T: Table = {
   no: ["Yo'q", "Нет", "No"],
   confirm: ["Tasdiqlash", "Подтвердить", "Confirm"],
   deactivate: ["Faolsizlantirish", "Деактивировать", "Deactivate"],
+  activate: ["Faollashtirish", "Активировать", "Activate"],
   deactivateTitle: [
     "Faolsizlantirishni tasdiqlang",
     "Подтвердите деактивацию",
     "Confirm deactivation",
+  ],
+  activateTitle: [
+    "Xodimni faollashtirish?",
+    "Активировать сотрудника?",
+    "Activate this staff member?",
   ],
   reverse: ["Bekor qilish", "Отменить", "Reverse"],
   reverseTitle: [
@@ -801,6 +886,11 @@ const T: Table = {
   ],
   group: ["Guruh", "Группа", "Group"],
   parent: ["Ota-ona", "Родитель", "Parent"],
+  guardianBothRequired: [
+    "Ota-ona ma'lumoti to'liq bo'lishi kerak: ism ham, telefon ham. Kerak bo'lmasa ikkalasini ham bo'sh qoldiring.",
+    "Данные родителя должны быть полными: и имя, и телефон. Иначе оставьте оба поля пустыми.",
+    "Parent details must be complete: both name and phone. Otherwise leave both empty.",
+  ],
   guardianSection: [
     "Ota-ona / vasiy",
     "Родитель / опекун",
@@ -860,6 +950,74 @@ const T: Table = {
   statusLeft: ["Chiqib ketgan", "Выбыл", "Left"],
   filterActive: ["Faol", "Активные", "Active"],
   filterWaiting: ["Navbatda", "В очереди", "Waiting"],
+  childEnrollMode: ["Qabul", "Зачисление", "Enrollment"],
+  childEnrollNow: ["Hozir qabul qilish", "Зачислить сейчас", "Enroll now"],
+  childEnrollWaitlist: [
+    "Navbatga qo'yish",
+    "Поставить в очередь",
+    "Add to waitlist",
+  ],
+  childWaitlistHint: [
+    "Bola hozircha guruhga qatnamaydi: davomatda chiqmaydi va to'lov hisoblanmaydi. Joy bo'shaganda bola kartochkasida «Qabul qilish» tugmasini bosasiz.",
+    "Ребёнок пока не посещает группу: его нет в посещаемости и оплата не начисляется. Когда освободится место, нажмите «Зачислить» в карточке ребёнка.",
+    "The child doesn't attend yet: they aren't in attendance and aren't billed. When a spot opens, press “Enroll” on the child's card.",
+  ],
+  childDesiredDate: [
+    "Kutilayotgan sana",
+    "Желаемая дата",
+    "Desired start date",
+  ],
+  childGroupFull: ["to'la", "заполнена", "full"],
+  childGroupFullHint: [
+    "Bu guruhda bo'sh joy yo'q. Bolani navbatga qo'yishingiz mumkin.",
+    "В этой группе нет свободных мест. Ребёнка можно поставить в очередь.",
+    "This group has no free seats. You can add the child to the waitlist.",
+  ],
+  childWaitingCount: ["navbatda", "в очереди", "waiting"],
+  childAdmit: ["Qabul qilish", "Зачислить", "Enroll"],
+  childAdmitTitle: [
+    "Navbatdan qabul qilish",
+    "Зачисление из очереди",
+    "Enroll from waitlist",
+  ],
+  childAdmitHint: [
+    "Qabul sanasidan boshlab bola davomatda ko'rinadi va unga oylik to'lov hisoblana boshlaydi.",
+    "С даты зачисления ребёнок появится в посещаемости и начнёт начисляться ежемесячная оплата.",
+    "From the start date the child appears in attendance and monthly billing begins.",
+  ],
+  childAdmitDate: ["Qabul sanasi", "Дата зачисления", "Start date"],
+  childAdmitted: ["Bola qabul qilindi", "Ребёнок зачислен", "Child enrolled"],
+  childUnwaitlist: [
+    "Navbatdan chiqarish",
+    "Убрать из очереди",
+    "Remove from waitlist",
+  ],
+  childUnwaitlistBody: [
+    "Bola navbatdan chiqariladi. Kerak bo'lsa keyin qayta qo'shish mumkin.",
+    "Ребёнок будет убран из очереди. При необходимости его можно добавить снова.",
+    "The child will be removed from the waitlist. You can add them again later.",
+  ],
+  childReenroll: ["Qayta qabul qilish", "Принять снова", "Re-enroll"],
+  childReenrollHint: [
+    "Bola tanlangan guruhga qayta yoziladi va faol holatga qaytadi. Oldingi tarixi saqlanib qoladi.",
+    "Ребёнок снова будет записан в выбранную группу и станет активным. Прежняя история сохранится.",
+    "The child is enrolled in the chosen group again and becomes active. Previous history is kept.",
+  ],
+  childReenrolled: [
+    "Bola qayta qabul qilindi",
+    "Ребёнок снова принят",
+    "Child re-enrolled",
+  ],
+  childReenrollWaitlisted: [
+    "Bola navbatga qo'yildi",
+    "Ребёнок поставлен в очередь",
+    "Child added to the waitlist",
+  ],
+  childUnwaitlisted: [
+    "Navbatdan chiqarildi",
+    "Убран из очереди",
+    "Removed from waitlist",
+  ],
   filterLeft: ["Chiqib ketgan", "Выбывшие", "Left"],
   filterDebt: ["Qarzdor", "С долгом", "In debt"],
   transferGroup: [
@@ -882,9 +1040,9 @@ const T: Table = {
     "Child transferred",
   ],
   deactivateChildBody: [
-    "Bola faolsizlantiriladi. Tarixi (davomat, to'lovlar) saqlanib qoladi.",
-    "Ребёнок будет деактивирован. История (посещаемость, оплаты) сохранится.",
-    "The child will be deactivated. History (attendance, payments) is kept.",
+    "Bola guruhdan chiqariladi: davomatda ko'rinmaydi va keyingi oydan hisob-faktura yozilmaydi. Tarixi (davomat, to'lovlar) saqlanib qoladi.",
+    "Ребёнок будет выведен из группы: исчезнет из посещаемости, со следующего месяца счета не выставляются. История (посещаемость, оплаты) сохранится.",
+    "The child leaves the group: they disappear from attendance and are not billed from next month. History (attendance, payments) is kept.",
   ],
   savedChild: [
     "Bola ma'lumoti saqlandi",
@@ -959,6 +1117,17 @@ const T: Table = {
   placesFree: ["joy bo'sh", "мест свободно", "places free"],
   full: ["Joy yo'q", "Мест нет", "Full"],
   noTeacher: ["Tarbiyachisiz", "Без воспитателя", "No teacher"],
+  groupRoster: ["Guruh tarkibi", "Состав группы", "Group roster"],
+  viewRoster: ["Tarkibni ko'rish", "Посмотреть состав", "View roster"],
+  searchChild: ["Bolani qidirish...", "Поиск ребёнка...", "Search child..."],
+  groupNoChildren: [
+    "Bu guruhda hali bola yo'q.",
+    "В этой группе пока нет детей.",
+    "No children in this group yet.",
+  ],
+  parentLabel: ["Ota-ona", "Родитель", "Parent"],
+  attUnmarked: ["Belgilanmagan", "Не отмечен", "Unmarked"],
+  medicalNote: ["Tibbiy izoh", "Мед. заметка", "Medical note"],
   deactivateGroupBody: [
     "Guruh faolsizlantiriladi. Bolalarni avval boshqa guruhga o'tkazing.",
     "Группа будет деактивирована. Сначала переведите детей в другую группу.",
@@ -978,6 +1147,11 @@ const T: Table = {
     "Daily attendance by group",
   ],
   attChooseGroup: ["Guruhni tanlang", "Выберите группу", "Choose a group"],
+  attNoGroups: [
+    "Bu filialda hali guruh yo'q — avval «Guruhlar» bo'limida guruh oching.",
+    "В этом филиале ещё нет групп — сначала создайте группу в разделе «Группы».",
+    "This branch has no groups yet — create one in the Groups section first.",
+  ],
   attMarkAll: [
     'Hammasini "keldi" qilish',
     "Отметить всех присутствующими",
@@ -1017,24 +1191,11 @@ const T: Table = {
   payToPay: ["To'lanadigan", "К оплате", "Amount due"],
   paySavePayment: ["To'lovni saqlash", "Сохранить оплату", "Save payment"],
   payDone: ["To'lov qabul qilindi", "Оплата принята", "Payment recorded"],
-  payGenerateInvoices: [
-    "Hisob-faktura yaratish",
-    "Создать счета",
-    "Generate invoices",
+  payAutoInvoiceHint: [
+    "Hisob-fakturalar har oy avtomatik yaratiladi — bola faol bo'lganda esa darhol",
+    "Счета создаются автоматически каждый месяц, для нового ребёнка — сразу",
+    "Invoices are created automatically every month, and right away for a new child",
   ],
-  payDueDate: ["To'lov muddati", "Срок оплаты", "Due date"],
-  payInvoicesCreated: [
-    "ta hisob-faktura yaratildi",
-    "счетов создано",
-    "invoices created",
-  ],
-  payInvoicesSkipped: ["ta o'tkazib yuborildi", "пропущено", "skipped"],
-  payCancelInvoice: [
-    "Hisob-fakturani bekor qilish",
-    "Отменить счёт",
-    "Cancel invoice",
-  ],
-  payCancelDone: ["Bekor qilindi", "Отменено", "Cancelled"],
   payPaid: ["To'langan", "Оплачено", "Paid"],
   payPartial: ["Qisman", "Частично", "Partial"],
   payUnpaid: ["To'lanmagan", "Не оплачено", "Unpaid"],
@@ -1042,6 +1203,19 @@ const T: Table = {
   payFilterPartial: ["Qisman", "Частично", "Partial"],
   payFilterUnpaid: ["To'lanmagan", "Неоплаченные", "Unpaid"],
   payChild: ["Bola", "Ребёнок", "Child"],
+  paySearchHint: [
+    "Ism yoki guruh bo'yicha qidiring",
+    "Поиск по имени или группе",
+    "Search by name or group",
+  ],
+  payChangeChild: ["O'zgartirish", "Изменить", "Change"],
+  payDebtNow: ["Joriy qarz", "Текущий долг", "Current debt"],
+  payNoDebt: ["Qarz yo'q", "Долга нет", "No debt"],
+  payFullDebt: ["To'liq qarz", "Весь долг", "Full debt"],
+  payRecentPayments: ["Oxirgi to'lovlar", "Последние платежи", "Recent payments"],
+  payNoPayments: ["Hali to'lov yo'q", "Платежей пока нет", "No payments yet"],
+  payPaymentReversed: ["Bekor qilingan", "Отменён", "Reversed"],
+  payReverseConfirm: ["Ha, bekor qilish", "Да, отменить", "Yes, reverse"],
 
   expTitle: ["Xarajatlar", "Расходы", "Expenses"],
   expSubtitle: [
@@ -1066,6 +1240,10 @@ const T: Table = {
     "Переменный расход (зависит от числа детей)",
     "Variable cost (scales with children)",
   ],
+  // Kategoriya ro'yxatida har qatorda to'liq jumla takrorlanib, oyna
+  // o'qib bo'lmas holga kelgan edi — qatorlar uchun qisqa yorliq.
+  variableShort: ["O'zgaruvchan", "Переменный", "Variable"],
+  fixedShort: ["Doimiy", "Постоянный", "Fixed"],
   variableHint: [
     "Zararsizlik hisobida o'zgaruvchan xarajat sifatida hisoblanadi",
     "Учитывается как переменный расход в расчёте безубыточности",
@@ -1086,6 +1264,40 @@ const T: Table = {
     "Редактировать сотрудника",
     "Edit employee",
   ],
+  newPassword: ["Yangi parol", "Новый пароль", "New password"],
+  setPassword: ["Parolni o'rnatish", "Установить пароль", "Set password"],
+  passwordSet: [
+    "Parol o'rnatildi. Xodim endi yangi parol bilan kiradi.",
+    "Пароль установлен. Сотрудник входит с новым паролем.",
+    "Password set. The employee now signs in with the new password.",
+  ],
+  passwordHint: [
+    "Kamida 8 belgi. Xodimning ochiq sessiyalari yopiladi.",
+    "Минимум 8 символов. Открытые сессии сотрудника завершатся.",
+    "At least 8 characters. The employee's open sessions will be closed.",
+  ],
+  passwordTooShort: [
+    "Parol kamida 8 belgi bo'lishi kerak.",
+    "Пароль должен быть не короче 8 символов.",
+    "Password must be at least 8 characters.",
+  ],
+  emailHint: [
+    "Parolni unutganda tiklash havolasi shu emailga yuboriladi.",
+    "На этот email придёт ссылка для восстановления пароля.",
+    "The password reset link is sent to this email.",
+  ],
+  loginHint: [
+    "Xodim shu login bilan kiradi. Lotin harflari, raqam, '_' va '.' — kamida 3 belgi.",
+    "Сотрудник входит с этим логином. Латиница, цифры, '_' и '.' — минимум 3 символа.",
+    "The employee signs in with this login. Latin letters, digits, '_' and '.' — at least 3 characters.",
+  ],
+  passwordCreateHint: [
+    "Kamida 8 belgi. Parolni xodimga o'zingiz aytasiz — keyin uni istalgan vaqtda almashtirish mumkin.",
+    "Минимум 8 символов. Пароль вы сообщаете сотруднику сами — позже его можно изменить.",
+    "At least 8 characters. You pass the password to the employee yourself — it can be changed later.",
+  ],
+  staffShowPassword: ["Parolni ko'rsatish", "Показать пароль", "Show password"],
+  staffHidePassword: ["Parolni yashirish", "Скрыть пароль", "Hide password"],
   position: ["Lavozim", "Должность", "Position"],
   salary: ["Oylik maosh", "Оклад", "Monthly salary"],
   hireDate: ["Ishga kirgan sana", "Дата приёма", "Hire date"],
@@ -1114,6 +1326,11 @@ const T: Table = {
     "Сотрудник будет деактивирован и не сможет войти в систему.",
     "The employee will be deactivated and unable to sign in.",
   ],
+  activateStaffBody: [
+    "Xodim yana tizimga kira oladi va ro'yxatda faol bo'lib ko'rinadi.",
+    "Сотрудник снова сможет войти в систему и будет активен в списке.",
+    "The staff member can sign in again and appears as active in the list.",
+  ],
   staffFilterAll: ["Barchasi", "Все", "All"],
   payrollRunTitle: [
     "Oylikni hisoblash va to'lash",
@@ -1129,6 +1346,33 @@ const T: Table = {
   bonus: ["Bonus", "Премия", "Bonus"],
   deduction: ["Ushlanma", "Удержание", "Deduction"],
   advanceDeducted: ["Avans (ushlangan)", "Аванс (удержан)", "Advance deducted"],
+  payrollDone: ["Hisoblandi", "Рассчитано", "Paid"],
+  payrollDoneBanner: [
+    "Bu oy uchun oylik hisoblangan va to'langan.",
+    "Зарплата за этот месяц рассчитана и выплачена.",
+    "This month's salary has been calculated and paid.",
+  ],
+  advanceSection: ["Avans", "Аванс", "Advance"],
+  advanceAmount: ["Avans summasi", "Сумма аванса", "Advance amount"],
+  advanceDate: ["Berilgan sana", "Дата выдачи", "Date given"],
+  advanceGive: ["Avans berish", "Выдать аванс", "Give advance"],
+  advanceGiven: ["Avans yozib qo'yildi", "Аванс записан", "Advance recorded"],
+  advanceThisMonth: [
+    "Shu oy berilgan avans",
+    "Аванс за этот месяц",
+    "Advance this month",
+  ],
+  advanceAutoHint: [
+    "Shu oy berilgan avanslar oylikdan avtomatik ushlanadi.",
+    "Авансы за этот месяц удерживаются из зарплаты автоматически.",
+    "Advances given this month are deducted automatically.",
+  ],
+  advanceHistory: ["Avanslar tarixi", "История авансов", "Advance history"],
+  advanceReverseConfirm: [
+    "Avans bekor qilinadi va uning xarajat yozuvi ham bekor bo'ladi.",
+    "Аванс будет отменён вместе с записью расхода.",
+    "The advance and its expense record will be reversed.",
+  ],
   netPay: ["Sof summa", "К выплате", "Net pay"],
   payrollHistory: ["To'lovlar tarixi", "История выплат", "Payment history"],
   payrollPeriod: ["Davr", "Период", "Period"],
@@ -1187,6 +1431,54 @@ const T: Table = {
   chooseChild: ["Bolani tanlang", "Выберите ребёнка", "Choose a child"],
   chooseBranch: ["Filialni tanlang", "Выберите филиал", "Choose a branch"],
   chooseGroup: ["Guruhni tanlang", "Выберите группу", "Choose a group"],
+  groupsSearch: ["Guruhni qidirish", "Поиск группы", "Search groups"],
+  groupsNotFound: ["Guruh topilmadi", "Группа не найдена", "No groups found"],
+
+  navInbox: ["Xabarlar", "Сообщения", "Messages"],
+  msgThreadsTitle: ["Ota-onalar xabarlari", "Сообщения родителей", "Parent messages"],
+  msgThreadsSubtitle: [
+    "Botdan kelgan savollar va ularga javoblar",
+    "Вопросы из бота и ответы на них",
+    "Questions from the bot and replies",
+  ],
+  msgThreadsEmpty: ["Hali xabar yo'q", "Сообщений пока нет", "No messages yet"],
+  msgThreadsEmptySub: [
+    "Ota-ona botdan savol yozganda u shu yerda ko'rinadi",
+    "Когда родитель напишет вопрос в боте, он появится здесь",
+    "When a parent writes in the bot, it appears here",
+  ],
+  msgChooseThread: [
+    "Chapdan suhbatni tanlang",
+    "Выберите переписку слева",
+    "Choose a conversation on the left",
+  ],
+  msgReplyPlaceholder: ["Javob yozing…", "Напишите ответ…", "Write a reply…"],
+  msgReplySend: ["Yuborish", "Отправить", "Send"],
+  msgUnreadBadge: ["yangi", "новых", "new"],
+  msgFromParent: ["Ota-ona", "Родитель", "Parent"],
+  msgFromStaff: ["Xodim", "Сотрудник", "Staff"],
+  msgNewQuestions: ["Yangi savollar", "Новые вопросы", "New questions"],
+  msgReminderDaysTitle: ["Eslatma kunlari", "Дни напоминаний", "Reminder days"],
+  msgReminderDaysSub: [
+    "To'lov eslatmasi va qarz ogohlantirishi qachon yuborilishi",
+    "Когда отправлять напоминание об оплате и предупреждение о долге",
+    "When to send payment reminders and debt warnings",
+  ],
+  msgReminderBefore: [
+    "Muddatdan necha kun oldin eslatilsin",
+    "За сколько дней до срока напомнить",
+    "Remind this many days before due date",
+  ],
+  msgReminderLate: [
+    "Muddatdan necha kun o'tgach ogohlantirilsin",
+    "Через сколько дней после срока предупредить",
+    "Warn this many days after due date",
+  ],
+  msgInvoiceDueDay: [
+    "Oylik to'lov muddati (oyning sanasi)",
+    "Срок ежемесячной оплаты (число месяца)",
+    "Monthly payment due day",
+  ],
 
   msgTitle: [
     "Ota-onalar bilan aloqa",
@@ -1385,14 +1677,14 @@ const T: Table = {
     "When marked sick in attendance",
   ],
   msgHintPaymentReminder: [
-    "Har oyning 1 va 10-sanasida",
-    "1-го и 10-го числа",
-    "On the 1st and 10th",
+    "To'lov muddatidan oldin (kunlar Sozlamalarda)",
+    "До срока оплаты (дни — в Настройках)",
+    "Before the due date (days set in Settings)",
   ],
   msgHintDebtWarning: [
-    "To'lov 15 kun kechikkanda",
-    "При просрочке 15 дней",
-    "After 15 days overdue",
+    "To'lov kechikkanda (kunlar Sozlamalarda)",
+    "При просрочке оплаты (дни — в Настройках)",
+    "When payment is overdue (days set in Settings)",
   ],
   msgHintBirthday: [
     "Bolaning tug'ilgan kunida",
@@ -1473,21 +1765,11 @@ const T: Table = {
   setLegalName: ["Yuridik nomi", "Юридическое название", "Legal name"],
   setAddress: ["Manzil", "Адрес", "Address"],
   setHoursText: ["Ish vaqti", "Часы работы", "Working hours"],
-  setAutoInvoiceDay: [
-    "Oyning nechinchi kunida hisob-faktura yaratilsin",
-    "В какой день месяца создавать счета",
-    "Day of month to auto-generate invoices",
-  ],
   setSaved: ["Sozlamalar saqlandi", "Настройки сохранены", "Settings saved"],
   setSaveChanges: [
     "O'zgarishlarni saqlash",
     "Сохранить изменения",
     "Save changes",
-  ],
-  setAutoInvoiceDayHint: [
-    "Bo'sh qoldirilsa, hisob-fakturalar qo'lda yaratiladi",
-    "Если оставить пустым, счета создаются вручную",
-    "Leave empty to create invoices manually",
   ],
   setTariffs: ["Tariflar", "Тарифы", "Tariffs"],
   setTariffsSub: [
@@ -1599,6 +1881,7 @@ function build(idx: 0 | 1 | 2): AppStrings {
       payments: p("navPayments"),
       expenses: p("navExpenses"),
       parents: p("navParents"),
+      inbox: p("navInbox"),
       settings: p("navSettings"),
     },
     common: {
@@ -1622,6 +1905,7 @@ function build(idx: 0 | 1 | 2): AppStrings {
       edit: p("edit"),
       create: p("create"),
       cancel: p("cancel"),
+      removeRow: p("removeRow"),
       close: p("close"),
       saving: p("saving"),
       date: p("date"),
@@ -1650,7 +1934,9 @@ function build(idx: 0 | 1 | 2): AppStrings {
       no: p("no"),
       confirm: p("confirm"),
       deactivate: p("deactivate"),
+      activate: p("activate"),
       deactivateTitle: p("deactivateTitle"),
+      activateTitle: p("activateTitle"),
       reverse: p("reverse"),
       reverseTitle: p("reverseTitle"),
       reverseDone: p("reverseDone"),
@@ -1737,6 +2023,7 @@ function build(idx: 0 | 1 | 2): AppStrings {
       medicalHint: p("medicalHint"),
       group: p("group"),
       parent: p("parent"),
+      guardianBothRequired: p("guardianBothRequired"),
       guardianSection: p("guardianSection"),
       relation: p("relation"),
       rMother: p("rMother"),
@@ -1760,6 +2047,26 @@ function build(idx: 0 | 1 | 2): AppStrings {
       left: p("statusLeft"),
       filterActive: p("filterActive"),
       filterWaiting: p("filterWaiting"),
+      enrollMode: p("childEnrollMode"),
+      enrollNow: p("childEnrollNow"),
+      enrollWaitlist: p("childEnrollWaitlist"),
+      waitlistHint: p("childWaitlistHint"),
+      desiredDate: p("childDesiredDate"),
+      groupFull: p("childGroupFull"),
+      groupFullHint: p("childGroupFullHint"),
+      waitingCount: p("childWaitingCount"),
+      admit: p("childAdmit"),
+      admitTitle: p("childAdmitTitle"),
+      admitHint: p("childAdmitHint"),
+      admitDate: p("childAdmitDate"),
+      admitted: p("childAdmitted"),
+      unwaitlist: p("childUnwaitlist"),
+      unwaitlistBody: p("childUnwaitlistBody"),
+      unwaitlisted: p("childUnwaitlisted"),
+      reenroll: p("childReenroll"),
+      reenrollHint: p("childReenrollHint"),
+      reenrolled: p("childReenrolled"),
+      reenrollWaitlisted: p("childReenrollWaitlisted"),
       filterLeft: p("filterLeft"),
       filterDebt: p("filterDebt"),
       transferGroup: p("transferGroup"),
@@ -1809,11 +2116,19 @@ function build(idx: 0 | 1 | 2): AppStrings {
       deactivateBody: p("deactivateGroupBody"),
       savedGroup: p("savedGroup"),
       teacherAssigned: p("teacherAssigned"),
+      roster: p("groupRoster"),
+      viewRoster: p("viewRoster"),
+      searchChild: p("searchChild"),
+      noChildren: p("groupNoChildren"),
+      parentLabel: p("parentLabel"),
+      unmarked: p("attUnmarked"),
+      medicalNote: p("medicalNote"),
     },
     attendance: {
       title: p("attTitle"),
       subtitle: p("attSubtitle"),
       chooseGroup: p("attChooseGroup"),
+      noGroups: p("attNoGroups"),
       markAll: p("attMarkAll"),
       saveAndSend: p("attSaveAndSend"),
       saved: p("attSaved"),
@@ -1885,12 +2200,7 @@ function build(idx: 0 | 1 | 2): AppStrings {
       toPay: p("payToPay"),
       savePayment: p("paySavePayment"),
       paymentDone: p("payDone"),
-      generateInvoices: p("payGenerateInvoices"),
-      dueDate: p("payDueDate"),
-      invoicesCreated: p("payInvoicesCreated"),
-      invoicesSkipped: p("payInvoicesSkipped"),
-      cancelInvoice: p("payCancelInvoice"),
-      cancelDone: p("payCancelDone"),
+      autoInvoiceHint: p("payAutoInvoiceHint"),
       paid: p("payPaid"),
       partial: p("payPartial"),
       unpaid: p("payUnpaid"),
@@ -1898,6 +2208,15 @@ function build(idx: 0 | 1 | 2): AppStrings {
       filterPartial: p("payFilterPartial"),
       filterUnpaid: p("payFilterUnpaid"),
       child: p("payChild"),
+      searchHint: p("paySearchHint"),
+      changeChild: p("payChangeChild"),
+      debtNow: p("payDebtNow"),
+      noDebt: p("payNoDebt"),
+      payFullDebt: p("payFullDebt"),
+      recentPayments: p("payRecentPayments"),
+      noPayments: p("payNoPayments"),
+      paymentReversed: p("payPaymentReversed"),
+      reverseConfirm: p("payReverseConfirm"),
     },
     expenses: {
       title: p("expTitle"),
@@ -1911,6 +2230,8 @@ function build(idx: 0 | 1 | 2): AppStrings {
       newCategory: p("newCategory"),
       categoryName: p("categoryName"),
       variableFlag: p("variableFlag"),
+      variableShort: p("variableShort"),
+      fixedShort: p("fixedShort"),
       variableHint: p("variableHint"),
       total: p("expTotal"),
       byCategory: p("expByCategory"),
@@ -1942,8 +2263,19 @@ function build(idx: 0 | 1 | 2): AppStrings {
       accessInfo: p("accessInfo"),
       login: p("staffLogin"),
       password: p("staffPassword"),
+      newPassword: p("newPassword"),
+      setPassword: p("setPassword"),
+      passwordSet: p("passwordSet"),
+      passwordHint: p("passwordHint"),
+      passwordTooShort: p("passwordTooShort"),
+      emailHint: p("emailHint"),
+      loginHint: p("loginHint"),
+      passwordCreateHint: p("passwordCreateHint"),
+      showPassword: p("staffShowPassword"),
+      hidePassword: p("staffHidePassword"),
       savedStaff: p("savedStaff"),
       deactivateBody: p("deactivateStaffBody"),
+      activateBody: p("activateStaffBody"),
       filterAll: p("staffFilterAll"),
       payrollRunTitle: p("payrollRunTitle"),
       payrollRunAction: p("payrollRunAction"),
@@ -1951,6 +2283,17 @@ function build(idx: 0 | 1 | 2): AppStrings {
       bonus: p("bonus"),
       deduction: p("deduction"),
       advanceDeducted: p("advanceDeducted"),
+      payrollDone: p("payrollDone"),
+      payrollDoneBanner: p("payrollDoneBanner"),
+      advanceSection: p("advanceSection"),
+      advanceAmount: p("advanceAmount"),
+      advanceDate: p("advanceDate"),
+      advanceGive: p("advanceGive"),
+      advanceGiven: p("advanceGiven"),
+      advanceThisMonth: p("advanceThisMonth"),
+      advanceAutoHint: p("advanceAutoHint"),
+      advanceHistory: p("advanceHistory"),
+      advanceReverseConfirm: p("advanceReverseConfirm"),
       netPay: p("netPay"),
       payrollHistory: p("payrollHistory"),
       payrollPeriod: p("payrollPeriod"),
@@ -1988,6 +2331,8 @@ function build(idx: 0 | 1 | 2): AppStrings {
       chooseChild: p("chooseChild"),
       chooseBranch: p("chooseBranch"),
       chooseGroup: p("chooseGroup"),
+      groupsSearch: p("groupsSearch"),
+      groupsNotFound: p("groupsNotFound"),
     },
     messaging: {
       title: p("msgTitle"),
@@ -2027,6 +2372,22 @@ function build(idx: 0 | 1 | 2): AppStrings {
       inviteExpires: p("msgInviteExpires"),
       inviteCopy: p("msgInviteCopy"),
       inviteCopied: p("msgInviteCopied"),
+      threadsTitle: p("msgThreadsTitle"),
+      threadsSubtitle: p("msgThreadsSubtitle"),
+      threadsEmpty: p("msgThreadsEmpty"),
+      threadsEmptySub: p("msgThreadsEmptySub"),
+      chooseThread: p("msgChooseThread"),
+      replyPlaceholder: p("msgReplyPlaceholder"),
+      replySend: p("msgReplySend"),
+      unreadBadge: p("msgUnreadBadge"),
+      fromParent: p("msgFromParent"),
+      fromStaff: p("msgFromStaff"),
+      newQuestions: p("msgNewQuestions"),
+      reminderDaysTitle: p("msgReminderDaysTitle"),
+      reminderDaysSub: p("msgReminderDaysSub"),
+      reminderBefore: p("msgReminderBefore"),
+      reminderLate: p("msgReminderLate"),
+      invoiceDueDay: p("msgInvoiceDueDay"),
       inviteAlreadyLinked: p("msgInviteAlreadyLinked"),
     },
     food: {
@@ -2072,8 +2433,6 @@ function build(idx: 0 | 1 | 2): AppStrings {
       legalName: p("setLegalName"),
       address: p("setAddress"),
       hoursText: p("setHoursText"),
-      autoInvoiceDay: p("setAutoInvoiceDay"),
-      autoInvoiceDayHint: p("setAutoInvoiceDayHint"),
       saved: p("setSaved"),
       saveChanges: p("setSaveChanges"),
       tariffs: p("setTariffs"),

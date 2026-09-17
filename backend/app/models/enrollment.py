@@ -62,7 +62,8 @@ class Enrollment(UUIDMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(
         String(16), nullable=False, default=EnrollmentStatus.PLANNED.value
     )
-    # fee_plans jadvali 4-bosqichda qo'shiladi; hozircha FK'siz ustun.
+    # ESKIRGAN: tarif rejalari ishlatilmaydi (tarif guruhda). Ustun faqat
+    # mavjud bazalar bilan moslik uchun qoldirilgan.
     fee_plan_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True), nullable=True
     )

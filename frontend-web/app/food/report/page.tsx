@@ -2,19 +2,14 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
+import { CountUp } from "@/components/ui/CountUp";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { api, type StockReport } from "@/lib/api";
 import { money } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function FoodReportPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user}>
-      <ReportContent />
-    </AppShell>
-  );
+  return <ReportContent />;
 }
 
 function ReportContent(): ReactNode {
@@ -43,7 +38,9 @@ function ReportContent(): ReactNode {
           <div className="kpi__top">
             <span className="kpi__label">{t.food.totalValue}</span>
           </div>
-          <div className="kpi__value">{money(report.total_value)}</div>
+          <div className="kpi__value">
+            <CountUp value={Number(report.total_value)} format={money} />
+          </div>
         </div>
       )}
 
@@ -59,7 +56,7 @@ function ReportContent(): ReactNode {
         {!ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : !report || report.rows.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

@@ -2,31 +2,26 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
+import { useAppUI } from "@/components/AppShell";
+import { CountUp, intFormat } from "@/components/ui/CountUp";
 import { IconMessage, IconUsers } from "@/components/icons";
 import { LoadError, logSecondaryFailure } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   ApiError,
   api,
   type BroadcastAudience,
   type Group,
-  type KindergartenSettings,
+  type BranchNotificationSettings,
   type MessagingStats,
   type ParentRow,
 } from "@/lib/api";
 import { initials } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function ParentsPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
-  return (
-    <AppShell user={user} active="parents">
-      <ParentsContent />
-    </AppShell>
-  );
+  return <ParentsContent />;
 }
 
 const TOGGLE_KEYS = [
@@ -48,7 +43,9 @@ function ParentsContent(): ReactNode {
   const [parents, setParents] = useState<ParentRow[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [stats, setStats] = useState<MessagingStats | null>(null);
-  const [settings, setSettings] = useState<KindergartenSettings | null>(null);
+  // Kalitlar HAR FILIAL uchun alohida saqlanadi (global sozlamada emas).
+  const [settings, setSettings] =
+    useState<BranchNotificationSettings | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<unknown>(null);
 
@@ -79,9 +76,9 @@ function ParentsContent(): ReactNode {
       })
       .catch(setLoadError);
     api
-      .getSettings()
+      .notificationSettings(branchId)
       .then(setSettings)
-      .catch(logSecondaryFailure("Sozlamalar"));
+      .catch(logSecondaryFailure("Bildirishnoma sozlamalari"));
     api
       .messagingStats(branchId)
       .then(setStats)
@@ -123,10 +120,16 @@ function ParentsContent(): ReactNode {
   }
 
   async function onToggle(key: string, checked: boolean): Promise<void> {
-    const updated = await api.updateSettings({
-      notification_toggles: { [key]: checked },
-    });
-    setSettings(updated);
+    try {
+      const updated = await api.updateNotificationSettings(branchId, {
+        toggles: { [key]: checked },
+      });
+      setSettings(updated);
+    } catch (err) {
+      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, {
+        type: "neg",
+      });
+    }
   }
 
   // Ota-onani botga ulash uchun bir martalik kod. Kod ekranda ko'rsatiladi —
@@ -205,7 +208,14 @@ function ParentsContent(): ReactNode {
             <IconMessage size={18} />
           </div>
           <div className="kpi__value">
-            {ready ? (stats?.connected_families ?? 0) : "—"}
+            {ready ? (
+              <CountUp
+                value={stats?.connected_families ?? 0}
+                format={intFormat}
+              />
+            ) : (
+              "—"
+            )}
           </div>
         </div>
         <div className="kpi">
@@ -213,7 +223,11 @@ function ParentsContent(): ReactNode {
             <span className="kpi__label">{t.messaging.sentThisMonth}</span>
           </div>
           <div className="kpi__value">
-            {ready ? (stats?.sent_this_month ?? 0) : "—"}
+            {ready ? (
+              <CountUp value={stats?.sent_this_month ?? 0} format={intFormat} />
+            ) : (
+              "—"
+            )}
             <span className="kpi__unit">{t.messaging.messagesUnit}</span>
           </div>
         </div>
@@ -222,7 +236,13 @@ function ParentsContent(): ReactNode {
             <span className="kpi__label">{t.messaging.parentsListTitle}</span>
             <IconUsers size={18} />
           </div>
-          <div className="kpi__value">{ready ? parents.length : "—"}</div>
+          <div className="kpi__value">
+            {ready ? (
+              <CountUp value={parents.length} format={intFormat} />
+            ) : (
+              "—"
+            )}
+          </div>
         </div>
       </div>
 
@@ -238,7 +258,7 @@ function ParentsContent(): ReactNode {
           </div>
           <div className="card__body">
             {TOGGLE_KEYS.map((key) => {
-              const on = settings?.notification_toggles?.[key] ?? true;
+              const on = settings?.toggles?.[key] ?? true;
               return (
                 <div className="switch-row" key={key}>
                   <div>
@@ -267,8 +287,8 @@ function ParentsContent(): ReactNode {
           </div>
           <div className="card__body">
             <form onSubmit={onBroadcast}>
-              <div className="field">
-                <label>{t.messaging.audience}</label>
+              <label className="field">
+                <span className="field__label">{t.messaging.audience}</span>
                 <select
                   className="input"
                   value={audience}
@@ -280,10 +300,10 @@ function ParentsContent(): ReactNode {
                   <option value="group">{t.messaging.audienceGroup}</option>
                   <option value="debtors">{t.messaging.audienceDebtors}</option>
                 </select>
-              </div>
+              </label>
               {audience === "group" && (
-                <div className="field">
-                  <label>{t.pages.chooseGroup}</label>
+                <label className="field">
+                  <span className="field__label">{t.pages.chooseGroup}</span>
                   <select
                     className="input"
                     value={groupId}
@@ -296,10 +316,10 @@ function ParentsContent(): ReactNode {
                       </option>
                     ))}
                   </select>
-                </div>
+                </label>
               )}
-              <div className="field">
-                <label>{t.messaging.messageText}</label>
+              <label className="field">
+                <span className="field__label">{t.messaging.messageText}</span>
                 <textarea
                   className="input"
                   rows={5}
@@ -308,8 +328,12 @@ function ParentsContent(): ReactNode {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                 />
-              </div>
-              {error && <p className="error">{error}</p>}
+              </label>
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
               <button
                 className="btn btn--full"
                 type="submit"
@@ -334,7 +358,7 @@ function ParentsContent(): ReactNode {
         ) : !ready ? (
           <div className="panel-empty">{t.common.loading}</div>
         ) : parents.length === 0 ? (
-          <div className="panel-empty">{t.common.empty}</div>
+          <EmptyState title={t.common.empty} />
         ) : (
           <div className="tbl-wrap">
             <table className="tbl">

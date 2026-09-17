@@ -149,10 +149,12 @@ async def test_disabled_notification_type_is_silently_skipped(
     client: AsyncClient, session_factory
 ) -> None:
     s = await _scenario(client)
+    # Kalitlar endi FILIAL kesimida (`branch_notification_settings`), global
+    # `kindergarten_settings.notification_toggles` da emas.
     toggle = await client.patch(
-        "/api/v1/settings",
+        f"/api/v1/messages/settings?branch_id={s['branch_id']}",
         headers=auth_header(s["owner"]),
-        json={"notification_toggles": {"CHILD_SICK": False}},
+        json={"toggles": {"CHILD_SICK": False}},
     )
     assert toggle.status_code == 200, toggle.text
 

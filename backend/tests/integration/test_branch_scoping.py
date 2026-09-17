@@ -339,9 +339,7 @@ async def test_manager_cannot_read_foreign_branch(client: AsyncClient) -> None:
         password=MANAGER_A_PASSWORD,
         branch_id=w["branch_a"],
     )
-    manager = (await login(client, MANAGER_A_PHONE, MANAGER_A_PASSWORD))[
-        "access_token"
-    ]
+    manager = (await login(client, MANAGER_A_PHONE, MANAGER_A_PASSWORD))["access_token"]
 
     for path, params in (
         ("/api/v1/groups", {"branch_id": w["branch_b"]}),

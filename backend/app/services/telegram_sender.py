@@ -35,22 +35,35 @@ class NoopTelegramSender:
 
 
 class HttpxTelegramSender:
-    """Telegram Bot API orqali real yuboruvchi."""
+    """Telegram Bot API orqali real yuboruvchi.
+
+    Bitta `AsyncClient` qayta ishlatiladi. Ilgari har bir xabar uchun yangi
+    klient (va yangi TLS ulanish) ochilardi — 300 ota-onaga ommaviy xabar 300
+    marta ulanish o'rnatish degani edi.
+    """
 
     def __init__(self, bot_token: str) -> None:
-        self._base_url = f"https://api.telegram.org/bot{bot_token}"
+        self._client = httpx.AsyncClient(
+            base_url=f"https://api.telegram.org/bot{bot_token}", timeout=10.0
+        )
 
     async def send(self, chat_id: int, text: str) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    f"{self._base_url}/sendMessage",
-                    json={"chat_id": chat_id, "text": text},
-                )
+            response = await self._client.post(
+                "/sendMessage", json={"chat_id": chat_id, "text": text}
+            )
             return response.status_code == 200
-        except httpx.HTTPError:
-            logger.exception("Telegram xabar yuborishda xatolik")
+        except httpx.HTTPError as exc:
+            # `logger.exception` ishlatilmaydi: istisno matnida so'rov URL'i,
+            # ya'ni bot tokeni bo'lishi mumkin.
+            logger.warning(
+                "Telegram xabar yuborishda xatolik",
+                extra={"error_type": type(exc).__name__},
+            )
             return False
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
 
 def get_default_sender() -> TelegramSender:

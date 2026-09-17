@@ -221,7 +221,6 @@ va faqat vakolatli foydalanuvchi (yuklovchi yoki bola vasiysi/xodimi) yuklab ola
 
 | Endpoint | Rol | Tavsif |
 | --- | --- | --- |
-| `POST/GET /api/v1/fee-plans` | MANAGER/OWNER | Oylik tarif rejalari |
 | `POST /api/v1/invoices/generate` | MANAGER/OWNER | Filial bo'yicha oylik invoice'lar |
 | `GET /api/v1/children/{id}/invoices` | kirish huquqiga ega rollar | Bola invoice'lari |
 | `POST /api/v1/invoices/{id}/adjustments` | MANAGER/OWNER | Chegirma/qo'shimcha/qarz kechirish |

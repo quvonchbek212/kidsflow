@@ -10,10 +10,10 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+from app.utils.timezone import today_local
 from httpx import AsyncClient
 
 from tests.conftest import auth_header, complete_setup, create_staff, login
-from app.utils.timezone import today_local
 
 pytestmark = pytest.mark.asyncio
 
@@ -188,9 +188,7 @@ async def test_monthly_totals_match_recorded_expense(client: AsyncClient) -> Non
     """Agregat raqamlari dashboard bilan bir xil manbadan kelishi kerak."""
     w = await _world(client)
     category_id = (
-        await client.get(
-            "/api/v1/expense-categories", headers=auth_header(w["owner"])
-        )
+        await client.get("/api/v1/expense-categories", headers=auth_header(w["owner"]))
     ).json()[0]["id"]
     expense = await client.post(
         "/api/v1/expenses",

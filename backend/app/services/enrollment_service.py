@@ -22,6 +22,8 @@ from app.schemas.enrollment import (
 )
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
+from app.services.billing_service import BillingService
+from app.utils.timezone import today_local
 
 
 class EnrollmentService:
@@ -42,7 +44,8 @@ class EnrollmentService:
         if not self._access.can_manage_branch(current_user, data.branch_id):
             raise PermissionDeniedError("Bu filialda enrollment yaratish huquqi yo'q.")
 
-        if await self._children.get_by_id(child_id) is None:
+        child = await self._children.get_by_id(child_id)
+        if child is None:
             raise NotFoundError("Bola topilmadi.")
 
         group = await self._groups.get_by_id(data.group_id)
@@ -69,6 +72,25 @@ class EnrollmentService:
             discount_percent=data.discount_percent,
         )
         self._enrollments.add(enrollment)
+
+        # Faolsizlantirilgan bolani guruhga qayta yozish — uni qayta qabul
+        # qilish degani. Bola shu yerning o'zida faollashadi: aks holda ikki
+        # alohida so'rov orasida "guruhda, lekin nofaol" holat qolishi (va
+        # nofaol bolaga hisob yozilishi) mumkin edi.
+        if not child.is_active and data.status in (
+            EnrollmentStatus.ACTIVE,
+            EnrollmentStatus.PLANNED,
+        ):
+            child.is_active = True
+            self._audit.record(
+                action="CHILD_UPDATED",
+                entity_type="child",
+                entity_id=child.id,
+                actor_user_id=current_user.id,
+                branch_id=data.branch_id,
+                after_data={"is_active": True, "reason": "re_enrolled"},
+            )
+
         await self._session.flush()
         self._audit.record(
             action="ENROLLMENT_CREATED",
@@ -78,6 +100,8 @@ class EnrollmentService:
             branch_id=enrollment.branch_id,
             after_data={"child_id": str(child_id), "status": enrollment.status},
         )
+        if enrollment.status == EnrollmentStatus.ACTIVE.value:
+            await self._bill_current_month(enrollment)
         return enrollment
 
     async def update(
@@ -102,6 +126,16 @@ class EnrollmentService:
             existing = await self._enrollments.get_active_for_child(enrollment.child_id)
             if existing is not None and existing.id != enrollment.id:
                 raise ConflictError("Bolada allaqachon faol enrollment mavjud.")
+
+        # Boshlanish sanasi faqat navbatdagi bola uchun o'zgaradi: faol
+        # enrollmentda u hisob-faktura va davomat tarixiga bog'langan.
+        if data.start_date is not None:
+            if before_status != EnrollmentStatus.PLANNED.value:
+                raise ConflictError(
+                    "Boshlanish sanasini faqat navbatdagi bola uchun "
+                    "o'zgartirish mumkin."
+                )
+            enrollment.start_date = data.start_date
 
         if data.status is not None:
             enrollment.status = data.status.value
@@ -128,6 +162,13 @@ class EnrollmentService:
             before_data={"status": before_status},
             after_data={"status": enrollment.status},
         )
+        # Kutish ro'yxatidan faol bo'lganda ham hisob darhol ochiladi.
+        if (
+            enrollment.status == EnrollmentStatus.ACTIVE.value
+            and before_status != EnrollmentStatus.ACTIVE.value
+        ):
+            await self._session.flush()
+            await self._bill_current_month(enrollment)
         return enrollment
 
     async def transfer(
@@ -198,3 +239,19 @@ class EnrollmentService:
             },
         )
         return new_enrollment
+
+    async def _bill_current_month(self, enrollment: Enrollment) -> None:
+        """Faol bo'lgan bolaga joriy oy hisobini darhol yaratadi.
+
+        Kunlik worker ertasi kuni baribir yaratardi, lekin unda birinchi kuni
+        bola "qarz yo'q" bo'lib ko'rinardi va to'lov formasi summani bilmasdi.
+        """
+        today = today_local()
+        billing = BillingService(self._session)
+        await billing.generate_for_branch(
+            enrollment.branch_id,
+            today,
+            await billing.due_day_for(enrollment.branch_id),
+            child_id=enrollment.child_id,
+            not_before=today,
+        )

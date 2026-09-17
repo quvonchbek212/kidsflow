@@ -15,6 +15,7 @@ from app.repositories.child_repository import ChildRepository, EnrollmentReposit
 from app.repositories.user_repository import UserRepository
 from app.schemas.child import (
     ChildCreateRequest,
+    ChildEnrollmentSummary,
     ChildResponse,
     ChildUpdateRequest,
     GuardianCreateRequest,
@@ -23,6 +24,7 @@ from app.schemas.child import (
 from app.services.access_service import AccessService
 from app.services.audit_service import AuditService
 from app.utils.encryption import decrypt_text, encrypt_text
+from app.utils.timezone import today_local
 
 
 class ChildService:
@@ -86,8 +88,10 @@ class ChildService:
         child = await self._children.get_by_id(child_id)
         if child is None:
             raise NotFoundError("Bola topilmadi.")
+        await self._require_manage_child(child_id, current_user)
 
         fields = data.model_dump(exclude_unset=True)
+        deactivating = fields.get("is_active") is False and child.is_active
         if "gender" in fields:
             child.gender = data.gender.value if data.gender else None
             fields.pop("gender")
@@ -103,8 +107,43 @@ class ChildService:
             entity_id=child.id,
             actor_user_id=current_user.id,
         )
+        if deactivating:
+            await self._close_enrollments(child.id, current_user)
         await self._session.flush()
         return await self._reload(child.id)
+
+    async def _close_enrollments(
+        self, child_id: uuid.UUID, current_user: CurrentUser
+    ) -> None:
+        """Faolsizlantirilgan bolaning guruhga yozilishini yopadi.
+
+        Ilgari faolsizlantirish faqat `children.is_active` ni o'zgartirardi,
+        enrollment esa ACTIVE qolardi. Avtomatik hisob-faktura va davomat
+        enrollmentga qaragani uchun "nofaol" bolaga har oy hisob yozilaverardi.
+        Endi faol enrollment bugungi sana bilan yakunlanadi (tarix saqlanadi),
+        navbatdagisi esa bekor qilinadi. Joriy oy uchun allaqachon yaratilgan
+        hisob-faktura o'zgarmaydi.
+        """
+        today = today_local()
+        for enrollment in await self._enrollments.open_for_child(child_id):
+            before = enrollment.status
+            if before == EnrollmentStatus.ACTIVE.value:
+                enrollment.status = EnrollmentStatus.COMPLETED.value
+                enrollment.end_date = max(today, enrollment.start_date)
+            else:
+                enrollment.status = EnrollmentStatus.CANCELLED.value
+            self._audit.record(
+                action="ENROLLMENT_UPDATED",
+                entity_type="enrollment",
+                entity_id=enrollment.id,
+                actor_user_id=current_user.id,
+                branch_id=enrollment.branch_id,
+                before_data={"status": before},
+                after_data={
+                    "status": enrollment.status,
+                    "reason": "child_deactivated",
+                },
+            )
 
     async def add_guardian(
         self,
@@ -116,9 +155,21 @@ class ChildService:
         child = await self._children.get_by_id(child_id)
         if child is None:
             raise NotFoundError("Bola topilmadi.")
+        await self._require_manage_child(child_id, current_user)
 
         # Mavjud foydalanuvchini topamiz yoki yangi PARENT yaratamiz.
         guardian = await self._users.get_by_login(None, data.phone, data.email)
+        # Telefon/email xodimga tegishli bo'lsa vasiy qilinmaydi. Aks holda
+        # menejer egasining telefonini yozib, uning hisobiga PARENT roli qo'shar,
+        # keyin Telegram taklif kodi orqali o'z Telegramini shu hisobga bog'lab,
+        # OWNER huquqlari bilan token olardi.
+        if guardian is not None and (
+            await self._users.roles_for(guardian.id) - {Role.PARENT.value}
+        ):
+            raise ConflictError(
+                "Bu telefon yoki email xodim hisobiga tegishli — "
+                "uni vasiy qilib biriktirib bo'lmaydi."
+            )
         if guardian is None:
             guardian = User(
                 full_name=data.full_name,
@@ -173,6 +224,12 @@ class ChildService:
         if not self._access.is_manager_or_owner(current_user):
             raise PermissionDeniedError("Bu amal uchun MANAGER yoki OWNER kerak.")
 
+    async def _require_manage_child(
+        self, child_id: uuid.UUID, current_user: CurrentUser
+    ) -> None:
+        if not await self._access.can_manage_child(current_user, child_id):
+            raise PermissionDeniedError("Bu bola sizning filialingizga tegishli emas.")
+
     async def _reload(self, child_id: uuid.UUID) -> Child:
         child = await self._children.get_loaded(child_id)
         if child is None:
@@ -210,12 +267,13 @@ class ChildService:
             g.guardian_user_id for child in children for g in child.guardians
         ]
         names = await self._users.names_by_ids(list(set(guardian_ids)))
-        statuses = await self._enrollments.latest_statuses_for_children(
+        enrollments = await self._enrollments.current_for_children(
             [child.id for child in children]
         )
 
         responses: list[ChildResponse] = []
         for child in children:
+            enrollment = enrollments.get(child.id)
             responses.append(
                 ChildResponse(
                     id=child.id,
@@ -224,7 +282,19 @@ class ChildService:
                     gender=child.gender,
                     medical_notes=self.decrypt_medical(child, current_user),
                     is_active=child.is_active,
-                    status=self._project_status(statuses.get(child.id)),
+                    status=self._project_status(
+                        enrollment.status if enrollment else None
+                    ),
+                    enrollment=(
+                        ChildEnrollmentSummary(
+                            id=enrollment.id,
+                            group_id=enrollment.group_id,
+                            start_date=enrollment.start_date,
+                            status=enrollment.status,
+                        )
+                        if enrollment
+                        else None
+                    ),
                     guardians=[
                         GuardianSummary(
                             guardian_user_id=g.guardian_user_id,
@@ -256,14 +326,23 @@ class ChildService:
             raise PermissionDeniedError("Bu filialga kirish huquqi yo'q.")
 
         parents = await self._users.list_parents()
-        child_names = await self._children.all_guardian_child_names()
 
+        # MANAGER filial ko'rsatmasa ham faqat o'z filiallari bilan cheklanadi —
+        # ilgari barcha filiallardagi ota-onalarning telefonlari qaytardi.
+        scope: list[uuid.UUID] | None
         if branch_id is not None:
-            in_branch = set(
-                await self._enrollments.child_ids_in_branches([branch_id])
-            )
+            scope = [branch_id]
+        elif current_user.is_owner:
+            scope = None
+        else:
+            scope = list(current_user.branches_for(Role.MANAGER))
+
+        if scope is None:
+            child_names = await self._children.all_guardian_child_names()
+        else:
+            in_scope = set(await self._enrollments.child_ids_in_branches(scope))
             child_names = await self._children.guardian_child_names_for_children(
-                in_branch
+                in_scope
             )
             parents = [p for p in parents if child_names.get(p.id)]
 

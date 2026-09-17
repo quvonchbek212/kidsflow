@@ -24,6 +24,7 @@ from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedEr
 from app.core.permissions import CurrentUser
 from app.models.enums import Role
 from app.models.invitation import TelegramInvitation
+from app.repositories.child_repository import ChildRepository
 from app.repositories.invitation_repository import InvitationRepository
 from app.repositories.user_repository import UserRepository
 from app.services.access_service import AccessService
@@ -39,6 +40,7 @@ class InvitationService:
         self._session = session
         self._invitations = InvitationRepository(session)
         self._users = UserRepository(session)
+        self._children = ChildRepository(session)
         self._access = AccessService(session)
         self._audit = AuditService(session)
 
@@ -52,8 +54,22 @@ class InvitationService:
         parent = await self._users.get_by_id(user_id)
         if parent is None:
             raise NotFoundError("Foydalanuvchi topilmadi.")
-        if not await self._users.role_assignment_exists(user_id, Role.PARENT.value):
-            raise ConflictError("Foydalanuvchi ota-ona (PARENT) emas.")
+        # Faqat SOF ota-ona hisobi: xodim hisobiga (hatto PARENT roli qo'shilgan
+        # bo'lsa ham) Telegram bog'lansa, bot shu xodimning barcha huquqlari
+        # bilan token olardi.
+        if await self._users.roles_for(user_id) != {Role.PARENT.value}:
+            raise ConflictError("Taklif kodi faqat ota-ona hisobiga beriladi.")
+        # Menejer ota-onaning kamida bitta farzandini boshqara olishi kerak
+        # (o'z filialida yoki hali hech qayerga yozilmagan bola).
+        if not current_user.is_owner:
+            own_children = await self._children.child_ids_for_guardian(user_id)
+            for child_id in own_children:
+                if await self._access.can_manage_child(current_user, child_id):
+                    break
+            else:
+                raise PermissionDeniedError(
+                    "Bu ota-ona sizning filialingizga tegishli emas."
+                )
 
         settings = get_settings()
         code = secrets.token_urlsafe(6)

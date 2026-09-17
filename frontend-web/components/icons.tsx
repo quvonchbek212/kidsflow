@@ -217,6 +217,17 @@ export const IconMessage = ({ size }: P): ReactNode =>
     size,
   );
 
+/** Ikki suhbat pufagi — ota-onalar bilan yozishmalar bo'limi uchun.
+ *  `IconMessage` (bitta pufak) Ota-onalar bo'limida band. */
+export const IconChat = ({ size }: P): ReactNode =>
+  base(
+    <>
+      <path d="M14 9a2 2 0 0 1-2 2H6l-3 3V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2Z" />
+      <path d="M18 7h1a2 2 0 0 1 2 2v11l-3-3h-6a2 2 0 0 1-2-2v-1" />
+    </>,
+    size,
+  );
+
 export const IconSettings = ({ size }: P): ReactNode =>
   base(
     <>
@@ -251,6 +262,60 @@ export const IconDownload = ({ size }: P): ReactNode =>
   base(
     <>
       <path d="M12 4v12M7 11l5 5 5-5M4 20h16" />
+    </>,
+    size,
+  );
+
+// Parolni ko'rsatish/yashirish tugmasi uchun (ochiq va chizilgan ko'z).
+export const IconEye = ({ size }: P): ReactNode =>
+  base(
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>,
+    size,
+  );
+
+export const IconEyeOff = ({ size }: P): ReactNode =>
+  base(
+    <>
+      <path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a17.7 17.7 0 0 1-3.2 4M6.6 6.9A17.4 17.4 0 0 0 2 12s3.6 6 10 6a9.8 9.8 0 0 0 4.2-.9" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="M3 3l18 18" />
+    </>,
+    size,
+  );
+
+export const IconGlobe = ({ size }: P): ReactNode =>
+  base(
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </>,
+    size,
+  );
+
+/**
+ * Brend belgisi: qo'l ushlashib turgan ikki bola.
+ *
+ * Faviconda ishlatilmaydi — 16px da ikkita figura o'qilmaydigan dog'ga
+ * aylanadi (tekshirilgan), shuning uchun `app/icon.svg` da shu uslubdagi
+ * bitta bola turadi.
+ */
+export const IconKids = ({ size }: P): ReactNode =>
+  base(
+    <>
+      <circle cx="15.3" cy="4.9" r="2.7" fill="currentColor" stroke="none" />
+      <path d="M15.3 7.9v5.4" />
+      <path d="M15 9.5 20.6 5.4" />
+      <path d="M15 10.1 11.3 12.2" />
+      <path d="M15.3 13.3 13.3 18.6M15.3 13.3 17.9 18.2" />
+      <circle cx="7.5" cy="8.7" r="2.3" fill="currentColor" stroke="none" />
+      <path d="M7.5 11.2v4.4" />
+      <path d="M7.7 12.3 2.6 9.6" />
+      <path d="M7.9 12.3 11.3 12.2" />
+      <path d="M7.5 15.6 5.8 20.1M7.5 15.6 9.8 19.7" />
     </>,
     size,
   );

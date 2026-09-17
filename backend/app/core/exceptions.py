@@ -10,7 +10,10 @@ import logging
 import uuid
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,57 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_validation(
+        _: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """422 javobidan foydalanuvchi yuborgan xom qiymatni olib tashlaydi.
+
+        FastAPI'ning standart handleri har bir xato yozuviga `input` maydonini
+        qo'shadi — bu yerda so'rov tanasidagi qiymat aynan qaytariladi. Auth
+        endpointlarida bu parolning ochiq matnda javobga tushishini anglatardi:
+
+            POST /auth/login  {"login": "…", "password": "qisqa"}
+            -> {"detail":[{"type":"string_too_short", …, "input":"qisqa"}]}
+
+        Xuddi shu narsa `/auth/reset-password`, `POST /users` va
+        `PATCH /users/{id}/password` da ham sodir bo'lardi (parol uchun
+        `min_length=8`, `max_length=128` cheklovlari bor). Javob tanasi
+        proksi log'lari, brauzer HAR eksporti va mijoz tomonidagi xato
+        yig'uvchilarga tushishi mumkin, shuning uchun qiymat u yerga umuman
+        chiqmasligi kerak.
+
+        `type`, `loc`, `msg` va `ctx` qoladi — maydonning qaysi ekani va nima
+        sababdan rad etilgani ma'lum bo'ladi, lekin qiymatning o'zi ko'rinmaydi.
+        (Loyihadagi validatorlarning xabarlarida foydalanuvchi kiritgan qiymat
+        ishlatilmaydi — faqat rol nomi kabi ro'yxatdagi qiymatlar.)
+        """
+        errors = [
+            {k: v for k, v in error.items() if k != "input"} for error in exc.errors()
+        ]
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"detail": jsonable_encoder(errors)},
+        )
+
+    @app.exception_handler(IntegrityError)
+    async def _handle_integrity(request: Request, exc: IntegrityError) -> JSONResponse:
+        """Baza cheklovi buzilishi (odatda poyga holati yoki takroriy yozuv).
+
+        Servislar takrorlanishni oldindan tekshiradi, lekin ikki so'rov bir
+        vaqtda kelsa tekshiruvdan ikkalasi ham o'tadi va xato flush/commit
+        paytida chiqadi. Ilgari bu 500 "Kutilmagan xatolik" bo'lardi.
+        Tafsilot (jadval va ustun nomlari) javobga chiqmaydi — faqat log'ga.
+        """
+        logger.warning(
+            "Ma'lumotlar bazasi cheklovi buzildi",
+            extra={"path": request.url.path, "error": str(exc.orig)},
+        )
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": "Bunday yozuv allaqachon mavjud."},
         )
 
     @app.exception_handler(Exception)

@@ -25,6 +25,7 @@
 /* ---- Umumiy sahifa holatlari (eski sahifalar ham ishlatadi) ---- */
 .boot-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -187,7 +188,7 @@ html[data-theme="dark"] .panel:hover {
 }
 .btn--danger {
   background: var(--neg);
-  color: #fff;
+  color: var(--on-neg);
 }
 .btn--danger:hover {
   filter: brightness(0.92);
@@ -518,7 +519,12 @@ html[data-theme="dark"] .sb__link:hover {
   color: var(--ink);
   font-weight: 600;
 }
-.sb__user span {
+/* Faqat ichki matn blokidagi rol yorlig'i ("Rahbar"). Ilgari bu selektor
+   `.sb__user span` edi va u yonidagi `<span class="avatar">` ni ham ushlab
+   olardi: `.avatar` (0,1,0) dan kuchliroq bo'lgani uchun avatarning o'lchami
+   12.5px dan 10.5px ga, rangi esa `--brand` dan `--ink-3` ga o'zgarib ketardi
+   (tungi rejimda kontrast 4.27:1 — me'yordan past). */
+.sb__user > div > span {
   font-size: 10.5px;
   color: var(--ink-3);
 }
@@ -526,6 +532,7 @@ html[data-theme="dark"] .sb__link:hover {
 .main {
   margin-left: var(--sidebar);
   min-height: 100vh;
+  min-height: 100dvh;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -536,8 +543,15 @@ html[data-theme="dark"] .sb__link:hover {
   top: 0;
   z-index: 30;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
-  backdrop-filter: blur(20px) saturate(1.8);
-  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  /* `-webkit-` prefiksi QO'LDA yozilmaydi — uni bundler (Lightning CSS)
+     o'zi qo'shadi. Ilgari bu yerda ikkalasi ham yozilgan edi va natijada
+     chiqqan CSS'da faqat `-webkit-` varianti qolib, standart e'lon tushib
+     qolardi. Chrome esa standart nomni kutadi, shuning uchun blur umuman
+     ishlamas va topbar shunchaki 72% shaffof bo'lib turardi: sahifa
+     suriladiganda ostidagi jadval yozuvlari xiralashmasdan o'qilib turardi.
+     `.scrim` va `.modal-scrim` da prefiks qo'lda yozilmagani uchun ular
+     to'g'ri ishlayotgan edi. */
+  backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--line);
   padding: var(--s4) var(--s6);
   display: flex;
@@ -565,6 +579,9 @@ html[data-theme="dark"] .sb__link:hover {
   display: none;
   width: 36px;
   height: 36px;
+  /* Topbar — flex konteyner; sarlavha uzun bo'lsa burger 36px dan 28px gacha
+     siqilib, barmoq uchun juda tor bo'lib qolardi. */
+  flex: none;
   padding: 0;
   place-items: center;
   background: none;
@@ -713,6 +730,19 @@ html[data-theme="dark"] .sb__link:hover {
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
+  /* `CountUp` raqamni 0 dan yakuniy qiymatgacha sanaydi va matn har kadrda
+     o'zgaradi. Maydonning ichki eni 210px (260px kartochka − 24px padding),
+     sanash paytidagi oraliq qiymatlar esa aynan shu chegara atrofida
+     ("12,276,990 so'm" ≈ 206px) turadi. Proporsional shriftda "1" va "9"
+     enlari har xil bo'lgani uchun eni goh chegaradan oshib, goh qaytib
+     turardi — matn 1 va 2 qator orasida sakrab, kartochka 130↔145px
+     o'zgarardi. Xodimlar sahifasiga kirganda bu 15 marta takrorlanib,
+     ostidagi jadval ham u bilan birga qaltirardi.
+     `nowrap` — o'ralishni butunlay to'xtatadi (bo'y doim bir qator);
+     `tabular-nums` — barcha raqamlar bir xil enda bo'lgani uchun sanash
+     paytida son gorizontal ravishda ham qimirlamaydi. */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .kpi__unit {
   font-size: 13px;
@@ -720,6 +750,16 @@ html[data-theme="dark"] .sb__link:hover {
   font-weight: 500;
   margin-left: 5px;
   font-family: var(--body);
+}
+/* Boshqaruv panelidagi asosiy ("Sof foyda") kartochkasi — qolgan KPI
+   raqamlaridan yirikroq. Qiymatlar ilgari `dashboard/page.tsx` da inline
+   `style` bilan berilardi; CSS'ga ko'chirildi, chunki inline uslubni
+   telefon uchun media query bilan kichraytirib bo'lmasdi. */
+.kpi__value--hero {
+  font-size: 52px;
+}
+.kpi__unit--hero {
+  font-size: 16px;
 }
 .kpi__foot {
   margin-top: var(--s3);
@@ -739,7 +779,9 @@ html[data-theme="dark"] .sb__link:hover {
 .kpi--accent .kpi__label,
 .kpi--accent .kpi__foot,
 .kpi--accent .kpi__unit {
-  color: rgba(255, 255, 255, 0.75);
+  /* Gradientning ochroq uchida (--acc-a #1a6bbc) 0.75 shaffoflik
+     3.76:1 berardi — WCAG AA dan past. 0.88 da 4.52:1. */
+  color: rgba(255, 255, 255, 0.88);
 }
 .kpi--accent .badge {
   background: rgba(255, 255, 255, 0.2);
@@ -775,9 +817,36 @@ html[data-theme="dark"] .sb__link:hover {
 .tbl th[data-sort] {
   cursor: pointer;
   user-select: none;
+  padding: 0;
 }
 .tbl th[data-sort]:hover {
   color: var(--ink);
+}
+/* Saralash tugmasi: <th> ning butun maydonini egallaydi va o'zining
+   ko'rinishini sarlavhadan meros oladi, shunda tugma ekanligi bilinmaydi —
+   lekin klaviatura bilan fokuslanadi va Enter/Probel bilan ishlaydi. */
+.tbl th .th-sort {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  width: 100%;
+  padding: var(--s3) var(--s5);
+  display: block;
+}
+.tbl th.r .th-sort {
+  text-align: right;
+}
+.tbl th.c .th-sort {
+  text-align: center;
+}
+.tbl th .th-sort:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  border-radius: var(--r-sm);
 }
 /* Saralash strelkasi doim turadi, faqat faol ustunda ko'rinadi —
    shunda sarlavha eni saralashda sakramaydi. */
@@ -810,6 +879,15 @@ html[data-theme="dark"] .sb__link:hover {
 .tbl tbody tr.clickable:hover {
   background: var(--surface-2);
   box-shadow: inset 3px 0 0 var(--brand);
+}
+/* Qator endi klaviatura bilan fokuslanadi (DataTable'da `tabIndex`).
+   Umumiy `:focus-visible` qoidasi tashqi `outline-offset: 2px` beradi —
+   jadval qatorida u qo'shni qatorlar ustiga chiqib ketadi, shuning uchun
+   halqa ichkariga chiziladi va sichqoncha holatidagi ko'rinish takrorlanadi. */
+.tbl tbody tr.clickable:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  background: var(--surface-2);
 }
 .tbl tbody tr.clickable .avatar {
   transition: transform var(--ease);
@@ -1072,16 +1150,16 @@ html[data-theme="dark"] .sb__link:hover {
 .att__btn.on[data-v="PRESENT"],
 .att__btn.on[data-v="LATE"] {
   background: var(--pos);
-  color: #fff;
+  color: var(--on-pos);
 }
 .att__btn.on[data-v="SICK"],
 .att__btn.on[data-v="EXCUSED"] {
   background: var(--warn);
-  color: #fff;
+  color: var(--on-warn);
 }
 .att__btn.on[data-v="ABSENT"] {
   background: var(--neg);
-  color: #fff;
+  color: var(--on-neg);
 }
 .att__sum {
   display: flex;
@@ -1114,6 +1192,22 @@ html[data-theme="dark"] .sb__link:hover {
   font-family: var(--body);
   font-size: 11px;
   fill: var(--ink-3);
+}
+/* Diagrammada sichqoncha hodisasini faqat MAXSUS maydonlar olishi kerak:
+   ustun diagrammasida — har bir oy ustuni bo'ylab cho'zilgan ko'rinmas
+   `<rect fill="transparent">`, chiziqli diagrammada — `<circle>` nuqtalari.
+   Bo'yoq elementlari (ustunlar, o'q chiziqlari, yozuvlar, to'ldirish)
+   ularning USTIGA chiziladi va hodisani yutib qolardi: sichqonchani aynan
+   ustunga olib borganda tooltip umuman chiqmasdi, faqat ustun yonidagi
+   bo'sh joyda ishlardi. */
+.chart .bar-in,
+.chart .bar-out,
+.chart .axis,
+.chart .be,
+.chart text,
+.chart polygon,
+.chart polyline {
+  pointer-events: none;
 }
 .chart text.on-solid {
   fill: #fff;
@@ -1250,7 +1344,16 @@ html[data-theme="dark"] .sb__link:hover {
   inset: 0;
   background: rgba(11, 15, 26, 0.28);
   backdrop-filter: blur(3px);
-  z-index: 50;
+  /* Parda yon panelning USTIDA emas, OSTIDA turishi kerak: u sahifa
+     kontentini xiralashtirib, panel tashqarisiga bosilganda uni yopish
+     uchun. Ilgari z-index 50 edi — panel esa telefonda 45. Natijada:
+       1. pardaning `backdrop-filter` i panelning o'zini ham xiralashtirar,
+          menyu yozuvlari o'qilmay qolardi;
+       2. `.scrim.on` da `pointer-events: auto` bo'lgani uchun parda menyu
+          bandlariga tegishli bosishlarni ushlab qolardi — telefonda
+          bo'limga umuman o'tib bo'lmasdi.
+     35: topbar (30) dan yuqori, panel (40 desktop / 45 telefon) dan past. */
+  z-index: 35;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--ease);
@@ -1572,6 +1675,17 @@ html[data-theme="dark"] .sb__link:hover {
   gap: var(--s2);
   align-items: center;
 }
+/* Ichida ikkita jonli hudud bor (polite va assertive) — ular ekran o'quvchi
+   uchun ajratilgan, lekin ko'z bilan bitta ustun bo'lib ko'rinishi kerak. */
+.toasts__region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  align-items: center;
+}
+.toasts__region:empty {
+  display: none;
+}
 .toast {
   display: flex;
   align-items: center;
@@ -1811,109 +1925,209 @@ html[data-theme="dark"] .sb__link:hover {
    ============================================================ */
 .auth-page {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: var(--surface);
-}
-.auth-brandside {
-  background: linear-gradient(155deg, #5468cc 0%, #3b4a99 52%, #28325f 100%);
-  color: #fff;
-  padding: var(--s8) var(--s7);
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s5);
+  padding: var(--s5);
+  background: var(--bg);
   position: relative;
   overflow: hidden;
-  margin: var(--s4);
-  border-radius: 28px;
 }
-.auth-brandside::after {
+/* Fonda brend rangidagi ikkita yumshoq nur — yorug'da deyarli sezilmaydi,
+   tungida esa kartani fondan ajratib, chuqurlik beradi. Ranglar token'dan
+   olinadi, shuning uchun mavzu bilan birga o'zgaradi. */
+.auth-page::before {
   content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(
-      680px 420px at 85% 15%,
-      rgba(255, 255, 255, 0.2),
-      transparent 62%
+      680px 460px at 50% -10%,
+      var(--brand-glow),
+      transparent 70%
     ),
-    radial-gradient(
-      500px 500px at 8% 95%,
-      rgba(255, 255, 255, 0.12),
-      transparent 60%
-    );
+    radial-gradient(560px 400px at 50% 110%, var(--brand-glow), transparent 70%);
+  pointer-events: none;
 }
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 408px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s7) var(--s6) var(--s6);
+  box-shadow: var(--shadow-lg);
+}
+/* Belgi va nom — kartaning tepasida, markazda. */
 .auth-mark {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--s3);
-  font-family: var(--display);
-  font-size: var(--t-lg);
-  position: relative;
-  z-index: 1;
+  margin-bottom: var(--s6);
 }
 .auth-dot {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  display: grid;
-  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(150deg, var(--acc-a), var(--acc-b));
   color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  flex: none;
-}
-.auth-pitch {
-  max-width: 20ch;
-  font-family: var(--display);
-  font-size: clamp(30px, 3.6vw, 48px);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  position: relative;
-  z-index: 1;
-}
-.auth-meta {
-  font-size: var(--t-sm);
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  gap: var(--s6);
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 1;
-}
-.auth-formside {
   display: grid;
   place-items: center;
-  padding: var(--s6);
-  position: relative;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 23px;
+  flex: none;
+  box-shadow: 0 8px 22px var(--brand-glow);
 }
-/* Til tanlagich mockupdagidek forma ustida emas, o'ng yuqori burchakda. */
-.auth-lang {
-  position: absolute;
-  top: var(--s5);
-  right: var(--s5);
+.auth-wordmark {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: var(--t-sm);
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
 }
 .auth-form {
   width: 100%;
-  max-width: 350px;
 }
 .auth-form h2 {
   font-family: var(--display);
-  font-size: 28px;
-  margin: 0 0 var(--s2);
+  font-size: 25px;
+  margin: 0 0 5px;
+  text-align: center;
 }
 .auth-form > p {
   color: var(--ink-3);
   font-size: var(--t-sm);
-  margin: 0 0 var(--s6);
+  margin: 0 0 var(--s5);
+  text-align: center;
 }
-@media (max-width: 980px) {
-  .auth-page {
-    grid-template-columns: 1fr;
+/* Karta ostida: "orqaga" havolasi (parol tiklash sahifalarida). */
+.auth-foot {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s4);
+}
+
+/* O'ng yuqori burchak: til va mavzu. */
+.auth-topbar {
+  position: absolute;
+  top: var(--s5);
+  right: var(--s5);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+.auth-langbtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 10px 0 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--ease),
+    border-color var(--ease),
+    color var(--ease);
+}
+.auth-langbtn:hover,
+.auth-langbtn.on {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+/* Ochilgan ro'yxatdagi strelka teskari buriladi. */
+.auth-langbtn.on svg:last-child {
+  transform: rotate(180deg);
+}
+.auth-langbtn svg:last-child {
+  transition: transform var(--ease);
+  opacity: 0.7;
+}
+.auth-lang-panel {
+  min-width: 172px;
+}
+/* Mavzu tugmasi til tugmasi bilan bir balandlikda tursin. */
+.auth-themebtn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-langbtn,
+  .auth-langbtn svg:last-child {
+    transition: none;
   }
-  .auth-brandside {
-    display: none;
+}
+
+/* Parol maydoni + ko'rsatish/yashirish tugmasi. Tugma maydon ustiga qo'yiladi,
+   matn esa unga tegib ketmasligi uchun o'ng tomondan joy ajratiladi. */
+.password-field {
+  position: relative;
+}
+.password-field .input {
+  padding-right: 42px;
+}
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  /* `.input` ning `margin-top: 0.35rem` ini hisobga olib markazlaymiz. */
+  top: calc(50% + 0.175rem);
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition:
+    color var(--ease),
+    background var(--ease);
+}
+.password-toggle:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.password-toggle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+/* Tahrirlash oynasidagi o'zgarmas login: maydonga o'xshab turadi, lekin
+   kiritish mumkin emasligi rangdan ko'rinadi. */
+.login-readonly {
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 0.9rem;
+}
+@media (max-width: 620px) {
+  .auth-card {
+    padding: var(--s6) var(--s5) var(--s5);
   }
 }
 
@@ -1928,6 +2142,10 @@ html[data-theme="dark"] .sb__link:hover {
   align-items: center;
   gap: var(--s3);
   padding: var(--s5) var(--s5) var(--s4);
+  /* Sarlavha bloki + amal tugmasi tor ekranga sig'masa, tugma pastki
+     qatorga tushsin (ilgari ikkalasi bir qatorda siqilib, tugma yozuvi
+     kesilardi). */
+  flex-wrap: wrap;
 }
 .card__head h3 {
   font-size: var(--t-md);
@@ -2028,7 +2246,7 @@ html[data-theme="dark"] .sb__link:hover {
   height: 15px;
   border-radius: 100px;
   background: var(--neg);
-  color: #fff;
+  color: var(--on-neg);
   font-size: 9px;
   font-weight: 700;
   display: grid;
@@ -2052,6 +2270,207 @@ html[data-theme="dark"] .sb__link:hover {
 }
 .notif:hover {
   background: var(--surface-2);
+}
+/* O'qilgan bildirishnoma panelda qoladi, lekin e'tiborni tortmaydi. */
+.notif--read {
+  opacity: 0.55;
+}
+.notif--read b {
+  font-weight: 500;
+}
+.notif--read:hover {
+  opacity: 0.85;
+}
+
+/* ---- To'lov qabul qilish formasi ---- */
+.payform__child {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: 0.35rem;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.payform__child-body,
+.payform__opt-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.payform__child-body b,
+.payform__opt-body b {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+.payform__child-body small,
+.payform__opt-body small {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.payform__debt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  white-space: nowrap;
+}
+.payform__debt small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.payform__debt b {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.payform__debt.neg b {
+  color: var(--neg);
+}
+.payform__debt.pos b {
+  color: var(--pos);
+}
+.payform__search {
+  position: relative;
+  margin-top: 0.35rem;
+}
+.payform__search svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.payform__search .input {
+  margin-top: 0;
+  padding-left: 38px;
+}
+/* Ixcham: ~5 qator ko'rinadi, oyna kichik ekranda ham aylantirishsiz sig'adi. */
+.payform .field {
+  margin-bottom: 0.8rem;
+}
+.payform__picker {
+  position: relative;
+}
+/* Ochiluvchi menyu: pastdagi maydonlarni itarmaydi, ustida suzadi. */
+.payform__results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 3px;
+  max-height: 184px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+.payform__opt {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.payform__opt .avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 9.5px;
+}
+/* Ism va guruh bir qatorda — qator balandligi ikki barobar kamayadi. */
+.payform__opt .payform__opt-body {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--s2);
+}
+.payform__opt .payform__opt-body b {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.payform__opt .payform__opt-body small {
+  flex: none;
+  font-size: 11.5px;
+}
+.payform__opt.on {
+  background: var(--brand-bg);
+}
+.payform__opt.on b {
+  color: var(--brand);
+}
+.payform__empty {
+  padding: var(--s4);
+  text-align: center;
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+.payform__amount {
+  position: relative;
+}
+.payform__amount .input {
+  padding-right: 56px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.payform__unit {
+  position: absolute;
+  right: 12px;
+  top: calc(50% + 0.175rem);
+  transform: translateY(-50%);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.payform__fill {
+  margin-top: var(--s2);
+}
+.payform__methods button {
+  font-size: var(--t-sm);
+}
+@media (max-width: 620px) {
+  /* Tor ekranda qarz va "O'zgartirish" ism tagiga tushadi. */
+  .payform__child {
+    flex-wrap: wrap;
+    row-gap: var(--s2);
+  }
+  /* Ism o'z qatorini to'liq egallaydi — aks holda "E..." bo'lib qisqarardi. */
+  .payform__child-body {
+    flex: 1 1 calc(100% - 50px);
+  }
+  .payform .modal-actions .spacer {
+    display: none;
+  }
+  .payform .modal-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .payform__debt {
+    align-items: flex-start;
+    text-align: left;
+    order: 3;
+  }
+  .payform__change {
+    order: 4;
+    margin-left: auto;
+  }
+  .payform__methods {
+    flex-wrap: wrap;
+  }
+  .payform__methods button {
+    flex: 1 1 30%;
+  }
 }
 .notif__ico {
   width: 32px;
@@ -2293,6 +2712,33 @@ body.collapsed .sb__link svg {
   line-height: 1.12;
   letter-spacing: -0.025em;
   font-weight: 700;
+  /* Sarlavha bir necha qatorga bo'linganda qatorlar teng uzunlikda bo'ladi —
+     oxirgi qatorda yolg'iz so'z qolmaydi. Qo'llab-quvvatlamaydigan brauzer
+     xossani e'tiborsiz qoldiradi. */
+  text-wrap: balance;
+}
+/* Uzun izoh matnlari: oxirgi qatorga bitta so'z tushib qolishining oldini
+   oladi (balance qisqa sarlavhalar uchun, pretty — abzatslar uchun). */
+.main p,
+.panel p,
+.field__hint,
+.sub {
+  text-wrap: pretty;
+}
+
+/* `.tr` (bir qatorga siqib, uchi "…" bilan kesish) yuqoridagi qoidalardan
+   KEYIN va kuchliroq spetsifiklik bilan takrorlanadi.
+   Sabab: `white-space: nowrap` — bu `white-space-collapse` va `text-wrap`
+   uchun qisqartma. `.main h1` (0,1,1) `.tr` (0,1,0) dan kuchli bo'lgani
+   uchun `text-wrap: balance` `.tr` ning `nowrap` ini bekor qilardi va
+   `overflow: hidden` bilan `text-overflow: ellipsis` qo'llanib turgani
+   holda matn baribir o'ralib ketardi. Topbar sarlavhasi telefonda ikki
+   qatorga (21px o'rniga 43px), bo'lim izohi esa besh qatorga yoyilardi. */
+.main .tr,
+.modal .tr,
+.drawer .tr,
+.auth-form .tr {
+  text-wrap: nowrap;
 }
 :focus-visible {
   outline: 2px solid var(--brand);
@@ -2327,6 +2773,12 @@ body.collapsed .sb__link svg {
   letter-spacing: -0.01em;
   position: relative;
   overflow: hidden;
+  /* `white-space: nowrap` + `overflow: hidden` bo'lgani uchun flex ichida
+     siqilgan tugmaning yozuvi indamay kesilardi ("Chop etish" → "Chop et…",
+     "+ Filial qo'shish" → "+ Filial qo'shi"). Siqilishni taqiqlaymiz — tor
+     ekranda tugma o'rniga yangi qatorga tushadi (ota konteynerlarda
+     `flex-wrap: wrap` bor). */
+  flex-shrink: 0;
   background: var(--brand);
   color: var(--on-brand);
   box-shadow:
@@ -2394,7 +2846,7 @@ body.collapsed .sb__link svg {
 }
 .btn--danger {
   background: var(--neg);
-  color: #fff;
+  color: var(--on-neg);
   box-shadow: none;
 }
 .btn--danger:hover:not(:disabled) {
@@ -2757,7 +3209,11 @@ html[data-theme="dark"] #cmdk {
     display: none;
   }
   .new-btn {
-    width: 32px;
+    /* Matn yashiringanda `padding: 0` balandlikni matn qatoriga (16px)
+       tushirib yuborardi — barmoq uchun juda kichik nishon. Kvadrat
+       o'lcham beriladi. */
+    width: 38px;
+    height: 38px;
     padding: 0;
     justify-content: center;
   }
@@ -2870,6 +3326,7 @@ html[data-theme="dark"] #cmdk {
    shuning uchun o'z markazlashtirilgan tartibiga ega. */
 .fault {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
   padding: var(--s5);
@@ -2932,7 +3389,14 @@ html[data-theme="dark"] #cmdk {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--s4);
+  /* `.card` ning o'zida padding yo'q (u `.card__head`/`.card__body` da) —
+     bu blokda ular ishlatilmaydi, shuning uchun bo'shliq shu yerda beriladi.
+     Busiz matn chap chegaraga yopishib turardi. */
+  padding: var(--s5);
   border-left: 3px solid var(--neg);
+}
+.load-error__body {
+  min-width: 0;
 }
 .load-error__title {
   font-family: var(--display);
@@ -2945,4 +3409,1213 @@ html[data-theme="dark"] #cmdk {
   margin: 0;
   color: var(--ink-2);
   font-size: 0.92rem;
+}
+
+/* ---- Modal ichidagi forma amallari ----
+   Uzun formalarda (bola/xodim qo'shish) "Saqlash" forma oxirida turadi va
+   modal tanasi bilan birga skroll bo'lib ko'rinmay qolardi. Amal qatori
+   skroll maydonining pastida yopishib turadi; tanasining pastki padding'ini
+   qoplash uchun manfiy chekka bilan chetlarga yoyiladi. */
+.modal__body .modal-actions {
+  position: sticky;
+  bottom: calc(var(--s5) * -1);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin: var(--s5) calc(var(--s5) * -1) calc(var(--s5) * -1);
+  padding: var(--s4) var(--s5);
+  border-top: 1px solid var(--line-2);
+  background: var(--surface);
+}
+.modal__body .modal-actions .spacer {
+  flex: 1;
+}
+/* Faqat bitta tugma bo'lsa u to'liq kenglikni egallamasin. */
+.modal__body .modal-actions > .btn--full {
+  flex: 1;
+}
+
+/* Tizimga ulanib bo'lmaganda `.boot-screen` ichida xato kartochkasi turadi —
+   brend matni uchun mo'ljallangan tipografiya unga to'g'ri kelmaydi. */
+.boot-screen--error {
+  padding: var(--s5);
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--ink);
+}
+.boot-screen--error .load-error {
+  max-width: 460px;
+  width: 100%;
+}
+
+/* ---- Bo'limlar orasidagi o'tish ----
+   Qobiq (yon panel, topbar) joyida qoladi, faqat kontent almashadi. Keskin
+   almashuv "sakrab" ketgandek ko'rinardi — qisqa, sezilar-sezilmas paydo
+   bo'lish uni yumshatadi. */
+.content__page {
+  animation: content-in 180ms cubic-bezier(0.22, 0.85, 0.28, 1) both;
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Harakatni kamaytirish so'ralgan bo'lsa — animatsiyasiz. */
+@media (prefers-reduced-motion: reduce) {
+  .content__page {
+    animation: none;
+  }
+}
+
+/* ---- Sensorli ekranda bosish maydonlari ----
+   Dizayn o'lchamlari (chip, switch, davomat tugmasi) sichqoncha uchun qulay,
+   lekin barmoq uchun kichik edi: davomat tugmalari 22px, switch 24px. WCAG
+   2.5.8 kamida 24×24px talab qiladi, amaliyotda 40px+ tavsiya etiladi.
+   Ko'rinmas qoplama emas, haqiqiy o'lcham oshiriladi — qoplama qo'shni
+   tugmalarni to'sib, noto'g'ri bosishga olib kelardi. */
+@media (pointer: coarse) {
+  .att__btn {
+    padding: 11px 16px;
+    min-height: 40px;
+  }
+  /* `.btn--sm` — `.btn-sm` ning taxallusi (ikkalasi 2517-qatorda birga
+     e'lon qilingan). Ilgari bu ro'yxatda faqat `.btn-sm` bor edi, shuning
+     uchun `.btn--sm` yozilgan tugmalar ("Kod olish" — Ota-onalar,
+     "Tahrirlash" — Sozlamalar, "Yozish" — Kunlik hisobot) sensorli ekranda
+     28px balandligicha qolib, barmoq bilan bosish qiyin edi. */
+  /* Asosiy `.btn` ham: `.btn--quiet` kabi ba'zi ko'rinishlarda u 31px gacha
+     tushib ketardi (Boshqaruv panelidagi "Barchasi →"). Sensorli ekranda
+     barcha tugmalar bir xil eng kichik balandlikka ega bo'lsin. */
+  .btn,
+  .chip,
+  .btn-sm,
+  .btn--sm {
+    min-height: 40px;
+  }
+  .btn--icon {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .switch {
+    width: 52px;
+    height: 32px;
+  }
+  .switch::after {
+    width: 24px;
+    height: 24px;
+    top: 4px;
+    left: 4px;
+  }
+  .switch.on::after {
+    transform: translateX(20px);
+  }
+}
+
+/* ---- Holatni o'zgartiruvchi tugmalar (xodimni faolsizlantirish/faollashtirish)
+   Buzuvchi amal kulrang "quiet" tugma bo'lib turgani sababli oddiy amaldek
+   ko'rinardi. Endi u ramkali va rangi bilan ajralib turadi, hover'da esa
+   to'liq bo'yaladi — bosilishidan oldin niyat aniq bo'ladi. */
+.btn--outline-danger,
+.btn--outline-ok {
+  background: transparent;
+  box-shadow: none;
+  font-weight: 600;
+}
+.btn--outline-danger {
+  color: var(--neg);
+  border-color: var(--neg);
+}
+.btn--outline-danger:hover:not(:disabled) {
+  background: var(--neg);
+  border-color: var(--neg);
+  color: var(--on-neg);
+}
+.btn--outline-ok {
+  color: var(--pos);
+  border-color: var(--pos);
+}
+.btn--outline-ok:hover:not(:disabled) {
+  background: var(--pos);
+  border-color: var(--pos);
+  color: var(--on-pos);
+}
+.btn--outline-danger:focus-visible,
+.btn--outline-ok:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ---- Maket siljishining oldini olish (CLS) ----
+   Yon paneldagi son ("Bolalar 12") ma'lumot kelgach paydo bo'ladi va u mono
+   shriftda — shrift kech yuklansa band qatorining balandligi o'zgarib, butun
+   menyu bir necha piksel siljirdi. Qator balandligi qat'iy belgilanadi, son
+   uchun joy esa oldindan band qilinadi. */
+.sb__link {
+  min-height: 40px;
+}
+.sb__count {
+  line-height: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+/* Ko'rsatkich kartochkalari ma'lumot kelguncha ham bir xil joy egallaydi —
+   raqamlar yuklanganda qator "sakramaydi". */
+.kpi {
+  min-height: 130px;
+}
+.kpi--accent {
+  min-height: 0;
+}
+/* Filial tanlagichi yuklanayotganda: o'lchamini saqlab turadigan bo'sh qolip. */
+.sb__org--skeleton {
+  /* Haqiqiy tanlagich balandligiga teng (padding 7px + ikonka/matn qatori),
+     aks holda ma'lumot kelganda menyu bir necha piksel siljiydi. */
+  min-height: 45px;
+  background: var(--surface-2);
+  opacity: 0.6;
+}
+
+/* ============================================================
+   Interaktivlik: sichqoncha ustiga kelganda javob
+   ------------------------------------------------------------
+   Ilgari faqat rang o'zgarardi va interfeys "o'lik" tuyulardi.
+   Endi har bosiladigan element yengil ko'tariladi yoki siljiydi.
+   Harakat kichik (1–2px) — bezak emas, javob signali.
+   ============================================================ */
+
+/* --- Ghost (ikkilamchi) tugma --- */
+.btn-ghost,
+.btn--ghost {
+  transition:
+    background var(--ease),
+    border-color var(--ease),
+    color var(--ease),
+    box-shadow var(--ease),
+    transform var(--ease);
+}
+.btn-ghost:hover:not(:disabled),
+.btn--ghost:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--brand);
+  color: var(--brand);
+  box-shadow:
+    var(--shadow-sm),
+    0 0 0 3px var(--brand-bg);
+  transform: translateY(-1px);
+}
+.btn-ghost:active:not(:disabled),
+.btn--ghost:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --- Asosiy tugma --- */
+.btn:not(:disabled) {
+  transition:
+    background var(--ease),
+    border-color var(--ease),
+    color var(--ease),
+    box-shadow var(--ease),
+    transform var(--ease);
+}
+.btn:not(.btn-ghost):not(.btn--ghost):not(.btn--quiet):not(
+    .btn--outline-danger
+  ):not(.btn--outline-ok):hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 4px var(--brand-glow),
+    0 10px 24px -6px var(--brand-glow);
+}
+.btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* --- Kartochkalar: ustiga kelganda yengil ko'tariladi --- */
+.card:hover,
+.kpi:hover {
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px var(--line);
+}
+.kpi:hover {
+  transform: translateY(-2px);
+}
+.kpi {
+  transition:
+    transform var(--ease),
+    box-shadow var(--ease);
+}
+/* Aksent kartochka allaqachon ko'tarilgan — u qimirlamaydi. */
+.kpi--accent:hover {
+  transform: none;
+}
+
+/* --- Jadval qatorlari --- */
+.tbl tbody tr {
+  transition: background var(--ease);
+}
+.tbl tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* --- Chip / filtr tugmalari --- */
+.chip {
+  transition:
+    background var(--ease),
+    border-color var(--ease),
+    color var(--ease),
+    transform var(--ease);
+}
+.chip:hover:not(.on):not(:disabled) {
+  border-color: var(--brand);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+
+/* --- Ikonka tugmalar --- */
+.btn--icon {
+  transition:
+    background var(--ease),
+    color var(--ease),
+    transform var(--ease);
+}
+.btn--icon:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+
+/* --- Yon panel havolalari --- */
+.sb__link:hover:not(.active) {
+  background: var(--surface-2);
+  color: var(--ink);
+  transform: translateX(2px);
+}
+.sb__link {
+  transition:
+    background var(--ease),
+    color var(--ease),
+    transform var(--ease);
+}
+
+/* Harakatni kamaytirish so'ralgan bo'lsa — faqat rang o'zgaradi. */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn-ghost,
+  .btn--ghost,
+  .btn--icon,
+  .chip,
+  .kpi,
+  .sb__link {
+    transition:
+      background var(--ease),
+      color var(--ease);
+  }
+  .btn:hover,
+  .btn-ghost:hover,
+  .btn--ghost:hover,
+  .btn--icon:hover,
+  .chip:hover,
+  .kpi:hover,
+  .sb__link:hover {
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   GURUH TARKIBI
+   ============================================================ */
+
+/* Kartochkadagi avatar tizmasi — butunlay bosiladigan maydon. */
+.roster-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  margin-bottom: var(--s4);
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ease),
+    border-color var(--ease);
+}
+.roster-strip:hover {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+.roster-strip__avatars {
+  display: flex;
+  gap: 4px;
+  min-height: 27px;
+  align-items: center;
+}
+.roster-strip__more {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.roster-strip__cta {
+  margin-left: auto;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.roster-strip:hover .roster-strip__cta {
+  color: var(--brand);
+}
+
+/* Oynadagi ro'yxat. */
+.roster__search {
+  margin-bottom: var(--s4);
+}
+.roster__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Uzun guruhda oyna emas, ro'yxat skroll bo'ladi — sarlavha ko'rinib turadi. */
+  max-height: 58vh;
+  overflow-y: auto;
+}
+.roster__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line-2);
+}
+.roster__row:last-child {
+  border-bottom: none;
+}
+.roster__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.roster__meta {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+/* Tibbiy izoh (allergiya va h.k.) — tarbiyachi uchun eng muhim qator. */
+.roster__note {
+  font-size: var(--t-xs);
+  color: var(--warn);
+  font-weight: 600;
+}
+.roster__row .badge {
+  flex: none;
+}
+@media (max-width: 620px) {
+  .roster-strip__cta {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .roster-strip {
+    transition: none;
+  }
+}
+
+/* Uchta qisqa maydonni bir qatorga joylash uchun (masalan tug'ilgan sana,
+   passport, telefon). Ichma-ich to'r bo'lgani uchun tashqi gap saqlanadi. */
+.form-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 760px) {
+  .form-grid--3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 620px) {
+  .form-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ko'zga ko'rinmaydi, lekin ekran o'quvchi o'qiydi. Sanaladigan raqamlarda
+   oraliq qiymatlar e'lon qilinmasligi uchun yakuniy son shu yerda turadi. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+   TELEFON (≤620px): zichlik
+   ------------------------------------------------------------
+   Desktop bo'shliqlari mobilga o'zgarishsiz o'tib ketgan edi va tor ekranda
+   haddan tashqari joy egallardi. O'lchangan holat (Pixel 7, 412px):
+
+     .toolbar (qidiruv + filtrlar)  219px  — ekranning ~26%, chiplar 3 qatorda
+     jadval qatori                   63px  — katak yon padding'i 24px
+     .kpi                       237–321px  — padding 24px, hero raqam 52px
+
+   Quyidagilar faqat telefon uchun zichlashtiradi. Bosish maydonlari
+   (`.chip`, `.btn`) 40px balandligicha qoladi — barmoq uchun kerak.
+   ============================================================ */
+@media (max-width: 620px) {
+  /* Qidiruv butun qatorni oladi: shunda filtr chiplariga to'liq kenglik
+     qoladi va ular uch emas, ikki qatorga joylashadi. */
+  .toolbar {
+    padding: var(--s3);
+    gap: 6px;
+  }
+  .search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .chip {
+    padding: 6px var(--s3);
+  }
+
+  /* Jadval: katakning yon padding'i 24px → 12px. Ustunlarga ko'proq joy
+     qoladi, qator balandligi ~63px dan ~50px ga tushadi. */
+  .tbl th,
+  .tbl td {
+    padding-left: var(--s3);
+    padding-right: var(--s3);
+  }
+  .tbl td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  /* Saralanadigan sarlavhada padding <th> da emas, ichidagi tugmada. */
+  .tbl th .th-sort {
+    padding: var(--s3);
+  }
+
+  /* Kartochkalar */
+  .kpi {
+    padding: var(--s4);
+    min-height: 0;
+  }
+  .kpi__value {
+    font-size: 26px;
+  }
+  .kpi__value--hero {
+    font-size: 34px;
+  }
+  .kpi__unit--hero {
+    font-size: 13px;
+  }
+  .kpi__top {
+    margin-bottom: var(--s3);
+  }
+  .card__head {
+    padding: var(--s4) var(--s4) var(--s3);
+  }
+  .card__body {
+    padding: 0 var(--s4) var(--s4);
+  }
+}
+
+/* ------------------------------------------------------------
+   iOS: maydon shrifti 16px dan kichik bo'lsa, Safari unga bosilganda
+   sahifani avtomatik kattalashtiradi va foydalanuvchi qo'lda qaytarishga
+   majbur bo'ladi. Ilovadagi barcha maydonlar 15.2px edi (12/12 ta forma
+   maydoni), ya'ni har bir forma shu muammoga tushardi. Telefonda 16px
+   beriladi — bu ayni paytda o'qishni ham osonlashtiradi.
+   ------------------------------------------------------------ */
+@media (max-width: 620px) {
+  .input,
+  .search input,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ------------------------------------------------------------
+   Juda tor ekran (≤360px, masalan eski iPhone SE). O'ngdagi boshqaruvlar
+   qat'iy 219px joy egallab, sahifa sarlavhasiga atigi 17px qoldirardi —
+   "Bolalar" o'rniga "B…" ko'rinardi. Eng kam kerakli element — buyruq
+   paneli tugmasi — olib tashlanadi, bo'shliqlar esa qisqartiriladi.
+   375px va undan keng ekranlarda sarlavha allaqachon to'liq sig'adi.
+   ------------------------------------------------------------ */
+@media (max-width: 360px) {
+  .cmdk-btn {
+    display: none;
+  }
+  .topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 6px;
+  }
+  .topbar__right {
+    gap: 4px;
+  }
+  /* Ikonka tugmalari 40px dan 36px ga — uchtasidan 12px bo'shaydi.
+     36px hamon barmoq uchun yetarli (WCAG AA me'yori 24px). */
+  .topbar .btn--icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  /* Uzunroq sarlavhalar ("Boshqaruv paneli" 19px da 97px joy talab qiladi)
+     shu bilan to'liq sig'adi. */
+  .topbar h1 {
+    font-size: 17px;
+  }
+}
+
+/* ------------------------------------------------------------
+   Telefonda bo'lim izohi (sarlavha ostidagi tavsif) yashiriladi.
+   O'lchov (Pixel 7, 412px): u topbarni 100px dan 178px gacha
+   ko'tarardi — "Kunlik hisobot" da izoh 5 qatorga yoyilib, ekranning
+   21% ini egallardi. Bo'lim nomi sarlavhada turibdi, davr esa topbardagi
+   sana tugmasida — izohdagi ma'lumot telefonda takroriy.
+   Ekran o'quvchi uchun matn DOM'da qoladi (`display: none` bermaymiz).
+   ------------------------------------------------------------ */
+@media (max-width: 620px) {
+  .topbar__sub {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ------------------------------------------------------------
+   Telefonda bo'lim SARLAVHASI o'ralishi mumkin.
+   Yuqoridagi `.main .tr` qoidasi uni bir qatorga majburlaydi — bu desktopda
+   to'g'ri (u yerda joy yetarli, kamdan-kam holatda "…" bilan kesiladi).
+   Telefonda esa o'ngdagi boshqaruvlar sabab sarlavhaga atigi ~72–110px
+   qoladi va 14 sahifadan 12 tasi kesilib ketardi ("Ota-onalar bilan
+   aloqa" → "Ota-onal…"). Bo'lim nomini to'liq ko'rish muhimroq: u ikki
+   qatorga chiqsa topbar ~65px dan ~90px ga o'sadi, lekin bu faqat uzun
+   nomli sahifalarda va izoh yashirilgani hisobiga allaqachon 100–178px dan
+   qisqargan.
+   ------------------------------------------------------------ */
+@media (max-width: 620px) {
+  /* Spetsifiklik yuqoridagi `.main .tr` (0,2,0) dan kuchliroq bo'lishi
+     kerak — shuning uchun `h1.tr` (0,2,1). */
+  .topbar h1.tr {
+    white-space: normal;
+    text-wrap: balance;
+    overflow: visible;
+  }
+}
+
+/* ============================================================
+   XABARLAR (ota-onalar bilan yozishmalar)
+   Chapda suhbatlar ro'yxati, o'ngda yozishma. Telefonda ustma-ust
+   joylashadi — ro'yxat tepada, ochilgan suhbat pastda.
+   ============================================================ */
+.inbox {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: var(--s4);
+  align-items: start;
+}
+.inbox > * {
+  min-width: 0;
+}
+.inbox__list {
+  padding: var(--s2);
+  max-height: calc(100dvh - 160px);
+  overflow-y: auto;
+}
+.inbox__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  width: 100%;
+  padding: 10px var(--s3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background var(--ease);
+}
+.inbox__row:hover {
+  background: var(--surface-2);
+}
+.inbox__row.on {
+  background: var(--brand-bg);
+}
+.inbox__row-body {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.inbox__row-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.inbox__row-top b {
+  font-size: var(--t-sm);
+}
+.inbox__row-top small,
+.inbox__preview,
+.inbox__children {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  display: block;
+}
+.inbox__children {
+  color: var(--ink-2);
+}
+/* O'qilmagan savollar soni — qo'ng'iroqchadagi nishon bilan bir xil uslubda. */
+.inbox__unread {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 100px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.inbox__thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  max-height: calc(100dvh - 160px);
+}
+.inbox__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--line-2);
+}
+.inbox__head b {
+  display: block;
+  font-size: var(--t-sm);
+}
+.inbox__head small {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+.inbox__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s4) var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.bubble {
+  max-width: min(78%, 560px);
+  padding: 10px var(--s4);
+  border-radius: var(--r-md);
+}
+.bubble p {
+  margin: 0;
+  font-size: var(--t-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.75;
+}
+/* Ota-ona chapda, xodim o'ngda — suhbatning kim tomonidan ekani bir
+   qarashda ko'rinadi. */
+.bubble--in {
+  align-self: flex-start;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.bubble--out {
+  align-self: flex-end;
+  background: var(--brand);
+  color: var(--on-brand);
+}
+.inbox__reply {
+  display: flex;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--line-2);
+}
+.inbox__reply .input {
+  margin-top: 0;
+}
+
+@media (max-width: 980px) {
+  .inbox {
+    grid-template-columns: 1fr;
+  }
+  .inbox__list {
+    max-height: 320px;
+  }
+  .inbox__thread {
+    max-height: none;
+  }
+}
+
+/* ============================================================
+   GURUH TANLAGICH (`components/ui/GroupPicker.tsx`)
+   ------------------------------------------------------------
+   Kunlik hisobot va davomatdagi guruh chiplari ilgari `flex-wrap` bilan
+   o'ralardi: 15 guruhda telefonda 5 qator (~330px). Endi bitta tugma —
+   tanlangan guruh nomi ko'rinadi, bosilganda ro'yxat ochiladi.
+   ============================================================ */
+.gpick {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.gpick__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 220px;
+  max-width: 340px;
+  height: 40px;
+  padding: 0 10px 0 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--ease),
+    box-shadow var(--ease),
+    background var(--ease);
+}
+.gpick__trigger:hover:not(:disabled) {
+  border-color: var(--brand);
+}
+.gpick__trigger.on {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3.5px var(--brand-bg);
+}
+.gpick__trigger:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.gpick__trigger:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.gpick__icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--brand-bg);
+  color: var(--brand);
+}
+.gpick__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gpick__value.is-empty {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.gpick__count {
+  flex: none;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 100px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.gpick__chevron {
+  flex: none;
+  display: grid;
+  color: var(--ink-3);
+  transition: transform var(--ease);
+}
+.gpick__trigger.on .gpick__chevron {
+  transform: rotate(180deg);
+  color: var(--brand);
+}
+
+.gpick__pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 100%;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: var(--s2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top left;
+  animation: gpick-in 140ms cubic-bezier(0.22, 0.75, 0.28, 1);
+}
+@keyframes gpick-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gpick__pop {
+    animation: none;
+  }
+}
+.gpick__search {
+  position: relative;
+  margin-bottom: 6px;
+}
+.gpick__search svg {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-3);
+  pointer-events: none;
+}
+.gpick__search .input {
+  margin-top: 0;
+  padding-left: 34px;
+}
+.gpick__list {
+  outline: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.gpick__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 9px 10px;
+  border-radius: var(--r-sm);
+  font-size: var(--t-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+.gpick__option > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gpick__option.active {
+  background: var(--surface-2);
+}
+.gpick__option.selected {
+  color: var(--brand);
+  font-weight: 600;
+}
+.gpick__option svg {
+  flex: none;
+}
+.gpick__empty {
+  margin: 0;
+  padding: var(--s4) var(--s3);
+  text-align: center;
+  font-size: var(--t-sm);
+  color: var(--ink-3);
+}
+
+/* Guruh tanlagich, sana va amal tugmasi bitta asboblar qatorida. */
+.toolbar--picker {
+  flex-wrap: wrap;
+  row-gap: var(--s3);
+}
+.toolbar__date.input {
+  flex: none;
+  width: auto;
+  height: 40px;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Tugma chapda, sana (va amal tugmasi) o'ngda. */
+.toolbar--picker .toolbar__date {
+  margin-left: auto;
+}
+
+@media (max-width: 620px) {
+  .toolbar--picker .gpick {
+    flex: 1 1 100%;
+  }
+  .gpick__trigger {
+    min-width: 0;
+    max-width: none;
+    height: 44px;
+  }
+  .toolbar--picker .toolbar__date.input {
+    flex: 1 1 auto;
+    margin-left: 0;
+  }
+  .gpick__pop {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/* Kunlik hisobot: telefonda holat nishoni ism ostiga tushadi — aks holda
+   uch ustun sig'maydi va "Yozish" tugmasi ekrandan chiqib ketardi. */
+.dr-status-inline {
+  display: none;
+}
+@media (max-width: 620px) {
+  .dr-col-status {
+    display: none;
+  }
+  .dr-status-inline {
+    display: block;
+    margin-top: 4px;
+  }
+}
+
+/* ---- Davomat: telefonda ixcham yuqori qism ----
+   Ilgari telefonda statistika (4 ta katta raqam o'ralib), alohida qatordagi
+   "Saqlash", guruhlar, sana va "Hammasini keldi qilish" ro'yxatdan oldin
+   ~300px joy olardi. Endi statistika bitta qatorda, "Saqlash" esa ro'yxat
+   ostidagi ekranga yopishgan panelda: 20–30 bolani belgilab bo'lgach, uni
+   bosish uchun tepaga qaytish shart emas. */
+.att__save-top {
+  margin-left: auto;
+  align-self: center;
+}
+.att__savebar {
+  display: none;
+}
+@media (max-width: 620px) {
+  .att__sum {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s2);
+    padding: var(--s3) var(--s4);
+  }
+  .att__sum > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    font-size: 11.5px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .att__sum b {
+    font-size: 20px;
+    margin-top: 2px;
+  }
+  /* `.att__sum > div` (0,1,1) dan kuchliroq bo'lishi kerak. */
+  .att__sum > .att__save-top {
+    display: none;
+  }
+  .att__savebar {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    padding: var(--s3);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    border-radius: 0 0 var(--r-md) var(--r-md);
+  }
+  .toolbar--picker .toolbar__date.input {
+    flex: 1 1 150px;
+    min-width: 0;
+  }
+  .att__markall {
+    flex: 1 1 auto;
+  }
+}
+
+.hint--warn {
+  color: var(--warn);
+  text-align: left;
+  margin-top: var(--s2);
+}
+/* Forma ichidagi izoh chapga tekislanadi (umumiy `.hint` markazda turadi). */
+.hint--left {
+  text-align: left;
+  margin-top: var(--s2);
+}
+
+/* ============================================================
+   XODIMLAR: OYLIK VA AVANS HOLATI
+   ------------------------------------------------------------
+   Jadvaldagi "Hisoblash va to'lash" tugmasi ilgari har doim bir xil edi —
+   kimga shu oy oylik to'langani va kim avans olgani ko'rinmasdi. Endi
+   to'langan xodimda tugma yashil "Hisoblandi", avans olganda esa yonida
+   sariq nishon turadi.
+   ============================================================ */
+.payroll-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.btn.payroll-done {
+  background: var(--pos-bg);
+  color: var(--pos);
+  border: 1px solid color-mix(in srgb, var(--pos) 32%, transparent);
+  box-shadow: none;
+}
+.btn.payroll-done:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pos) 16%, var(--surface));
+  color: var(--pos);
+}
+
+.payroll-done-box {
+  margin-bottom: var(--s4);
+  padding: var(--s4);
+  border-radius: var(--r-md);
+  background: var(--pos-bg);
+  border: 1px solid color-mix(in srgb, var(--pos) 25%, transparent);
+}
+.payroll-done-box__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--pos);
+}
+.payroll-done-box__icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pos);
+  color: var(--on-pos);
+}
+.payroll-done-box__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--s3);
+  margin: var(--s3) 0 0;
+}
+.payroll-done-box__grid dt {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+.payroll-done-box__grid dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* Avans tugmasi maydonlar bilan bir chiziqda turadi. */
+.payroll-advance-action {
+  display: flex;
+  align-items: flex-end;
+}
+.payroll-advance-action .btn {
+  width: 100%;
+}
+.payroll-advance-sum {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+.payroll-advance-sum.has {
+  color: var(--warn);
+  font-weight: 600;
+}
+.payroll-hint {
+  text-align: left;
+  margin-top: 6px;
+}
+
+/* ---- To'lov formasi: oxirgi to'lovlar va bekor qilish ----
+   Xato kiritilgan to'lovni tuzatishning interfeysdagi yagona joyi. Tasdiq
+   ro'yxat qatorining o'zida — alohida tasdiq oynasi formani yopib yuborardi. */
+.payform__history {
+  margin: var(--s2) 0 var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line-2);
+}
+.payform__history-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+}
+.payform__history-list li {
+  display: grid;
+  grid-template-columns: 96px 1fr auto auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: 6px 0;
+  font-size: var(--t-sm);
+  border-bottom: 1px solid var(--line-2);
+}
+.payform__history-list li:last-child {
+  border-bottom: none;
+}
+.payform__history-list li.is-reversed {
+  color: var(--ink-3);
+}
+.payform__history-list li.is-reversed b {
+  text-decoration: line-through;
+}
+.payform__confirm {
+  display: inline-flex;
+  gap: 6px;
+}
+@media (max-width: 620px) {
+  .payform__history-list li {
+    grid-template-columns: 1fr auto;
+  }
 }

@@ -1,3 +1,6 @@
-aiogram==3.15.0
+aiogram==3.31.0
+# aiogram aiohttp'ni pastki chegara bilan talab qiladi va pip eski (zaif)
+# versiyani yangilamay qoldiradi — shuning uchun aniq belgilanadi.
+aiohttp==3.14.3
 httpx==0.28.1
 pydantic-settings==2.7.1

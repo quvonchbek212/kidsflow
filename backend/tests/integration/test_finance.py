@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
+from app.utils.timezone import today_local
 from httpx import AsyncClient
 
 from tests.conftest import (
@@ -65,13 +66,14 @@ async def _scenario(client: AsyncClient) -> dict:
             "status": "ACTIVE",
         },
     )
-    fee_plan_id = (
-        await client.post(
-            "/api/v1/fee-plans",
-            headers=auth_header(manager),
-            json={"branch_id": branch_id, "name": "Standart", "monthly_amount": 500000},
-        )
-    ).json()["id"]
+    # Tarif guruhda. Bola tarifsiz guruhga yozilgani uchun ro'yxatga olishda
+    # hisob yaratilmaydi — testlar uni `_generate_invoice` bilan aniq oyga yaratadi.
+    fee = await client.patch(
+        f"/api/v1/groups/{group_id}",
+        headers=auth_header(manager),
+        json={"monthly_fee": 500000},
+    )
+    assert fee.status_code == 200, fee.text
 
     # Parent — to'lov bildirishnomasi uchun.
     parent_user_id = (
@@ -102,7 +104,6 @@ async def _scenario(client: AsyncClient) -> dict:
         "manager": manager,
         "child_id": child_id,
         "branch_id": branch_id,
-        "fee_plan_id": fee_plan_id,
     }
 
 
@@ -113,7 +114,6 @@ async def _generate_invoice(client: AsyncClient, s: dict) -> dict:
         json={
             "branch_id": s["branch_id"],
             "billing_period": "2026-09-15",
-            "fee_plan_id": s["fee_plan_id"],
         },
     )
     assert gen.status_code == 200, gen.text
@@ -418,3 +418,108 @@ async def test_list_branch_expenses_filtered_by_period(client: AsyncClient) -> N
     expenses = resp.json()
     assert len(expenses) == 1
     assert expenses[0]["expense_date"] == "2026-09-10"
+
+
+async def test_generate_invoice_uses_group_monthly_fee(client: AsyncClient) -> None:
+    """Invoice guruhning oylik tarifidan hisoblanadi.
+
+    Ilovada tarif guruh formasida ("Oylik tarif") kiritiladi — bu yo'l
+    ishlamasa invoice doim 0 ta yaratilardi va to'lovlar bo'limi butunlay
+    ishlamasdi.
+
+    Invoice endi bola faol bo'lgan zahoti avtomatik yaratiladi, shuning uchun
+    keyingi qo'lda generatsiya uni ikkilantirmasligi ham tekshiriladi.
+    """
+    setup = await complete_setup(client)
+    branch_id = setup["branch_id"]
+    owner = (await login(client, OWNER_PHONE, OWNER_PASSWORD))["access_token"]
+
+    child_id = (
+        await client.post(
+            "/api/v1/children",
+            headers=auth_header(owner),
+            json={"full_name": "Tarifli Bola", "birth_date": "2021-05-05"},
+        )
+    ).json()["id"]
+    group_id = (
+        await client.post(
+            "/api/v1/groups",
+            headers=auth_header(owner),
+            json={
+                "branch_id": branch_id,
+                "name": "Quyoshcha",
+                "capacity": 10,
+                "monthly_fee": 1200000,
+            },
+        )
+    ).json()["id"]
+    await client.post(
+        f"/api/v1/children/{child_id}/enrollments",
+        headers=auth_header(owner),
+        json={
+            "branch_id": branch_id,
+            "group_id": group_id,
+            "start_date": today_local().replace(day=1).isoformat(),
+            "status": "ACTIVE",
+        },
+    )
+
+    gen = await client.post(
+        "/api/v1/invoices/generate",
+        headers=auth_header(owner),
+        json={"branch_id": branch_id, "billing_period": today_local().isoformat()},
+    )
+    assert gen.status_code == 200, gen.text
+    assert gen.json()["created"] == 0
+    assert gen.json()["skipped"] == 1
+
+    invoices = (
+        await client.get(
+            f"/api/v1/children/{child_id}/invoices",
+            headers=auth_header(owner),
+        )
+    ).json()
+    assert len(invoices) == 1
+    assert _dec(invoices[0]["original_amount"]) == _dec("1200000")
+    assert _dec(invoices[0]["outstanding_amount"]) == _dec("1200000")
+
+
+async def test_generate_invoice_skips_group_without_fee(client: AsyncClient) -> None:
+    """Tarif hech qayerda ko'rsatilmagan bo'lsa invoice yaratilmaydi."""
+    setup = await complete_setup(client)
+    branch_id = setup["branch_id"]
+    owner = (await login(client, OWNER_PHONE, OWNER_PASSWORD))["access_token"]
+
+    child_id = (
+        await client.post(
+            "/api/v1/children",
+            headers=auth_header(owner),
+            json={"full_name": "Tarifsiz Bola", "birth_date": "2021-05-05"},
+        )
+    ).json()["id"]
+    group_id = (
+        await client.post(
+            "/api/v1/groups",
+            headers=auth_header(owner),
+            json={"branch_id": branch_id, "name": "Tarifsiz", "capacity": 10},
+        )
+    ).json()["id"]
+    await client.post(
+        f"/api/v1/children/{child_id}/enrollments",
+        headers=auth_header(owner),
+        json={
+            "branch_id": branch_id,
+            "group_id": group_id,
+            "start_date": "2026-09-01",
+            "status": "ACTIVE",
+        },
+    )
+
+    gen = await client.post(
+        "/api/v1/invoices/generate",
+        headers=auth_header(owner),
+        json={"branch_id": branch_id, "billing_period": "2026-09-15"},
+    )
+    assert gen.status_code == 200, gen.text
+    assert gen.json()["created"] == 0
+    assert gen.json()["skipped"] == 1

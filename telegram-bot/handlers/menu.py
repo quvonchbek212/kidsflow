@@ -11,7 +11,7 @@ from deps import get_client
 from formatters import format_attendance, format_invoices, format_reports
 from keyboards.menus import child_menu_kb, children_kb, main_menu
 from locales.texts import lang_of, t
-from states import AskStates
+from states import AskStates, StaffMessageStates
 
 router = Router()
 
@@ -113,3 +113,38 @@ async def handle_question(message: Message, state: FSMContext) -> None:
     if sources:
         answer += f"\n\n📚 {t('sources', lang)}: " + ", ".join(sources)
     await message.answer(answer, reply_markup=main_menu(lang))
+
+
+@router.callback_query(F.data == "staff")
+async def start_staff_message(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = lang_of(callback.from_user.language_code)
+    await state.set_state(StaffMessageStates.waiting_message)
+    await callback.message.answer(t("staff_prompt", lang))
+    await callback.answer()
+
+
+@router.message(StaffMessageStates.waiting_message)
+async def handle_staff_message(message: Message, state: FSMContext) -> None:
+    """Ota-ona savolini backendga uzatadi.
+
+    AI yordamchisidan farqli o'laroq javob darhol kelmaydi: savol veb-saytdagi
+    Xabarlar bo'limiga tushadi, xodim javob yozganda esa u alohida
+    bildirishnoma sifatida shu chatga keladi.
+    """
+    lang = lang_of(message.from_user.language_code if message.from_user else None)
+    await state.clear()
+    if not message.text or not message.from_user:
+        return
+
+    token = await get_client().get_session_token(message.from_user.id)
+    if not token:
+        await message.answer(t("not_linked", lang))
+        return
+
+    try:
+        await get_client().send_staff_message(token, message.text.strip())
+    except BackendError:
+        await message.answer(t("error", lang))
+        return
+
+    await message.answer(t("staff_sent", lang), reply_markup=main_menu(lang))

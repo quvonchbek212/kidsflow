@@ -30,7 +30,9 @@ def test_control_characters_are_stripped() -> None:
     assert "\r" not in header
     assert "\n" not in header
     ascii_part = header.split('filename="')[1].split('"')[0]
-    assert "X-Injected" not in ascii_part or ":" not in ascii_part.split("X-Injected")[0]
+    assert (
+        "X-Injected" not in ascii_part or ":" not in ascii_part.split("X-Injected")[0]
+    )
 
 
 def test_backslash_is_stripped() -> None:

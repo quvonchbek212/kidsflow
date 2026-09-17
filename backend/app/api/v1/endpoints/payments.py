@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.permissions import CurrentUser
@@ -55,6 +55,21 @@ async def record_payment(
     service = PaymentService(session)
     payment = await service.record(payload, current_user)
     return await _payment_response(service, payment)
+
+
+@router.get(
+    "",
+    response_model=list[PaymentResponse],
+    summary="Bolaning oxirgi to'lovlari (MANAGER/OWNER)",
+)
+async def list_child_payments(
+    child_id: uuid.UUID = Query(...),
+    current_user: CurrentUser = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[PaymentResponse]:
+    service = PaymentService(session)
+    payments = await service.list_for_child(child_id, current_user)
+    return [await _payment_response(service, p) for p in payments]
 
 
 @router.get(

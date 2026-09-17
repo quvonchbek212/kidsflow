@@ -12,6 +12,9 @@ def main_menu(lang: str) -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text=t("btn_children", lang), callback_data="children")],
             [InlineKeyboardButton(text=t("btn_ask", lang), callback_data="ask")],
+            # AI yordamchidan farqli: bu tirik xodimga boradi va javob
+            # veb-saytdagi Xabarlar bo'limidan yoziladi.
+            [InlineKeyboardButton(text=t("btn_staff", lang), callback_data="staff")],
         ]
     )
 

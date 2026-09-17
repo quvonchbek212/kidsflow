@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Collection
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,12 +77,32 @@ class UserRepository:
         )
         return (await self._session.execute(stmt)).first() is not None
 
+    async def roles_for(self, user_id: uuid.UUID) -> set[str]:
+        """Foydalanuvchiga berilgan rol nomlari (muddatidan qat'i nazar)."""
+        stmt = select(UserRoleAssignment.role).where(
+            UserRoleAssignment.user_id == user_id
+        )
+        return set((await self._session.execute(stmt)).scalars().all())
+
+    async def branch_ids_for(self, user_id: uuid.UUID) -> set[uuid.UUID]:
+        """Foydalanuvchi biriktirilgan filiallar (global rollar hisobga olinmaydi)."""
+        stmt = select(UserRoleAssignment.branch_id).where(
+            UserRoleAssignment.user_id == user_id,
+            UserRoleAssignment.branch_id.is_not(None),
+        )
+        rows = (await self._session.execute(stmt)).scalars().all()
+        # `is_not(None)` filtri tufayli None qolmaydi, lekin ustun turi
+        # ixtiyoriy — mypy uchun aniqlashtiramiz.
+        return {branch_id for branch_id in rows if branch_id is not None}
+
     async def list_all(self) -> list[User]:
         stmt = select(User).order_by(User.created_at.desc())
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def list_staff(self, branch_id: uuid.UUID | None = None) -> list[User]:
+    async def list_staff(
+        self, branch_ids: Collection[uuid.UUID] | None = None
+    ) -> list[User]:
         """Yollanma xodimlar ro'yxati.
 
         Ikki toifa chiqarib tashlanadi:
@@ -96,8 +117,9 @@ class UserRepository:
         Ish haqi fondi ham shu metoddan o'qiydi, shuning uchun jadvaldagi
         qatorlar yig'indisi doim yuqoridagi fond raqamiga teng bo'ladi.
 
-        `branch_id` berilsa faqat shu filialga biriktirilgan rolga ega xodimlar
-        qaytariladi.
+        `branch_ids` berilsa faqat shu filiallarga biriktirilgan rolga ega
+        xodimlar qaytariladi. Bo'sh to'plam — "hech bir filial", ya'ni bo'sh
+        ro'yxat; `None` esa "filial bo'yicha cheklov yo'q".
         """
         excluded_ids = select(UserRoleAssignment.user_id).where(
             UserRoleAssignment.role.in_([Role.PARENT.value, Role.OWNER.value])
@@ -107,9 +129,9 @@ class UserRepository:
             .where(User.id.not_in(excluded_ids))
             .order_by(User.created_at.desc())
         )
-        if branch_id is not None:
+        if branch_ids is not None:
             branch_staff_ids = select(UserRoleAssignment.user_id).where(
-                UserRoleAssignment.branch_id == branch_id
+                UserRoleAssignment.branch_id.in_(list(branch_ids))
             )
             stmt = stmt.where(User.id.in_(branch_staff_ids))
         return list((await self._session.execute(stmt)).scalars().all())

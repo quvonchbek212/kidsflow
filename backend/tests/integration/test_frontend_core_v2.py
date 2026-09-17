@@ -103,7 +103,13 @@ async def test_staff_profile_update(client: AsyncClient) -> None:
     assert body["employment_type"] == "FULL_TIME"
 
 
-async def test_staff_profile_update_requires_owner(client: AsyncClient) -> None:
+async def test_manager_updates_staff_in_own_branch(client: AsyncClient) -> None:
+    """MANAGER o'z filialidagi xodim profilini tahrirlaydi.
+
+    Menejer filialning kundalik ishini olib boradi, shuning uchun xodim
+    ma'lumotini ham o'zi yangilaydi. Chegara — filial: begona filialdagi
+    xodimga va bog'cha egasining hisobiga tegib bo'lmaydi (quyidagi testlar).
+    """
     owner, branch_id = await _owner(client)
     staff_id = await create_staff(
         client,
@@ -113,7 +119,7 @@ async def test_staff_profile_update_requires_owner(client: AsyncClient) -> None:
         password="parol12345",
         branch_id=branch_id,
     )
-    manager_id = await create_staff(
+    await create_staff(
         client,
         owner,
         role="MANAGER",
@@ -128,8 +134,128 @@ async def test_staff_profile_update_requires_owner(client: AsyncClient) -> None:
         headers=auth_header(manager),
         json={"employment_type": "PART_TIME"},
     )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["employment_type"] == "PART_TIME"
+
+
+async def test_manager_cannot_touch_other_branch_staff(client: AsyncClient) -> None:
+    """Menejer boshqa filial xodimini tahrirlay olmaydi."""
+    owner, branch_a = await _owner(client)
+    branch_b = (
+        await client.post(
+            "/api/v1/branches",
+            headers=auth_header(owner),
+            json={"name": "Ikkinchi filial", "capacity": 20},
+        )
+    ).json()["id"]
+
+    foreign_staff = await create_staff(
+        client,
+        owner,
+        role="TEACHER",
+        phone="+998900000023",
+        password="parol12345",
+        branch_id=branch_b,
+    )
+    await create_staff(
+        client,
+        owner,
+        role="MANAGER",
+        phone="+998900000024",
+        password="parol12345",
+        branch_id=branch_a,
+    )
+    manager = (await login(client, "+998900000024", "parol12345"))["access_token"]
+
+    resp = await client.patch(
+        f"/api/v1/users/{foreign_staff}",
+        headers=auth_header(manager),
+        json={"employment_type": "PART_TIME"},
+    )
     assert resp.status_code == 403
-    assert manager_id  # faqat yaratilganini ta'kidlash uchun
+
+    # Ro'yxat ham o'z filiali bilan cheklanadi.
+    listed = await client.get("/api/v1/users", headers=auth_header(manager))
+    assert listed.status_code == 200
+    assert foreign_staff not in [u["id"] for u in listed.json()]
+
+
+async def test_staff_created_without_phone_or_email(client: AsyncClient) -> None:
+    """Xodim faqat login va parol bilan yaratiladi.
+
+    Ilgari "telefon yoki email majburiy" qoidasi bor edi — o'shanda kirish
+    aynan shular orqali bo'lardi. Endi login `username`, shuning uchun aloqa
+    ma'lumotisiz ham hisob ochiladi va u ishlaydi.
+    """
+    owner, branch_id = await _owner(client)
+
+    created = await client.post(
+        "/api/v1/users",
+        headers=auth_header(owner),
+        json={
+            "full_name": "Aloqasiz Tarbiyachi",
+            "username": "aloqasiz",
+            "password": "parol12345",
+            "role": "TEACHER",
+            "branch_id": branch_id,
+        },
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["phone"] is None
+    assert body["email"] is None
+
+    # Va shu hisob bilan kirib bo'ladi.
+    signed_in = await client.post(
+        "/api/v1/auth/login",
+        json={"login": "aloqasiz", "password": "parol12345"},
+    )
+    assert signed_in.status_code == 200, signed_in.text
+
+
+async def test_manager_cannot_create_owner(client: AsyncClient) -> None:
+    """Menejer o'ziga yoki boshqasiga OWNER rolini bera olmaydi.
+
+    Aks holda filial cheklovidan chiqib ketish yo'li ochilardi.
+    """
+    owner, branch_id = await _owner(client)
+    await create_staff(
+        client,
+        owner,
+        role="MANAGER",
+        phone="+998900000025",
+        password="parol12345",
+        branch_id=branch_id,
+    )
+    manager = (await login(client, "+998900000025", "parol12345"))["access_token"]
+
+    resp = await client.post(
+        "/api/v1/users",
+        headers=auth_header(manager),
+        json={
+            "full_name": "Yangi egasi",
+            "username": "yangi_egasi",
+            "phone": "+998900000026",
+            "password": "parol12345",
+            "role": "OWNER",
+        },
+    )
+    assert resp.status_code == 403
+
+    # O'z filialiga tarbiyachi qo'shish esa ishlaydi.
+    ok = await client.post(
+        "/api/v1/users",
+        headers=auth_header(manager),
+        json={
+            "full_name": "Yangi tarbiyachi",
+            "username": "yangi_tarbiyachi",
+            "phone": "+998900000027",
+            "password": "parol12345",
+            "role": "TEACHER",
+            "branch_id": branch_id,
+        },
+    )
+    assert ok.status_code == 201, ok.text
 
 
 # --- Bola holati proyeksiyasi + guruh o'zgartirish (transfer) ---
@@ -273,17 +399,12 @@ async def test_standing_discount_applied_on_invoice_generation(
             "discount_percent": "10",
         },
     )
-    fee_plan_id = (
-        await client.post(
-            "/api/v1/fee-plans",
-            headers=auth_header(owner),
-            json={
-                "branch_id": branch_id,
-                "name": "Standart",
-                "monthly_amount": "1000000",
-            },
-        )
-    ).json()["id"]
+    fee = await client.patch(
+        f"/api/v1/groups/{group_id}",
+        headers=auth_header(owner),
+        json={"monthly_fee": 1000000},
+    )
+    assert fee.status_code == 200, fee.text
 
     gen = await client.post(
         "/api/v1/invoices/generate",
@@ -291,7 +412,6 @@ async def test_standing_discount_applied_on_invoice_generation(
         json={
             "branch_id": branch_id,
             "billing_period": "2026-09-15",
-            "fee_plan_id": fee_plan_id,
         },
     )
     assert gen.status_code == 200, gen.text
@@ -550,24 +670,18 @@ async def test_dashboard_extended_analytics(client: AsyncClient) -> None:
             "status": "ACTIVE",
         },
     )
-    fee_plan_id = (
-        await client.post(
-            "/api/v1/fee-plans",
-            headers=auth_header(owner),
-            json={
-                "branch_id": branch_id,
-                "name": "Standart",
-                "monthly_amount": "500000",
-            },
-        )
-    ).json()["id"]
+    fee = await client.patch(
+        f"/api/v1/groups/{group_id}",
+        headers=auth_header(owner),
+        json={"monthly_fee": 500000},
+    )
+    assert fee.status_code == 200, fee.text
     await client.post(
         "/api/v1/invoices/generate",
         headers=auth_header(owner),
         json={
             "branch_id": branch_id,
             "billing_period": "2026-09-15",
-            "fee_plan_id": fee_plan_id,
         },
     )
 
@@ -606,9 +720,11 @@ async def test_dashboard_extended_analytics(client: AsyncClient) -> None:
     assert dash.status_code == 200, dash.text
     body = dash.json()
 
-    # Muddati kelmagan (due_date 2026-09-xx, "bugun" haqiqiy tizim sanasidan oldin).
+    # Qarz qaysi kechikish guruhiga tushishi haqiqiy tizim sanasiga bog'liq
+    # (muddat 2026-09-10) — shuning uchun guruhlar yig'indisi tekshiriladi.
+    # Ilgari `not_due` tekshirilardi va test 10-sentabrdan keyin yiqilardi.
     aging = {row["label"]: _dec(row["total"]) for row in body["aging"]}
-    assert aging["not_due"] == _dec("500000")
+    assert sum(aging.values()) == _dec("500000")
 
     revenue = {row["group_id"]: _dec(row["total"]) for row in body["revenue_by_group"]}
     assert revenue[group_id] == _dec("500000")

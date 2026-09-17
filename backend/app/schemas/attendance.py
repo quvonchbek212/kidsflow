@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.enums import AttendanceStatus
 
@@ -62,7 +62,19 @@ class AttendanceBulkMarkRequest(BaseModel):
 
     group_id: uuid.UUID
     attendance_date: date
-    entries: list[AttendanceBulkEntry] = Field(min_length=1)
+    # Eng katta guruh ham bir necha o'n bola — cheksiz ro'yxat so'rovni og'irlashtirardi.
+    entries: list[AttendanceBulkEntry] = Field(min_length=1, max_length=300)
+
+    @field_validator("entries")
+    @classmethod
+    def _unique_children(
+        cls, entries: list[AttendanceBulkEntry]
+    ) -> list[AttendanceBulkEntry]:
+        # Bir bola ikki marta kelsa, ikkala yozuv ham qo'shilib, bazaning
+        # (bola, sana) unikal cheklovi buzilardi.
+        if len({entry.child_id for entry in entries}) != len(entries):
+            raise ValueError("Bir bola ro'yxatda ikki marta kelgan.")
+        return entries
 
 
 class AttendanceTrendPoint(BaseModel):

@@ -5,44 +5,35 @@ import {
   Suspense,
   useEffect,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
 
-import { AppShell, useAppUI } from "@/components/AppShell";
-import { useConfirm } from "@/components/ui/useConfirm";
+import { useAppUI } from "@/components/AppShell";
+import { PaymentForm } from "@/components/PaymentForm";
+import { CountUp } from "@/components/ui/CountUp";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { LoadError, recoverWith } from "@/components/ui/LoadError";
 import { useModal } from "@/components/ui/ModalProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import {
-  ApiError,
   api,
   type Child,
-  type FeePlan,
   type Invoice,
 } from "@/lib/api";
 import {
   initials,
   invoiceStatus,
   invoiceTone,
-  isoDate,
   mlnf,
-  money,
   moneyPlain,
   monthRange,
 } from "@/lib/format";
-import { useAuth } from "@/lib/useAuth";
 
 export default function BillingPage(): ReactNode {
-  const { user, loading } = useAuth();
-  if (loading || !user) return <div className="boot-screen">KIDSFLOW</div>;
   return (
-    <AppShell user={user} active="payments">
-      <Suspense fallback={null}>
-        <BillingContent />
-      </Suspense>
-    </AppShell>
+    <Suspense fallback={null}>
+      <BillingContent />
+    </Suspense>
   );
 }
 
@@ -54,13 +45,11 @@ function BillingContent(): ReactNode {
   }, [setPageMeta, t]);
   const modal = useModal();
   const toast = useToast();
-  const confirm = useConfirm();
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [billingMonth, setBillingMonth] = useState(monthRange().start);
   const [children, setChildren] = useState<Child[]>([]);
-  const [feePlans, setFeePlans] = useState<FeePlan[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [childGroup, setChildGroup] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
@@ -72,24 +61,25 @@ function BillingContent(): ReactNode {
     setLoadError(null);
     Promise.all([
       api.listChildren(branchId),
-      api.listFeePlans(),
       api
         .branchInvoices(branchId, billingMonth)
         .catch(recoverWith("Hisob-fakturalar", [])),
+      api.listGroups(branchId).catch(recoverWith("Guruhlar", [])),
     ])
-      .then(async ([childList, plans, inv]) => {
+      .then(([childList, inv, groupList]) => {
         setChildren(childList);
-        setFeePlans(plans.filter((p) => p.branch_id === branchId));
         setInvoices(inv);
 
-        // Bola→guruh nomi xaritasi bitta so'rovda. Ilgari avval guruhlar
-        // ro'yxati, keyin har bir guruh uchun alohida roster olinardi.
-        const attendance = await api
-          .branchAttendanceSummary(branchId, isoDate(new Date()))
-          .catch(recoverWith("Guruh taqsimoti", null));
+        // Bola→guruh nomi: bolaning o'z enrollmentidan. Ilgari buning uchun
+        // butun filialning kunlik davomat xulosasi (og'ir so'rov) olinardi.
+        const names = new Map(groupList.map((g) => [g.id, g.name]));
         const map: Record<string, string> = {};
-        for (const group of attendance?.groups ?? []) {
-          for (const row of group.rows) map[row.child_id] = group.group_name;
+        for (const c of childList) {
+          const name =
+            c.status !== "left" && c.enrollment
+              ? names.get(c.enrollment.group_id)
+              : undefined;
+          if (name) map[c.id] = name;
         }
         setChildGroup(map);
       })
@@ -99,13 +89,17 @@ function BillingContent(): ReactNode {
 
   useEffect(load, [branchId, billingMonth]);
 
+  // `?new=1` (boshqaruv paneli yoki "Yangi" menyusidan) — forma bolalar
+  // ro'yxati yuklangach ochiladi. Ilgari u darhol ochilib, bo'sh ro'yxat
+  // bilan qolardi.
   useEffect(() => {
+    if (!ready) return;
     if (searchParams.get("new") === "1") {
       openPaymentForm(null);
       router.replace("/billing");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, ready]);
 
   function childName(id: string): string {
     return children.find((c) => c.id === id)?.full_name ?? id;
@@ -124,237 +118,24 @@ function BillingContent(): ReactNode {
     0,
   );
 
-  function openGenerateInvoices(): void {
-    let genMonth = billingMonth;
-    let feePlanId = feePlans[0]?.id ?? "";
-    let dueDate = billingMonth.slice(0, 8) + "10";
-    let saving = false;
-    let error = "";
-    let result = "";
-
-    function render(): void {
-      modal.open(
-        <form
-          onSubmit={async (e: FormEvent) => {
-            e.preventDefault();
-            saving = true;
-            error = "";
-            render();
-            try {
-              const dueDay = Number(dueDate.slice(8, 10));
-              const res = await api.generateInvoices(
-                branchId,
-                genMonth,
-                feePlanId || undefined,
-                dueDay,
-              );
-              result = `${res.created} ${t.payments.invoicesCreated}, ${res.skipped} ${t.payments.invoicesSkipped}`;
-              setBillingMonth(genMonth);
-              render();
-              load();
-            } catch (err) {
-              error = err instanceof ApiError ? err.message : t.common.errTitle;
-              saving = false;
-              render();
-            }
-          }}
-        >
-          <div className="form-grid">
-            <div className="field">
-              <label>{t.common.period}</label>
-              <input
-                className="input"
-                type="date"
-                defaultValue={genMonth}
-                onChange={(e) => (genMonth = e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label>{t.payments.dueDate}</label>
-              <input
-                className="input"
-                type="date"
-                defaultValue={dueDate}
-                onChange={(e) => (dueDate = e.target.value)}
-              />
-            </div>
-            <div className="field span-2">
-              <label>{t.groups.monthlyFee} (fallback)</label>
-              <select
-                className="input"
-                defaultValue={feePlanId}
-                onChange={(e) => (feePlanId = e.target.value)}
-              >
-                {feePlans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {money(p.monthly_amount)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {result && (
-            <p className="info-box" style={{ marginTop: 12 }}>
-              {result}
-            </p>
-          )}
-          {error && <p className="error">{error}</p>}
-          <button
-            className="btn"
-            type="submit"
-            disabled={saving}
-            style={{ marginTop: 8 }}
-          >
-            {saving ? t.common.saving : t.payments.generateInvoices}
-          </button>
-        </form>,
-        { title: t.payments.generateInvoices, size: "default" },
-      );
-    }
-    render();
-  }
-
   function openPaymentForm(invoice: Invoice | null): void {
-    let childId = invoice?.child_id ?? children[0]?.id ?? "";
-    let amount = invoice ? invoice.outstanding_amount : "";
-    let method = "CASH";
-    let paidAt = isoDate(new Date());
-    let reference = "";
-    let saving = false;
-    let error = "";
-
-    function render(): void {
-      modal.open(
-        <form
-          onSubmit={async (e: FormEvent) => {
-            e.preventDefault();
-            saving = true;
-            error = "";
-            render();
-            try {
-              await api.recordPayment({
-                child_id: childId,
-                amount,
-                payment_method: method,
-                paid_at: new Date(paidAt).toISOString(),
-                reference: reference || undefined,
-              });
-              modal.close();
-              toast.show(t.payments.paymentDone);
-              load();
-            } catch (err) {
-              error = err instanceof ApiError ? err.message : t.common.errTitle;
-              saving = false;
-              render();
-            }
-          }}
-        >
-          <div className="form-grid">
-            <div className="field span-2">
-              <label>{t.payments.child}</label>
-              <select
-                className="input"
-                defaultValue={childId}
-                onChange={(e) => (childId = e.target.value)}
-              >
-                {children.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>
-                {t.payments.amount} ({t.common.sum})
-              </label>
-              <input
-                className="input"
-                inputMode="decimal"
-                defaultValue={amount}
-                required
-                onChange={(e) => (amount = e.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label>{t.common.date}</label>
-              <input
-                className="input"
-                type="date"
-                defaultValue={paidAt}
-                onChange={(e) => (paidAt = e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="segmented" style={{ marginBottom: 16 }}>
-            {(["CASH", "CARD", "TERMINAL", "BANK", "OTHER"] as const).map(
-              (m) => (
-                <button
-                  type="button"
-                  key={m}
-                  className={method === m ? "on" : ""}
-                  onClick={() => {
-                    method = m;
-                    render();
-                  }}
-                >
-                  {m === "CASH"
-                    ? t.payments.cash
-                    : m === "CARD"
-                      ? t.payments.card
-                      : m === "TERMINAL"
-                        ? t.payments.terminal
-                        : m === "BANK"
-                          ? t.payments.bank
-                          : t.payments.other}
-                </button>
-              ),
-            )}
-          </div>
-          <div className="field">
-            <label>
-              {t.common.reason} ({t.common.optional})
-            </label>
-            <input
-              className="input"
-              defaultValue={reference}
-              onChange={(e) => (reference = e.target.value)}
-            />
-          </div>
-          {error && <p className="error">{error}</p>}
-          <button
-            className="btn"
-            type="submit"
-            disabled={saving}
-            style={{ marginTop: 8 }}
-          >
-            {saving ? t.common.saving : t.payments.savePayment}
-          </button>
-        </form>,
-        { title: t.payments.takePayment, size: "default" },
-      );
-    }
-    render();
-  }
-
-  async function cancelInvoice(invoice: Invoice): Promise<void> {
-    const ok = await confirm({
-      title: t.common.confirm,
-      body: t.payments.cancelInvoice,
-      confirmLabel: t.common.confirm,
-      cancelLabel: t.common.cancel,
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      await api.cancelInvoice(invoice.id);
-      toast.show(t.payments.cancelDone);
-      load();
-    } catch (err) {
-      toast.show(err instanceof ApiError ? err.message : t.common.errTitle, {
-        type: "neg",
-      });
-    }
+    modal.open(
+      <PaymentForm
+        childList={children}
+        childGroup={childGroup}
+        initialChildId={invoice?.child_id}
+        initialAmount={invoice?.outstanding_amount}
+        t={t}
+        onCancel={modal.close}
+        onChanged={load}
+        onSaved={() => {
+          modal.close();
+          toast.show(t.payments.paymentDone);
+          load();
+        }}
+      />,
+      { title: t.payments.takePayment, size: "default" },
+    );
   }
 
   const columns: DataTableColumn<Invoice>[] = [
@@ -445,24 +226,13 @@ function BillingContent(): ReactNode {
       label: t.common.status,
       align: "right",
       sortValue: (i) => i.status,
+      // Hisob-fakturani bekor qilish tugmasi ("✕") olib tashlangan:
+      // hisoblar avtomatik yaratiladi. Backenddagi bekor qilish endpointi
+      // saqlanib qolgan.
       render: (i) => (
-        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          <span className={`badge badge--${invoiceTone(i.status)}`}>
-            {invoiceStatus(i.status)}
-          </span>
-          {i.status !== "CANCELLED" && i.status !== "PAID" && (
-            <button
-              type="button"
-              className="btn--quiet btn btn-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                cancelInvoice(i);
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        <span className={`badge badge--${invoiceTone(i.status)}`}>
+          {invoiceStatus(i.status)}
+        </span>
       ),
     },
   ];
@@ -481,6 +251,8 @@ function BillingContent(): ReactNode {
         <input
           className="input"
           type="date"
+          aria-label={t.common.period}
+          title={t.common.period}
           value={billingMonth}
           onChange={(e) => setBillingMonth(e.target.value)}
           style={{ marginTop: 0, width: "auto" }}
@@ -493,7 +265,7 @@ function BillingContent(): ReactNode {
             <span className="kpi__label">{t.payments.billed}</span>
           </div>
           <div className="kpi__value">
-            {mlnf(totalBilled)}
+            <CountUp value={totalBilled} format={mlnf} />
             <span className="kpi__unit">{t.common.mln}</span>
           </div>
         </div>
@@ -507,7 +279,7 @@ function BillingContent(): ReactNode {
             )}
           </div>
           <div className="kpi__value" style={{ color: "var(--pos)" }}>
-            {mlnf(totalCollected)}
+            <CountUp value={totalCollected} format={mlnf} />
             <span className="kpi__unit">{t.common.mln}</span>
           </div>
         </div>
@@ -516,7 +288,7 @@ function BillingContent(): ReactNode {
             <span className="kpi__label">{t.payments.outstanding}</span>
           </div>
           <div className="kpi__value" style={{ color: "var(--neg)" }}>
-            {mlnf(totalOutstanding)}
+            <CountUp value={totalOutstanding} format={mlnf} />
             <span className="kpi__unit">{t.common.mln}</span>
           </div>
         </div>
@@ -575,27 +347,22 @@ function BillingContent(): ReactNode {
           }}
           onRowClick={(i) => openPaymentForm(i)}
           emptyTitle={t.common.nothingFound}
-          emptySub={t.common.nothingFoundSub}
+          emptySub={
+            invoices.length === 0
+              ? t.payments.autoInvoiceHint
+              : t.common.nothingFoundSub
+          }
           clearFiltersLabel={t.common.clearFilters}
           showingLabel={t.common.showing}
           ofLabel={t.common.of}
           actions={
-            <>
-              <button
-                type="button"
-                className="btn-ghost btn btn-sm"
-                onClick={openGenerateInvoices}
-              >
-                {t.payments.generateInvoices}
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => openPaymentForm(null)}
-              >
-                + {t.payments.newPayment}
-              </button>
-            </>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => openPaymentForm(null)}
+            >
+              + {t.payments.newPayment}
+            </button>
           }
         />
       )}
